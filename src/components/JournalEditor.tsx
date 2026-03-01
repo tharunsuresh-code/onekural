@@ -1,0 +1,217 @@
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import SignInModal from "./SignInModal";
+import type { Kural } from "@/lib/types";
+
+const LOCAL_KEY = "kural-journals";
+
+interface LocalJournals {
+  [kuralId: string]: string;
+}
+
+function getLocalJournals(): LocalJournals {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function setLocalJournal(kuralId: number, text: string) {
+  const journals = getLocalJournals();
+  if (text.trim()) {
+    journals[String(kuralId)] = text;
+  } else {
+    delete journals[String(kuralId)];
+  }
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(journals));
+}
+
+interface JournalEditorProps {
+  kural: Kural;
+  onClose: () => void;
+}
+
+export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
+  const { user } = useAuth();
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [journalId, setJournalId] = useState<string | null>(null);
+  const [showNudge, setShowNudge] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Load existing journal entry for this kural
+  useEffect(() => {
+    if (user) {
+      // Logged in: load from Supabase
+      (async () => {
+        const { data } = await supabase
+          .from("journals")
+          .select("id, reflection")
+          .eq("user_id", user.id)
+          .eq("kural_id", kural.id)
+          .maybeSingle();
+
+        if (data) {
+          setText(data.reflection ?? "");
+          setJournalId(data.id);
+        }
+      })();
+    } else {
+      // Anonymous: load from localStorage
+      const local = getLocalJournals();
+      setText(local[String(kural.id)] ?? "");
+    }
+  }, [user, kural.id]);
+
+  const saveToSupabase = useCallback(
+    async (reflection: string) => {
+      if (!user) return;
+      setSaving(true);
+      setSaved(false);
+
+      if (journalId) {
+        await supabase
+          .from("journals")
+          .update({ reflection, updated_at: new Date().toISOString() })
+          .eq("id", journalId);
+      } else {
+        const { data } = await supabase
+          .from("journals")
+          .insert({ user_id: user.id, kural_id: kural.id, reflection })
+          .select("id")
+          .single();
+        if (data) setJournalId(data.id);
+      }
+
+      setSaving(false);
+      setSaved(true);
+    },
+    [user, kural.id, journalId]
+  );
+
+  const saveToLocal = useCallback(
+    (reflection: string) => {
+      setLocalJournal(kural.id, reflection);
+      setSaved(true);
+      // Show sign-in nudge after first meaningful write
+      if (reflection.trim().length > 20 && !showNudge) {
+        setShowNudge(true);
+      }
+    },
+    [kural.id, showNudge]
+  );
+
+  const handleChange = (value: string) => {
+    setText(value);
+    setSaved(false);
+
+    // Debounced auto-save
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (user) {
+        saveToSupabase(value);
+      } else {
+        saveToLocal(value);
+      }
+    }, 1000);
+  };
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-dark/40 z-[60]"
+        onClick={onClose}
+      />
+
+      {/* Editor panel */}
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        className="fixed bottom-0 left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto"
+        style={{ maxHeight: "80dvh" }}
+      >
+        {/* Handle */}
+        <div className="w-10 h-1 bg-dark/15 rounded-full mx-auto mt-3 mb-2" />
+
+        <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(80dvh - 20px)" }}>
+          {/* Kural reference */}
+          <div className="mb-4 pt-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-dark/40">
+                Reflecting on Kural #{kural.id}
+              </span>
+              <button
+                onClick={onClose}
+                className="text-xs text-dark/40 hover:text-dark transition-colors"
+              >
+                Done
+              </button>
+            </div>
+            <p className="font-tamil text-sm text-dark/70 leading-relaxed">
+              {kural.kural_tamil}
+            </p>
+          </div>
+
+          {/* Textarea */}
+          <textarea
+            value={text}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder="Write your reflection..."
+            className="w-full bg-white border border-dark/10 rounded-xl p-4 text-sm text-dark leading-relaxed placeholder:text-dark/30 focus:outline-none focus:border-saffron resize-none transition-colors"
+            rows={6}
+            autoFocus
+          />
+
+          {/* Save status */}
+          <div className="flex items-center justify-between mt-2 h-5">
+            <span />
+            {saving && (
+              <span className="text-xs text-dark/40">Saving...</span>
+            )}
+            {saved && !saving && (
+              <span className="text-xs text-green-600">
+                {user ? "Saved" : "Saved locally"}
+              </span>
+            )}
+          </div>
+
+          {/* Soft sign-in nudge for anonymous users */}
+          {!user && showNudge && (
+            <p className="text-xs text-dark/40 text-center mt-3">
+              <button
+                onClick={() => setShowSignIn(true)}
+                className="text-saffron hover:underline"
+              >
+                Sign in
+              </button>
+              {" "}to sync your reflections across devices
+            </p>
+          )}
+        </div>
+      </motion.div>
+
+      <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
+    </>
+  );
+}

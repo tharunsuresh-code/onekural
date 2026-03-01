@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code session files
+.claude/
+
+# Generated icons (built at deploy time)
+public/icons/
+.seed-dist/
