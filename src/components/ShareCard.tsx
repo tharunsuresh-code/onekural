@@ -23,6 +23,9 @@ const SAFFRON = "#F4A528";
 const DARK = "#1A1A1A";
 const DEEP_RED = "#8B1A1A";
 
+// Layout
+const BOX_PADDING = 40;
+
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -61,20 +64,22 @@ function measureContent(
   // Decorative dot + gap
   h += 12 + 40;
 
-  // Chapter badge line + gap before Tamil
+  // Chapter badge line + gap before Tamil box
   ctx.font = "28px Inter, sans-serif";
-  h += 28 + 80;
+  h += 28 + 40;
 
-  // Tamil text
+  // Tamil box = BOX_PADDING top + text height + BOX_PADDING bottom
   ctx.font = "52px 'Noto Serif Tamil', serif";
   const tamilLines = kural.kural_tamil.split("\n");
+  let tamilH = 0;
   for (const line of tamilLines) {
     const { lines } = wrapText(ctx, line.trim(), 0, contentWidth, 72);
-    h += lines.length * 72;
+    tamilH += lines.length * 72;
   }
+  h += BOX_PADDING + tamilH + BOX_PADDING;
 
-  // Divider gap
-  h += 20 + 4 + 40;
+  // Gap after box
+  h += 48;
 
   // Transliteration
   ctx.font = "italic 28px Inter, sans-serif";
@@ -84,8 +89,10 @@ function measureContent(
     h += lines.length * 40;
   }
 
-  // Gap + meaning text (centered, no box)
-  h += 50;
+  // Divider between transliteration and meaning
+  h += 20 + 2 + 20;
+
+  // Meaning text
   ctx.font = "30px Inter, sans-serif";
   const { lines: meaningLines } = wrapText(ctx, kural.meaning_english, 0, contentWidth, 46);
   h += meaningLines.length * 46;
@@ -109,14 +116,6 @@ async function generateImage(
   // Background
   ctx.fillStyle = CREAM;
   ctx.fillRect(0, 0, w, h);
-
-  // Uniform saffron border on all 4 sides
-  const BORDER = 6;
-  ctx.fillStyle = SAFFRON;
-  ctx.fillRect(0, 0, w, BORDER);           // top
-  ctx.fillRect(0, h - BORDER, w, BORDER);  // bottom
-  ctx.fillRect(0, 0, BORDER, h);           // left
-  ctx.fillRect(w - BORDER, 0, BORDER, h);  // right
 
   // Measure content to vertically center it
   const contentHeight = measureContent(ctx, kural, contentWidth);
@@ -144,27 +143,42 @@ async function generateImage(
     w / 2,
     yPos
   );
-  yPos += 80;
+  yPos += 40;
 
-  // Tamil text — handle multiline
-  const tamilLines = kural.kural_tamil.split("\n");
+  // Tamil text — measure first, then draw with rounded box behind
   ctx.font = "52px 'Noto Serif Tamil', serif";
-  ctx.fillStyle = DARK;
-  ctx.textAlign = "center";
-
+  const tamilLines = kural.kural_tamil.split("\n");
+  const tamilAllLines: string[] = [];
   for (const line of tamilLines) {
     const { lines } = wrapText(ctx, line.trim(), w / 2, contentWidth, 72);
-    for (const wrappedLine of lines) {
-      ctx.fillText(wrappedLine, w / 2, yPos);
-      yPos += 72;
-    }
+    tamilAllLines.push(...lines);
   }
+  const tamilTextH = tamilAllLines.length * 72;
+  const boxH = BOX_PADDING + tamilTextH + BOX_PADDING;
 
-  // Saffron divider
-  yPos += 20;
-  ctx.fillStyle = SAFFRON;
-  ctx.fillRect(w / 2 - 30, yPos, 60, 4);
-  yPos += 40;
+  // Draw box
+  ctx.fillStyle = SAFFRON + "15";
+  ctx.strokeStyle = SAFFRON + "60";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(pad, yPos, contentWidth, boxH, 20);
+  ctx.fill();
+  ctx.stroke();
+
+  // Draw Tamil text vertically centered in box
+  const boxCenterY = yPos + boxH / 2;
+  const firstLineY = boxCenterY - ((tamilAllLines.length - 1) * 72) / 2;
+  ctx.fillStyle = DARK;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i < tamilAllLines.length; i++) {
+    ctx.fillText(tamilAllLines[i], w / 2, firstLineY + i * 72);
+  }
+  ctx.textBaseline = "alphabetic";
+  yPos += boxH;
+
+  // Gap after box
+  yPos += 48;
 
   // Transliteration
   ctx.font = "italic 28px Inter, sans-serif";
@@ -179,9 +193,12 @@ async function generateImage(
     }
   }
 
-  yPos += 50;
+  // Saffron divider — centered between transliteration and explanation
+  ctx.fillStyle = SAFFRON;
+  ctx.fillRect(w / 2 - 30, yPos, 60, 3);
+  yPos += 44;
 
-  // English meaning — centered, no box
+  // English meaning
   ctx.font = "30px Inter, sans-serif";
   ctx.fillStyle = DARK + "CC";
   ctx.textAlign = "center";
@@ -254,22 +271,40 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
   const [canShare, setCanShare] = useState(false);
   const [mounted, setMounted] = useState(false);
   const blobRef = useRef<Blob | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const sheetY = useMotionValue(SHEET_HEIGHT);
+  const historyPushed = useRef(false);
 
   useEffect(() => {
     setCanShare(typeof navigator !== "undefined" && !!navigator.share);
   }, []);
 
-  // Animate sheet in on mount
+  // Animate sheet in + push history entry for back-button dismiss
   useEffect(() => {
     setMounted(true);
     requestAnimationFrame(() => {
       animate(sheetY, 0, { type: "spring", stiffness: 380, damping: 38 });
     });
+
+    if (typeof window !== "undefined") {
+      history.pushState({ oneKuralSheet: true }, "");
+      historyPushed.current = true;
+      const handlePopState = () => {
+        historyPushed.current = false;
+        animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
+      };
+      window.addEventListener("popstate", handlePopState);
+      return () => window.removeEventListener("popstate", handlePopState);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function dismiss() {
+    if (historyPushed.current) {
+      historyPushed.current = false;
+      history.back(); // fires popstate → animates out + calls onClose
+      return;
+    }
     animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
   }
 
@@ -357,9 +392,13 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
         </div>
 
         <div
+          ref={scrollRef}
           className="px-6 pb-8 overflow-y-auto"
           style={{ touchAction: "pan-y" }}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            const el = scrollRef.current;
+            if (el && el.scrollHeight > el.clientHeight) e.stopPropagation();
+          }}
         >
           <div className="flex items-center justify-between mb-4 pt-3">
             <h2 className="text-base font-semibold text-dark">Share Kural</h2>
@@ -386,19 +425,27 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
           </div>
 
           {/* Preview */}
-          <div className="bg-white rounded-xl border border-dark/10 p-3 mb-4">
+          <div className="bg-white rounded-xl border border-dark/10 p-3 mb-4 flex justify-center">
             {previewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={previewUrl}
                 alt="Share card preview"
-                className="w-full rounded-lg"
-                style={{ aspectRatio: ratio === "story" ? "9 / 16" : "1 / 1" }}
+                className="rounded-lg"
+                style={
+                  ratio === "story"
+                    ? { height: "260px", width: "auto" }
+                    : { width: "100%", aspectRatio: "1 / 1" }
+                }
               />
             ) : (
               <div
-                className="w-full bg-dark/5 rounded-lg flex items-center justify-center"
-                style={{ aspectRatio: ratio === "story" ? "9 / 16" : "1 / 1" }}
+                className="bg-dark/5 rounded-lg flex items-center justify-center"
+                style={
+                  ratio === "story"
+                    ? { height: "260px", aspectRatio: "9 / 16" }
+                    : { width: "100%", aspectRatio: "1 / 1" }
+                }
               >
                 <div className="w-5 h-5 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
               </div>

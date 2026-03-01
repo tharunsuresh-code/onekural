@@ -107,12 +107,15 @@ export default function CommentariesSheet({ kural, open, onClose }: Commentaries
           </button>
         </div>
 
-        {/* Scrollable content — stopPropagation prevents drag conflict with scroll */}
+        {/* Scrollable content — only block drag when scrolled away from top */}
         <div
           ref={scrollRef}
           className="overflow-y-auto px-6 pb-8"
           style={{ touchAction: "pan-y" }}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            const el = scrollRef.current;
+            if (el && el.scrollHeight > el.clientHeight) e.stopPropagation();
+          }}
         >
           {/* Tamil kural reminder */}
           <p className="font-tamil text-lg leading-loose text-dark text-center whitespace-pre-line mb-4 pb-4 border-b border-dark/10">

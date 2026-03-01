@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import Link from "next/link";
 import type { Kural } from "@/lib/types";
 import { BOOK_NAMES } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
@@ -10,7 +10,7 @@ import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
 import CommentariesSheet from "./CommentariesSheet";
 
-interface KuralCardProps {
+interface KuralDetailCardProps {
   initialKural: Kural;
 }
 
@@ -25,7 +25,8 @@ async function fetchKural(id: number): Promise<Kural | null> {
   }
 }
 
-export default function KuralCard({ initialKural }: KuralCardProps) {
+export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) {
+  const router = useRouter();
   const [kural, setKural] = useState<Kural>(initialKural);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
@@ -33,30 +34,9 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
   const [showCommentaries, setShowCommentaries] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
 
-  // Horizontal swipe only — no y motion value so card never moves vertically
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
-
-  // Midnight IST rollover
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState !== "visible") return;
-      const nowIST = new Date().toLocaleDateString("en-CA", {
-        timeZone: "Asia/Kolkata",
-      });
-      const loadedDate = sessionStorage.getItem("kural-date");
-      if (loadedDate && loadedDate !== nowIST) {
-        window.location.reload();
-      }
-    };
-    const nowIST = new Date().toLocaleDateString("en-CA", {
-      timeZone: "Asia/Kolkata",
-    });
-    sessionStorage.setItem("kural-date", nowIST);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
 
   const navigateKural = useCallback(
     async (direction: "prev" | "next") => {
@@ -79,14 +59,12 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
       const threshold = 50;
       const velocityThreshold = 300;
 
-      // Swipe up: open commentaries (only when vertical movement dominates)
       const isVertical = Math.abs(info.offset.y) > Math.abs(info.offset.x);
       if (isVertical && (info.offset.y < -threshold || info.velocity.y < -velocityThreshold)) {
         setShowCommentaries(true);
         return;
       }
 
-      // Horizontal swipes: prev/next kural
       if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
         navigateKural("next");
       } else if (info.offset.x > threshold || info.velocity.x > velocityThreshold) {
@@ -94,16 +72,10 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
       }
       animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
     },
-    [navigateKural, x, kural.id]
+    [navigateKural, x]
   );
 
   const bookName = BOOK_NAMES[kural.book]?.english ?? "";
-  const dateStr = new Date().toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "Asia/Kolkata",
-  });
   const faved = isFavorite(kural.id);
   const prevId = kural.id > 1 ? kural.id - 1 : 1330;
   const nextId = kural.id < 1330 ? kural.id + 1 : 1;
@@ -112,25 +84,17 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
     <>
       <main className="relative flex flex-col h-dvh max-w-content mx-auto px-6 pt-14 pb-24 select-none">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="flex items-center justify-between mb-10"
-        >
-          <div>
-            <p className="text-xs uppercase tracking-widest text-saffron font-semibold">
-              Today&apos;s Kural
-            </p>
-            <p className="text-sm text-dark/50 mt-0.5" suppressHydrationWarning>{dateStr}</p>
-          </div>
-          <Link
-            href={`/kural/${kural.id}`}
-            className="text-xs bg-saffron/10 text-saffron border border-saffron/30 rounded-full px-3 py-1 font-medium"
+        <div className="flex items-center justify-between mb-10">
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-dark/50 hover:text-saffron transition-colors"
           >
+            ← Back
+          </button>
+          <span className="text-xs bg-saffron/10 text-saffron border border-saffron/30 rounded-full px-3 py-1 font-medium">
             #{kural.id}
-          </Link>
-        </motion.div>
+          </span>
+        </div>
 
         {/* Edge swipe hints */}
         <div className="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none opacity-40">
@@ -146,7 +110,7 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
           <span className="text-[9px] font-medium text-dark/50">#{nextId}</span>
         </div>
 
-        {/* Swipeable card — horizontal drag only, card never moves vertically */}
+        {/* Swipeable card */}
         <motion.div
           key={kural.id}
           drag
@@ -157,7 +121,7 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
           style={{ x, opacity, rotate }}
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ duration: 0.3 }}
           className="flex-1 flex flex-col justify-center"
         >
           {/* Chapter badge */}
@@ -199,12 +163,7 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
         </motion.div>
 
         {/* Action row */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="flex items-center justify-between pt-4 border-t border-dark/10"
-        >
+        <div className="flex items-center justify-between pt-4 border-t border-dark/10">
           <button
             onClick={() => toggleFavorite(kural.id)}
             className={`text-sm flex items-center gap-1.5 transition-colors ${
@@ -225,7 +184,7 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
           >
             <span>↑</span> Share
           </button>
-        </motion.div>
+        </div>
       </main>
 
       {showJournal && (

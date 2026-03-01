@@ -9,6 +9,35 @@ import type { Kural } from "@/lib/types";
 
 const LOCAL_KEY = "kural-journals";
 
+function useKeyboardOffset(): number {
+  const [offset, setOffset] = useState(0);
+  const initialVVHeight = useRef(0);
+  const initialWinHeight = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    initialVVHeight.current = vv?.height ?? window.innerHeight;
+    initialWinHeight.current = window.innerHeight;
+
+    function update() {
+      // visualViewport shrinks on iOS Safari; window.innerHeight shrinks on Firefox/Android
+      const vvDiff = initialVVHeight.current - (vv?.height ?? window.innerHeight);
+      const winDiff = initialWinHeight.current - window.innerHeight;
+      setOffset(Math.max(0, vvDiff, winDiff));
+    }
+
+    vv?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  return offset;
+}
+
 interface LocalJournals {
   [kuralId: string]: string;
 }
@@ -39,6 +68,29 @@ interface JournalEditorProps {
 
 export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
   const { user } = useAuth();
+  const keyboardOffset = useKeyboardOffset();
+  const historyPushed = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    history.pushState({ oneKuralSheet: true }, "");
+    historyPushed.current = true;
+    const handlePopState = () => {
+      historyPushed.current = false;
+      onClose();
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [onClose]);
+
+  function dismiss() {
+    if (historyPushed.current) {
+      historyPushed.current = false;
+      history.back(); // fires popstate → calls onClose
+      return;
+    }
+    onClose();
+  }
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -139,17 +191,17 @@ export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-dark/40 z-[60]"
-        onClick={onClose}
+        onClick={dismiss}
       />
 
-      {/* Editor panel */}
+      {/* Editor panel — shifts up when keyboard opens */}
       <motion.div
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed bottom-0 left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto"
-        style={{ maxHeight: "80dvh" }}
+        className="fixed left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto"
+        style={{ maxHeight: "80dvh", bottom: keyboardOffset }}
       >
         {/* Handle */}
         <div className="w-10 h-1 bg-dark/15 rounded-full mx-auto mt-3 mb-2" />
@@ -162,7 +214,7 @@ export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
                 Reflecting on Kural #{kural.id}
               </span>
               <button
-                onClick={onClose}
+                onClick={dismiss}
                 className="text-xs text-dark/40 hover:text-dark transition-colors"
               >
                 Done
@@ -181,6 +233,10 @@ export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
             className="w-full bg-white border border-dark/10 rounded-xl p-4 text-sm text-dark leading-relaxed placeholder:text-dark/30 focus:outline-none focus:border-saffron resize-none transition-colors"
             rows={6}
             autoFocus
+            onFocus={(e) => {
+              // Fallback: ensure textarea scrolls into view after keyboard opens
+              setTimeout(() => e.target.scrollIntoView({ block: "nearest", behavior: "smooth" }), 300);
+            }}
           />
 
           {/* Save status */}
