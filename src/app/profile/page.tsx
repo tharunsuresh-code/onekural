@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import SignInModal from "@/components/SignInModal";
 import { subscribeToPush, unsubscribeFromPush, isPushSubscribed } from "@/lib/push";
 
-function DailyReminderToggle({ userId }: { userId: string }) {
+function DailyReminderToggle({ userId }: { userId?: string }) {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pushAvailable, setPushAvailable] = useState(false);
@@ -34,7 +34,7 @@ function DailyReminderToggle({ userId }: { userId: string }) {
   async function toggle() {
     setLoading(true);
     if (subscribed) {
-      const ok = await unsubscribeFromPush(userId);
+      const ok = await unsubscribeFromPush();
       if (ok) setSubscribed(false);
     } else {
       const permission = await Notification.requestPermission();
@@ -165,12 +165,10 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Daily reminder toggle (logged-in + push capable only) */}
-      {user && (
-        <div className="mb-4">
-          <DailyReminderToggle userId={user.id} />
-        </div>
-      )}
+      {/* Daily reminder toggle — shown whenever PushManager is available */}
+      <div className="mb-4">
+        <DailyReminderToggle userId={user?.id} />
+      </div>
 
       {/* Settings list */}
       <div className="border border-dark/10 rounded-xl overflow-hidden divide-y divide-dark/10">

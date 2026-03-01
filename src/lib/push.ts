@@ -1,10 +1,11 @@
 /**
- * Client-side push notification utilities
+ * Client-side push notification utilities.
+ * Works for both anonymous and logged-in users.
+ * Subscriptions are keyed by a stable device UUID stored in localStorage.
  */
 
-import { supabase } from "@/lib/supabase";
-
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+const DEVICE_ID_KEY = "onekural-device-id";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -17,8 +18,17 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-/** Subscribe the current device and save to Supabase */
-export async function subscribeToPush(userId: string): Promise<boolean> {
+function getDeviceId(): string {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+
+/** Subscribe this device. Pass userId when logged in (optional). */
+export async function subscribeToPush(userId?: string): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   if (!VAPID_PUBLIC_KEY) {
     console.error("[Push] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set");
@@ -32,13 +42,18 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
     });
 
-    const { error } = await supabase.from("push_subscriptions").upsert(
-      { user_id: userId, subscription: subscription.toJSON() },
-      { onConflict: "user_id" }
-    );
+    const res = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        deviceId: getDeviceId(),
+        userId: userId ?? null,
+      }),
+    });
 
-    if (error) {
-      console.error("[Push] Failed to save subscription:", error.message);
+    if (!res.ok) {
+      console.error("[Push] Failed to save subscription:", await res.text());
       return false;
     }
     return true;
@@ -48,24 +63,23 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
   }
 }
 
-/** Unsubscribe the current device and remove from Supabase */
-export async function unsubscribeFromPush(userId: string): Promise<boolean> {
+/** Unsubscribe this device. */
+export async function unsubscribeFromPush(): Promise<boolean> {
   if (!("serviceWorker" in navigator)) return false;
 
   try {
     const reg = await navigator.serviceWorker.ready;
     const subscription = await reg.pushManager.getSubscription();
-    if (subscription) {
-      await subscription.unsubscribe();
-    }
+    if (subscription) await subscription.unsubscribe();
 
-    const { error } = await supabase
-      .from("push_subscriptions")
-      .delete()
-      .eq("user_id", userId);
+    const res = await fetch("/api/push/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId: getDeviceId() }),
+    });
 
-    if (error) {
-      console.error("[Push] Failed to remove subscription:", error.message);
+    if (!res.ok) {
+      console.error("[Push] Failed to remove subscription:", await res.text());
       return false;
     }
     return true;
@@ -75,7 +89,7 @@ export async function unsubscribeFromPush(userId: string): Promise<boolean> {
   }
 }
 
-/** Check if push is currently subscribed */
+/** Check if this device is currently subscribed. */
 export async function isPushSubscribed(): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   try {
