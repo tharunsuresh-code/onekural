@@ -96,28 +96,6 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
           </span>
         </div>
 
-        {/* Navigation bands — outside drag container so no pointer conflicts */}
-        <button
-          onClick={() => navigateKural("prev")}
-          className="absolute left-0 top-[25%] bottom-[25%] w-10 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-80 active:opacity-100 transition-opacity"
-          aria-label={`Previous kural #${prevId}`}
-        >
-          <svg width="14" height="22" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-dark/80">
-            <path d="M7 1L1 7.5L7 14" />
-          </svg>
-          <span className="text-[10px] font-semibold text-dark/60 leading-none">#{prevId}</span>
-        </button>
-        <button
-          onClick={() => navigateKural("next")}
-          className="absolute right-0 top-[25%] bottom-[25%] w-10 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-80 active:opacity-100 transition-opacity"
-          aria-label={`Next kural #${nextId}`}
-        >
-          <svg width="14" height="22" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-dark/80">
-            <path d="M2 1L8 7.5L2 14" />
-          </svg>
-          <span className="text-[10px] font-semibold text-dark/60 leading-none">#{nextId}</span>
-        </button>
-
         {/* Swipeable card */}
         <motion.div
           key={kural.id}
@@ -175,8 +153,36 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
           </button>
         </motion.div>
 
+        {/* Navigation row */}
+        <div className="flex items-center justify-between py-3">
+          <button
+            onClick={() => navigateKural("prev")}
+            className="flex items-center gap-1.5 text-sm text-dark/40 hover:text-dark/70 active:text-dark transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 1L1 7.5L7 14" />
+            </svg>
+            <span className="text-xs">#{prevId}</span>
+          </button>
+          <span className="text-xs text-dark/25">{kural.id} / 1330</span>
+          <button
+            onClick={() => navigateKural("next")}
+            className="flex items-center gap-1.5 text-sm text-dark/40 hover:text-dark/70 active:text-dark transition-colors"
+          >
+            <span className="text-xs">#{nextId}</span>
+            <svg width="16" height="16" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 1L8 7.5L2 14" />
+            </svg>
+          </button>
+        </div>
+
         {/* Action row */}
-        <div className="flex items-center justify-between pt-4 border-t border-dark/10">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="flex items-center justify-between pt-4 border-t border-dark/10"
+        >
           <button
             onClick={() => toggleFavorite(kural.id)}
             className={`text-sm flex items-center gap-1.5 transition-colors ${
@@ -197,7 +203,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
           >
             <span>↑</span> Share
           </button>
-        </div>
+        </motion.div>
       </main>
 
       {showJournal && (

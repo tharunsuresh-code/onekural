@@ -105,6 +105,14 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
     animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
   }
 
+  function handleDragEnd(_: unknown, info: { offset: { y: number }; velocity: { y: number } }) {
+    if (info.offset.y > 60 || info.velocity.y > 400) {
+      dismiss();
+    } else {
+      animate(sheetY, 0, { type: "spring", stiffness: 500, damping: 45 });
+    }
+  }
+
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -209,9 +217,13 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
       {/* Editor panel — shifts up when keyboard opens */}
       <motion.div
         style={{ y: sheetY, maxHeight: "80dvh", bottom: keyboardOffset }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0 }}
+        onDragEnd={handleDragEnd}
         className="fixed left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto flex flex-col"
       >
-        {/* Handle — tap to close */}
+        {/* Handle — drag down or tap to close */}
         <button
           onClick={dismiss}
           aria-label="Close"
@@ -226,7 +238,7 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
           style={{ touchAction: "pan-y" }}
           onPointerDown={(e) => {
             const el = scrollRef.current;
-            if (el && el.scrollHeight > el.clientHeight) e.stopPropagation();
+            if (el && el.scrollTop > 0) e.stopPropagation();
           }}
         >
           {/* Kural reference */}

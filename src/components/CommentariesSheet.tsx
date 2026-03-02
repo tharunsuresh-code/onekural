@@ -53,6 +53,14 @@ export default function CommentariesSheet({ kural, open, onClose }: Commentaries
 
   if (!mounted) return null;
 
+  function handleDragEnd(_: unknown, info: { offset: { y: number }; velocity: { y: number } }) {
+    if (info.offset.y > 60 || info.velocity.y > 400) {
+      dismiss();
+    } else {
+      animate(sheetY, 0, { type: "spring", stiffness: 500, damping: 45 });
+    }
+  }
+
   // Dismiss from swipe or button — also pops the history entry we pushed
   function dismiss() {
     if (historyPushed.current) {
@@ -74,9 +82,13 @@ export default function CommentariesSheet({ kural, open, onClose }: Commentaries
       {/* Sheet — z-[60] so it sits above the nav */}
       <motion.div
         style={{ y: sheetY, maxHeight: "85dvh" }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0 }}
+        onDragEnd={handleDragEnd}
         className="fixed bottom-0 left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto flex flex-col"
       >
-        {/* Handle — tap to close */}
+        {/* Handle — drag down or tap to close */}
         <button
           onClick={dismiss}
           aria-label="Close"
@@ -106,7 +118,7 @@ export default function CommentariesSheet({ kural, open, onClose }: Commentaries
           style={{ touchAction: "pan-y" }}
           onPointerDown={(e) => {
             const el = scrollRef.current;
-            if (el && el.scrollHeight > el.clientHeight) e.stopPropagation();
+            if (el && el.scrollTop > 0) e.stopPropagation();
           }}
         >
           {/* Tamil kural reminder */}

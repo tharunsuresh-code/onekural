@@ -308,6 +308,14 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
     animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
   }
 
+  function handleDragEnd(_: unknown, info: { offset: { y: number }; velocity: { y: number } }) {
+    if (info.offset.y > 60 || info.velocity.y > 400) {
+      dismiss();
+    } else {
+      animate(sheetY, 0, { type: "spring", stiffness: 500, damping: 45 });
+    }
+  }
+
   // Generate preview when ratio changes
   useEffect(() => {
     (async () => {
@@ -374,9 +382,13 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
       {/* Panel */}
       <motion.div
         style={{ y: sheetY, maxHeight: "85dvh" }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0 }}
+        onDragEnd={handleDragEnd}
         className="fixed bottom-0 left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto flex flex-col"
       >
-        {/* Handle — tap to close */}
+        {/* Handle — drag down or tap to close */}
         <button
           onClick={dismiss}
           aria-label="Close"
@@ -391,7 +403,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
           style={{ touchAction: "pan-y" }}
           onPointerDown={(e) => {
             const el = scrollRef.current;
-            if (el && el.scrollHeight > el.clientHeight) e.stopPropagation();
+            if (el && el.scrollTop > 0) e.stopPropagation();
           }}
         >
           <div className="flex items-center justify-between mb-4 pt-3">

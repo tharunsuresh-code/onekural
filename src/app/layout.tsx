@@ -20,7 +20,14 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "OneKural — Daily Thirukkural",
+  applicationName: "OneKural — Daily Thirukkural",
   description: "One kural a day. Read, reflect, and journal your thoughts on the timeless wisdom of Thiruvalluvar.",
+  openGraph: {
+    title: "OneKural — Daily Thirukkural",
+    siteName: "OneKural — Daily Thirukkural",
+    description: "One kural a day. Read, reflect, and journal your thoughts on the timeless wisdom of Thiruvalluvar.",
+    type: "website",
+  },
   manifest: "/manifest.json",
   icons: {
     icon: [
