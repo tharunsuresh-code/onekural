@@ -44,7 +44,7 @@ export default function JournalPage() {
         .select("id, kural_id, reflection, updated_at")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
-      setEntries(data ?? []);
+      setEntries((data ?? []).filter((e) => e.reflection?.trim().length > 0));
     } else {
       // Guest: load from localStorage
       const local = getLocalJournals();
