@@ -84,7 +84,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
     <>
       <main className="relative flex flex-col h-dvh max-w-content mx-auto px-6 pt-14 pb-nav select-none">
         {/* Header */}
-        <div className="relative flex justify-center mb-10">
+        <div className="relative flex justify-center mb-6">
           {/* Centered brand */}
           <div className="text-center">
             <h1 className="text-xl font-bold tracking-wide">
@@ -119,7 +119,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
           className="flex-1 flex flex-col justify-center"
         >
           {/* Chapter badge */}
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
             <span className="text-xs text-dark/50 tracking-wide">
               {bookName} · {kural.chapter_name_english}
@@ -127,20 +127,20 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
           </div>
 
           {/* Kural box — full-bleed lines with warm fill */}
-          <div className="relative -mx-6 px-6 py-5 mb-6 text-center">
+          <div className="relative -mx-6 px-6 py-4 mb-4 text-center">
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(244,165,40,0.07) 0%, rgba(244,165,40,0.12) 50%, rgba(244,165,40,0.07) 100%)" }} />
             <div className="absolute top-0 left-0 right-0 h-px bg-saffron/50" />
             <div className="absolute bottom-0 left-0 right-0 h-px bg-saffron/50" />
-            <p className="relative font-tamil text-xl leading-loose text-dark whitespace-pre-line">
+            <p className="relative font-tamil text-lg leading-loose text-dark whitespace-pre-line">
               {kural.kural_tamil}
             </p>
           </div>
 
           {/* Divider */}
-          <div className="w-10 h-0.5 bg-saffron mb-6 rounded-full mx-auto" />
+          <div className="w-10 h-0.5 bg-saffron mb-4 rounded-full mx-auto" />
 
           {/* Transliteration */}
-          <p className="text-sm text-dark/60 italic whitespace-pre-line leading-relaxed text-center mb-6">
+          <p className="text-sm text-dark/60 italic whitespace-pre-line leading-relaxed text-center mb-4">
             {kural.transliteration}
           </p>
 
@@ -152,7 +152,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
           {/* Tap hint for commentaries */}
           <button
             onClick={() => setShowCommentaries(true)}
-            className="mt-6 flex flex-col items-center gap-1 w-full opacity-30 hover:opacity-60 transition-opacity"
+            className="mt-4 flex flex-col items-center gap-1 w-full opacity-30 hover:opacity-60 transition-opacity"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 15l-6-6-6 6" />
