@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import SignInModal from "./SignInModal";
@@ -64,33 +65,46 @@ function setLocalJournal(kuralId: number, text: string) {
 interface JournalEditorProps {
   kural: Kural;
   onClose: () => void;
+  showKuralLink?: boolean;
 }
 
-export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
+const SHEET_HEIGHT = 1200;
+
+export default function JournalEditor({ kural, onClose, showKuralLink }: JournalEditorProps) {
   const { user } = useAuth();
   const keyboardOffset = useKeyboardOffset();
   const historyPushed = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sheetY = useMotionValue(SHEET_HEIGHT);
+  const backdropOpacity = useTransform(sheetY, [0, SHEET_HEIGHT * 0.4], [1, 0]);
 
+  // Animate in + push history entry
   useEffect(() => {
+    requestAnimationFrame(() => {
+      animate(sheetY, 0, { type: "spring", stiffness: 380, damping: 38 });
+    });
+
     if (typeof window === "undefined") return;
     history.pushState({ oneKuralSheet: true }, "");
     historyPushed.current = true;
     const handlePopState = () => {
       historyPushed.current = false;
-      onClose();
+      animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function dismiss() {
     if (historyPushed.current) {
       historyPushed.current = false;
-      history.back(); // fires popstate → calls onClose
+      history.back(); // fires popstate → animates out + calls onClose
       return;
     }
-    onClose();
+    animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
   }
+
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -187,26 +201,34 @@ export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
     <>
       {/* Backdrop */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-dark/40 z-[60]"
+        className="fixed inset-0 bg-dark/40 z-[59]"
+        style={{ opacity: backdropOpacity }}
         onClick={dismiss}
       />
 
       {/* Editor panel — shifts up when keyboard opens */}
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto"
-        style={{ maxHeight: "80dvh", bottom: keyboardOffset }}
+        style={{ y: sheetY, maxHeight: "80dvh", bottom: keyboardOffset }}
+        className="fixed left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto flex flex-col"
       >
-        {/* Handle */}
-        <div className="w-10 h-1 bg-dark/15 rounded-full mx-auto mt-3 mb-2" />
+        {/* Handle — tap to close */}
+        <button
+          onClick={dismiss}
+          aria-label="Close"
+          className="flex-shrink-0 pt-3 pb-1 flex justify-center w-full"
+        >
+          <div className="w-10 h-1 bg-dark/15 rounded-full" />
+        </button>
 
-        <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(80dvh - 20px)" }}>
+        <div
+          ref={scrollRef}
+          className="px-6 pb-8 overflow-y-auto"
+          style={{ touchAction: "pan-y" }}
+          onPointerDown={(e) => {
+            const el = scrollRef.current;
+            if (el && el.scrollHeight > el.clientHeight) e.stopPropagation();
+          }}
+        >
           {/* Kural reference */}
           <div className="mb-4 pt-2">
             <div className="flex items-center justify-between mb-2">
@@ -223,6 +245,14 @@ export default function JournalEditor({ kural, onClose }: JournalEditorProps) {
             <p className="font-tamil text-sm text-dark/70 leading-relaxed">
               {kural.kural_tamil}
             </p>
+            {showKuralLink && (
+              <Link
+                href={`/kural/${kural.id}`}
+                className="inline-block mt-2 text-xs text-saffron hover:underline"
+              >
+                Go to Kural ↗
+              </Link>
+            )}
           </div>
 
           {/* Textarea */}

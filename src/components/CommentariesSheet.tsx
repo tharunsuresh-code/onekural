@@ -62,14 +62,6 @@ export default function CommentariesSheet({ kural, open, onClose }: Commentaries
     onClose();
   }
 
-  function handleDragEnd(_: unknown, info: { offset: { y: number }; velocity: { y: number } }) {
-    if (info.offset.y > 40 || info.velocity.y > 250) {
-      dismiss();
-    } else {
-      animate(sheetY, 0, { type: "spring", stiffness: 500, damping: 45 });
-    }
-  }
-
   return (
     <>
       {/* Backdrop — z-[59] so it covers the BottomNav (z-50) */}
@@ -82,16 +74,16 @@ export default function CommentariesSheet({ kural, open, onClose }: Commentaries
       {/* Sheet — z-[60] so it sits above the nav */}
       <motion.div
         style={{ y: sheetY, maxHeight: "85dvh" }}
-        drag="y"
-        dragConstraints={{ top: 0 }}
-        dragElastic={{ top: 0.05, bottom: 0 }}
-        onDragEnd={handleDragEnd}
         className="fixed bottom-0 left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto flex flex-col"
       >
-        {/* Drag handle */}
-        <div className="flex-shrink-0 pt-3 pb-1 flex flex-col items-center">
+        {/* Handle — tap to close */}
+        <button
+          onClick={dismiss}
+          aria-label="Close"
+          className="flex-shrink-0 pt-3 pb-1 flex justify-center w-full"
+        >
           <div className="w-10 h-1 bg-dark/15 rounded-full" />
-        </div>
+        </button>
 
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-3">

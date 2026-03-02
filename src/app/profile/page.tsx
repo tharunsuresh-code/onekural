@@ -73,9 +73,9 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 }
 
 const settingsItems = [
-  { label: "Language", description: "Tamil & English" },
-  { label: "About OneKural", description: "Version 0.1.0" },
-  { label: "Privacy Policy", description: "" },
+  { label: "Language", description: "Tamil & English", href: null },
+  { label: "About OneKural", description: "Version 0.1.0", href: null },
+  { label: "Privacy Policy", description: "", href: "/privacy" },
 ];
 
 export default function ProfilePage() {
@@ -172,22 +172,31 @@ export default function ProfilePage() {
 
       {/* Settings list */}
       <div className="border border-dark/10 rounded-xl overflow-hidden divide-y divide-dark/10">
-        {settingsItems.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-center justify-between px-4 py-3.5"
-          >
-            <div>
+        {settingsItems.map((item) =>
+          item.href ? (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="flex items-center justify-between px-4 py-3.5 hover:bg-dark/5 transition-colors"
+            >
               <p className="text-sm text-dark/80">{item.label}</p>
-              {item.description && (
-                <p className="text-xs text-dark/40 mt-0.5">
-                  {item.description}
-                </p>
-              )}
+              <span className="text-dark/30 text-xs">›</span>
+            </Link>
+          ) : (
+            <div
+              key={item.label}
+              className="flex items-center justify-between px-4 py-3.5"
+            >
+              <div>
+                <p className="text-sm text-dark/80">{item.label}</p>
+                {item.description && (
+                  <p className="text-xs text-dark/40 mt-0.5">{item.description}</p>
+                )}
+              </div>
+              <span className="text-dark/30 text-xs">›</span>
             </div>
-            <span className="text-dark/30 text-xs">›</span>
-          </div>
-        ))}
+          )
+        )}
       </div>
 
       <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />

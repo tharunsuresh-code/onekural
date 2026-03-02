@@ -149,6 +149,7 @@ export default function JournalPage() {
       {editingKural && (
         <JournalEditor
           kural={editingKural}
+          showKuralLink
           onClose={() => {
             setEditingKural(null);
             loadEntries();

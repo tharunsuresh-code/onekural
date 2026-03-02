@@ -23,4 +23,8 @@ html, body {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  /* Clears fixed BottomNav (h-14 = 3.5rem) + safe-area + 1rem breathing room */
+  .pb-nav {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px) + 1rem);
+  }
 }

@@ -9,6 +9,7 @@ import { useFavorites } from "@/lib/favorites";
 import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
 import CommentariesSheet from "./CommentariesSheet";
+import OnboardingHint from "./OnboardingHint";
 
 interface KuralCardProps {
   initialKural: Kural;
@@ -110,7 +111,7 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
 
   return (
     <>
-      <main className="relative flex flex-col h-dvh max-w-content mx-auto px-6 pt-14 pb-24 select-none">
+      <main className="relative flex flex-col h-dvh max-w-content mx-auto px-6 pt-14 pb-nav select-none">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -132,19 +133,27 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
           </Link>
         </motion.div>
 
-        {/* Edge swipe hints */}
-        <div className="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none opacity-40">
-          <svg width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-dark/60">
+        {/* Navigation bands — outside drag container so no pointer conflicts */}
+        <button
+          onClick={() => navigateKural("prev")}
+          className="absolute left-0 top-[25%] bottom-[25%] w-10 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-80 active:opacity-100 transition-opacity"
+          aria-label={`Previous kural #${prevId}`}
+        >
+          <svg width="14" height="22" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-dark/80">
             <path d="M7 1L1 7.5L7 14" />
           </svg>
-          <span className="text-[9px] font-medium text-dark/50">#{prevId}</span>
-        </div>
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none opacity-40">
-          <svg width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-dark/60">
+          <span className="text-[10px] font-semibold text-dark/60 leading-none">#{prevId}</span>
+        </button>
+        <button
+          onClick={() => navigateKural("next")}
+          className="absolute right-0 top-[25%] bottom-[25%] w-10 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-80 active:opacity-100 transition-opacity"
+          aria-label={`Next kural #${nextId}`}
+        >
+          <svg width="14" height="22" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-dark/80">
             <path d="M2 1L8 7.5L2 14" />
           </svg>
-          <span className="text-[9px] font-medium text-dark/50">#{nextId}</span>
-        </div>
+          <span className="text-[10px] font-semibold text-dark/60 leading-none">#{nextId}</span>
+        </button>
 
         {/* Swipeable card — horizontal drag only, card never moves vertically */}
         <motion.div
@@ -168,10 +177,15 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
             </span>
           </div>
 
-          {/* Tamil text */}
-          <p className="font-tamil text-2xl leading-loose text-dark whitespace-pre-line text-center mb-6">
-            {kural.kural_tamil}
-          </p>
+          {/* Kural box — full-bleed lines with warm fill */}
+          <div className="relative -mx-6 px-6 py-5 mb-6 text-center">
+            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(244,165,40,0.07) 0%, rgba(244,165,40,0.12) 50%, rgba(244,165,40,0.07) 100%)" }} />
+            <div className="absolute top-0 left-0 right-0 h-px bg-saffron/50" />
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-saffron/50" />
+            <p className="relative font-tamil text-2xl leading-loose text-dark whitespace-pre-line">
+              {kural.kural_tamil}
+            </p>
+          </div>
 
           {/* Divider */}
           <div className="w-10 h-0.5 bg-saffron mb-6 rounded-full mx-auto" />
@@ -241,6 +255,8 @@ export default function KuralCard({ initialKural }: KuralCardProps) {
         open={showCommentaries}
         onClose={() => setShowCommentaries(false)}
       />
+
+      <OnboardingHint />
     </>
   );
 }
