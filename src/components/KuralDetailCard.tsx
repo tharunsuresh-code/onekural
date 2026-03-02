@@ -84,14 +84,22 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
     <>
       <main className="relative flex flex-col h-dvh max-w-content mx-auto px-6 pt-14 pb-nav select-none">
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="relative flex justify-center mb-10">
+          {/* Centered brand */}
+          <div className="text-center">
+            <h1 className="text-xl font-bold tracking-wide">
+              <span className="text-saffron">One</span><span className="text-dark">Kural</span>
+            </h1>
+          </div>
+          {/* Back button pinned to the left */}
           <button
             onClick={() => router.back()}
-            className="text-sm text-dark/50 hover:text-saffron transition-colors"
+            className="absolute left-0 top-0 text-sm text-dark/50 hover:text-saffron transition-colors"
           >
             ← Back
           </button>
-          <span className="text-xs bg-saffron/10 text-saffron border border-saffron/30 rounded-full px-3 py-1 font-medium">
+          {/* Kural number badge pinned to the right */}
+          <span className="absolute right-0 top-0 text-xs bg-saffron/10 text-saffron border border-saffron/30 rounded-full px-3 py-1 font-medium">
             #{kural.id}
           </span>
         </div>
@@ -123,7 +131,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(244,165,40,0.07) 0%, rgba(244,165,40,0.12) 50%, rgba(244,165,40,0.07) 100%)" }} />
             <div className="absolute top-0 left-0 right-0 h-px bg-saffron/50" />
             <div className="absolute bottom-0 left-0 right-0 h-px bg-saffron/50" />
-            <p className="relative font-tamil text-2xl leading-loose text-dark whitespace-pre-line">
+            <p className="relative font-tamil text-xl leading-loose text-dark whitespace-pre-line">
               {kural.kural_tamil}
             </p>
           </div>

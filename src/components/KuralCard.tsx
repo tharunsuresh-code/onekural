@@ -118,21 +118,26 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex items-center justify-between mb-10"
+          className="relative flex justify-center mb-10"
         >
-          <div>
+          {/* Centered brand */}
+          <div className="text-center">
+            <h1 className="text-xl font-bold tracking-wide">
+              <span className="text-saffron">One</span><span className="text-dark">Kural</span>
+            </h1>
             {kural.id === dailyKuralId && (
               <>
-                <p className="text-xs uppercase tracking-widest text-saffron font-semibold">
+                <p className="text-[10px] uppercase tracking-widest text-saffron/80 font-medium mt-1">
                   Today&apos;s Kural
                 </p>
-                <p className="text-sm text-dark/50 mt-0.5" suppressHydrationWarning>{dateStr}</p>
+                <p className="text-xs text-dark/40 mt-0.5" suppressHydrationWarning>{dateStr}</p>
               </>
             )}
           </div>
+          {/* Kural number badge pinned to the right */}
           <Link
             href={`/kural/${kural.id}`}
-            className="text-xs bg-saffron/10 text-saffron border border-saffron/30 rounded-full px-3 py-1 font-medium"
+            className="absolute right-0 top-0 text-xs bg-saffron/10 text-saffron border border-saffron/30 rounded-full px-3 py-1 font-medium"
           >
             #{kural.id}
           </Link>
@@ -165,7 +170,7 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(244,165,40,0.07) 0%, rgba(244,165,40,0.12) 50%, rgba(244,165,40,0.07) 100%)" }} />
             <div className="absolute top-0 left-0 right-0 h-px bg-saffron/50" />
             <div className="absolute bottom-0 left-0 right-0 h-px bg-saffron/50" />
-            <p className="relative font-tamil text-2xl leading-loose text-dark whitespace-pre-line">
+            <p className="relative font-tamil text-xl leading-loose text-dark whitespace-pre-line">
               {kural.kural_tamil}
             </p>
           </div>
@@ -246,6 +251,9 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
             <span>↑</span> Share
           </button>
         </motion.div>
+
+        {/* Privacy link — visually hidden, required for Google OAuth verification */}
+        <Link href="/privacy" className="sr-only">Privacy Policy</Link>
       </main>
 
       {showJournal && (
