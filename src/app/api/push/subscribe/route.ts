@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: NextRequest) {
-  const { subscription, deviceId, userId } = await request.json();
+  const { subscription, deviceId, userId, timezone } = await request.json();
 
   if (!subscription || !deviceId) {
     return NextResponse.json({ error: "Missing subscription or deviceId" }, { status: 400 });
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   const { error } = await supabaseAdmin
     .from("push_subscriptions")
     .upsert(
-      { device_id: deviceId, user_id: userId ?? null, subscription },
+      { device_id: deviceId, user_id: userId ?? null, subscription, timezone: timezone ?? null },
       { onConflict: "device_id" }
     );
 

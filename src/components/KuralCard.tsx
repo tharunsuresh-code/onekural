@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Kural } from "@/lib/types";
 import { BOOK_NAMES } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
+import { getDailyKuralId } from "@/lib/kurals";
 import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
 import CommentariesSheet from "./CommentariesSheet";
@@ -29,6 +30,7 @@ async function fetchKural(id: number): Promise<Kural | null> {
 
 export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps) {
   const [kural, setKural] = useState<Kural>(initialKural);
+  const [localDailyKuralId, setLocalDailyKuralId] = useState(dailyKuralId);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -40,24 +42,25 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
 
-  // Midnight IST rollover
+  // Midnight local-timezone rollover + initial kural correction
   useEffect(() => {
+    const localDate = new Date().toLocaleDateString("en-CA");
+    const localId = getDailyKuralId(localDate);
+    setLocalDailyKuralId(localId);
+    if (localId !== initialKural.id) {
+      fetchKural(localId).then((k) => { if (k) setKural(k); });
+    }
+
     const handleVisibility = () => {
       if (document.visibilityState !== "visible") return;
-      const nowIST = new Date().toLocaleDateString("en-CA", {
-        timeZone: "Asia/Kolkata",
-      });
+      const nowLocal = new Date().toLocaleDateString("en-CA");
       const loadedDate = sessionStorage.getItem("kural-date");
-      if (loadedDate && loadedDate !== nowIST) {
-        window.location.reload();
-      }
+      if (loadedDate && loadedDate !== nowLocal) window.location.reload();
     };
-    const nowIST = new Date().toLocaleDateString("en-CA", {
-      timeZone: "Asia/Kolkata",
-    });
-    sessionStorage.setItem("kural-date", nowIST);
+    sessionStorage.setItem("kural-date", localDate);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const navigateKural = useCallback(
@@ -104,7 +107,6 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
     weekday: "long",
     day: "numeric",
     month: "long",
-    timeZone: "Asia/Kolkata",
   });
   const faved = isFavorite(kural.id);
   const prevId = kural.id > 1 ? kural.id - 1 : 1330;
@@ -125,7 +127,7 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
             <h1 className="text-xl font-bold tracking-wide">
               <span className="text-saffron">One</span><span className="text-dark">Kural</span>
             </h1>
-            {kural.id === dailyKuralId && (
+            {kural.id === localDailyKuralId && (
               <>
                 <p className="text-[10px] uppercase tracking-widest text-saffron/80 font-medium mt-1">
                   Today&apos;s Kural
