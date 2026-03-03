@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth";
 import SignInModal from "@/components/SignInModal";
 import { subscribeToPush, unsubscribeFromPush, isPushSubscribed } from "@/lib/push";
-import { usePreferences, type DisplayMode } from "@/lib/preferences";
 
 function DailyReminderToggle({ userId }: { userId?: string }) {
   const [subscribed, setSubscribed] = useState(false);
@@ -69,36 +68,6 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
           }`}
         />
       </button>
-    </div>
-  );
-}
-
-const DISPLAY_MODES: { value: DisplayMode; label: string; description: string }[] = [
-  { value: "tamil", label: "All Tamil", description: "Tamil + transliteration" },
-  { value: "both", label: "Tamil + English", description: "Default" },
-  { value: "english", label: "All English", description: "English meaning only" },
-];
-
-function DisplayModeControl() {
-  const { displayMode, setDisplayMode } = usePreferences();
-  return (
-    <div className="px-4 py-3.5">
-      <p className="text-sm text-dark/80 mb-2">Display Mode</p>
-      <div className="flex gap-2">
-        {DISPLAY_MODES.map((mode) => (
-          <button
-            key={mode.value}
-            onClick={() => setDisplayMode(mode.value)}
-            className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium border transition-colors ${
-              displayMode === mode.value
-                ? "bg-saffron text-white border-saffron"
-                : "bg-transparent text-dark/60 border-dark/15 hover:border-saffron/40"
-            }`}
-          >
-            {mode.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -172,7 +141,7 @@ export default function ProfilePage() {
                 height="36"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#1A1A1A50"
+                stroke="#2D252050"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -202,7 +171,6 @@ export default function ProfilePage() {
 
       {/* Settings list */}
       <div className="border border-dark/10 rounded-xl overflow-hidden divide-y divide-dark/10">
-        <DisplayModeControl />
         {settingsItems.map((item) =>
           item.href ? (
             <Link

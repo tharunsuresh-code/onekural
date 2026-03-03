@@ -4,25 +4,21 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import type { ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 
-export type DisplayMode = "both" | "tamil" | "english";
 export type BoxContent = "tamil" | "transliteration";
 
 interface Prefs {
-  displayMode: DisplayMode;
   boxContent: BoxContent;
 }
 
 interface PreferencesContextValue extends Prefs {
-  setDisplayMode: (mode: DisplayMode) => void;
   setBoxContent: (content: BoxContent) => void;
 }
 
-const DEFAULT_PREFS: Prefs = { displayMode: "both", boxContent: "tamil" };
+const DEFAULT_PREFS: Prefs = { boxContent: "tamil" };
 const STORAGE_KEY = "kural-prefs";
 
 const PreferencesContext = createContext<PreferencesContextValue>({
   ...DEFAULT_PREFS,
-  setDisplayMode: () => {},
   setBoxContent: () => {},
 });
 
@@ -33,7 +29,6 @@ function readLocalPrefs(): Prefs {
     if (!raw) return DEFAULT_PREFS;
     const parsed = JSON.parse(raw) as Partial<Prefs>;
     return {
-      displayMode: (["both", "tamil", "english"].includes(parsed.displayMode ?? "") ? parsed.displayMode : DEFAULT_PREFS.displayMode) as DisplayMode,
       boxContent: (["tamil", "transliteration"].includes(parsed.boxContent ?? "") ? parsed.boxContent : DEFAULT_PREFS.boxContent) as BoxContent,
     };
   } catch {
@@ -59,7 +54,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       const hasLocal = localStorage.getItem(STORAGE_KEY) !== null;
       if (!hasLocal) {
         const merged: Prefs = {
-          displayMode: (["both", "tamil", "english"].includes(remote.displayMode ?? "") ? remote.displayMode : local.displayMode) as DisplayMode,
           boxContent: (["tamil", "transliteration"].includes(remote.boxContent ?? "") ? remote.boxContent : local.boxContent) as BoxContent,
         };
         setPrefs(merged);
@@ -76,14 +70,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const setDisplayMode = useCallback((mode: DisplayMode) => {
-    setPrefs((prev) => {
-      const next = { ...prev, displayMode: mode };
-      persist(next);
-      return next;
-    });
-  }, [persist]);
-
   const setBoxContent = useCallback((content: BoxContent) => {
     setPrefs((prev) => {
       const next = { ...prev, boxContent: content };
@@ -93,7 +79,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   return (
-    <PreferencesContext.Provider value={{ ...prefs, setDisplayMode, setBoxContent }}>
+    <PreferencesContext.Provider value={{ ...prefs, setBoxContent }}>
       {children}
     </PreferencesContext.Provider>
   );
