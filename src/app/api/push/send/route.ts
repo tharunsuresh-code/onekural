@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   const expiredIds: string[] = [];
   let sent = 0;
 
-  for (const [date, rows] of dateGroups) {
+  for (const [date, rows] of Array.from(dateGroups.entries())) {
     const kural = await getDailyKural(date);
     const payload = JSON.stringify({
       title: "OneKural — Daily Thirukkural",
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     });
 
     await Promise.allSettled(
-      rows.map(async (row) => {
+      rows.map(async (row: (typeof toNotify)[0]) => {
         try {
           await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload);
           sent++;
