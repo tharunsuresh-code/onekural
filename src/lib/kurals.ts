@@ -1,8 +1,27 @@
 import { supabase } from "./supabase";
 import type { Kural, Chapter } from "./types";
 
-// Fixed epoch: Jan 1 2025 IST. Kural #1 was the daily kural on this date.
+// Fixed epoch: Jan 1 2025 IST.
 const EPOCH_IST = "2025-01-01";
+
+/**
+ * Seeded Fisher-Yates shuffle of kural IDs 1–1330.
+ * Uses xorshift32 with a fixed seed so the order is identical for every build/user.
+ * Computed once at module load — O(1) daily lookup thereafter.
+ */
+const DAILY_ORDER: number[] = (() => {
+  let x = 0x4A9F3C2E; // fixed seed — change this to re-roll the schedule
+  const rand = () => {
+    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    return (x >>> 0) / 0xFFFFFFFF;
+  };
+  const arr = Array.from({ length: 1330 }, (_, i) => i + 1);
+  for (let i = 1329; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+})();
 
 /**
  * Returns today's date as YYYY-MM-DD in IST (Asia/Kolkata).
@@ -14,13 +33,14 @@ export function getTodayIST(): string {
 
 /**
  * Deterministically maps any IST date string to a kural ID (1–1330).
+ * Uses a pre-shuffled order so consecutive days show unrelated kurals.
  * Same result for all users on the same IST calendar date, forever.
  */
 export function getDailyKuralId(dateIST: string = getTodayIST()): number {
   const today = new Date(dateIST + "T00:00:00Z").getTime();
   const epoch = new Date(EPOCH_IST + "T00:00:00Z").getTime();
   const daysSinceEpoch = Math.floor((today - epoch) / 86_400_000);
-  return (((daysSinceEpoch % 1330) + 1330) % 1330) + 1;
+  return DAILY_ORDER[((daysSinceEpoch % 1330) + 1330) % 1330];
 }
 
 export async function getDailyKural(dateIST: string = getTodayIST()): Promise<Kural> {

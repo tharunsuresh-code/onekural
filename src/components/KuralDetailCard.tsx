@@ -6,6 +6,7 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { Kural } from "@/lib/types";
 import { BOOK_NAMES } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
+import { usePreferences } from "@/lib/preferences";
 import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
 import CommentariesSheet from "./CommentariesSheet";
@@ -33,6 +34,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
   const [showShare, setShowShare] = useState(false);
   const [showCommentaries, setShowCommentaries] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { displayMode, boxContent, setBoxContent } = usePreferences();
 
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
@@ -60,7 +62,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
       const velocityThreshold = 300;
 
       const isVertical = Math.abs(info.offset.y) > Math.abs(info.offset.x);
-      if (isVertical && (info.offset.y < -threshold || info.velocity.y < -velocityThreshold)) {
+      if (displayMode !== "english" && isVertical && (info.offset.y < -threshold || info.velocity.y < -velocityThreshold)) {
         setShowCommentaries(true);
         return;
       }
@@ -72,7 +74,7 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
       }
       animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
     },
-    [navigateKural, x]
+    [navigateKural, x, displayMode]
   );
 
   const bookName = BOOK_NAMES[kural.book]?.english ?? "";
@@ -118,12 +120,26 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
           transition={{ duration: 0.3 }}
           className="flex-1 flex flex-col justify-center"
         >
-          {/* Chapter badge */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
-            <span className="text-xs text-dark/50 tracking-wide">
-              {bookName} · {kural.chapter_name_english}
-            </span>
+          {/* Chapter badge + swap button on same row */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
+              <span className="text-xs text-dark/50 tracking-wide">
+                {bookName} · {kural.chapter_name_english}
+              </span>
+            </div>
+            {displayMode !== "english" && (
+              <button
+                onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
+                className="text-saffron/70 hover:text-saffron active:text-saffron transition-colors"
+                title="Swap"
+              >
+                <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 6h22" /><path d="M19 2l5 4-5 4" />
+                  <path d="M28 14H6" /><path d="M11 10l-5 4 5 4" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Kural box — full-bleed lines with warm fill */}
@@ -131,34 +147,55 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(244,165,40,0.07) 0%, rgba(244,165,40,0.12) 50%, rgba(244,165,40,0.07) 100%)" }} />
             <div className="absolute top-0 left-0 right-0 h-px bg-saffron/50" />
             <div className="absolute bottom-0 left-0 right-0 h-px bg-saffron/50" />
-            <p className="relative font-tamil text-lg leading-loose text-dark whitespace-pre-line">
-              {kural.kural_tamil}
-            </p>
+            {displayMode === "english" ? (
+              <p className="relative text-sm text-dark/70 italic leading-relaxed whitespace-pre-line">
+                {kural.scholars.find(s => s.name === "Couplet")?.commentary ?? kural.meaning_english}
+              </p>
+            ) : boxContent === "tamil" ? (
+              <p className="relative font-tamil text-lg leading-loose text-dark whitespace-pre-line">{kural.kural_tamil}</p>
+            ) : (
+              <p className="relative text-xl text-dark/70 italic whitespace-pre-line leading-relaxed">{kural.transliteration}</p>
+            )}
           </div>
 
-          {/* Divider */}
-          <div className="w-10 h-0.5 bg-saffron mb-4 rounded-full mx-auto" />
+          {/* Below-box content per mode */}
+          {displayMode === "english" && (
+            <p className="text-base text-dark/80 leading-relaxed">
+              {kural.scholars.find(s => s.name === "Explanation")?.commentary ?? ""}
+            </p>
+          )}
+          {displayMode === "tamil" && (
+            <>
+              <div className="w-10 h-0.5 bg-saffron mb-4 rounded-full mx-auto" />
+              {boxContent === "tamil" ? (
+                <p className="text-base text-dark/60 italic whitespace-pre-line leading-relaxed text-center mb-4">
+                  {kural.transliteration}
+                </p>
+              ) : (
+                <p className="font-tamil text-sm leading-relaxed text-dark/70 whitespace-pre-line text-center mb-4">
+                  {kural.kural_tamil}
+                </p>
+              )}
+            </>
+          )}
+          {displayMode === "both" && (
+            <p className="text-base text-dark/80 leading-relaxed">
+              {kural.meaning_english}
+            </p>
+          )}
 
-          {/* Transliteration */}
-          <p className="text-sm text-dark/60 italic whitespace-pre-line leading-relaxed text-center mb-4">
-            {kural.transliteration}
-          </p>
-
-          {/* Meaning */}
-          <p className="text-base text-dark/80 leading-relaxed">
-            {kural.meaning_english}
-          </p>
-
-          {/* Tap hint for commentaries */}
-          <button
-            onClick={() => setShowCommentaries(true)}
-            className="mt-4 flex flex-col items-center gap-1 w-full opacity-30 hover:opacity-60 transition-opacity"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 15l-6-6-6 6" />
-            </svg>
-            <span className="text-xs tracking-wide">Scholars</span>
-          </button>
+          {/* Tap hint for commentaries — hidden in English-only mode */}
+          {displayMode !== "english" && (
+            <button
+              onClick={() => setShowCommentaries(true)}
+              className="mt-4 flex flex-col items-center gap-1 w-full opacity-30 hover:opacity-60 transition-opacity"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 15l-6-6-6 6" />
+              </svg>
+              <span className="text-xs tracking-wide">Scholars</span>
+            </button>
+          )}
         </motion.div>
 
         {/* Navigation row */}

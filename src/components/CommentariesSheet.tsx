@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { Kural } from "@/lib/types";
+import { usePreferences } from "@/lib/preferences";
 
 interface CommentariesSheetProps {
   kural: Kural;
@@ -13,6 +14,7 @@ interface CommentariesSheetProps {
 const SHEET_HEIGHT = 1200;
 
 export default function CommentariesSheet({ kural, open, onClose }: CommentariesSheetProps) {
+  const { displayMode, boxContent } = usePreferences();
   const [mounted, setMounted] = useState(false);
   const sheetY = useMotionValue(SHEET_HEIGHT);
   const backdropOpacity = useTransform(sheetY, [0, SHEET_HEIGHT * 0.4], [1, 0]);
@@ -121,14 +123,27 @@ export default function CommentariesSheet({ kural, open, onClose }: Commentaries
             if (el && el.scrollTop > 0) e.stopPropagation();
           }}
         >
-          {/* Tamil kural reminder */}
-          <p className="font-tamil text-lg leading-loose text-dark text-center whitespace-pre-line mb-4 pb-4 border-b border-dark/10">
-            {kural.kural_tamil}
-          </p>
+          {/* Top kural/transliteration reminder — shows the opposite of what's in the saffron box */}
+          {displayMode !== "english" && (
+            boxContent === "tamil" ? (
+              <p className="text-sm text-dark/60 italic whitespace-pre-line leading-relaxed text-center mb-4 pb-4 border-b border-dark/10">
+                {kural.transliteration}
+              </p>
+            ) : (
+              <p className="font-tamil text-lg leading-loose text-dark text-center whitespace-pre-line mb-4 pb-4 border-b border-dark/10">
+                {kural.kural_tamil}
+              </p>
+            )
+          )}
 
           {/* Scholar commentaries */}
           <div className="space-y-5">
-            {kural.scholars.map((scholar) => {
+            {kural.scholars.filter((scholar) => {
+              const isEng = scholar.name === "Explanation" || scholar.name === "Couplet";
+              if (displayMode === "english") return isEng;
+              if (displayMode === "tamil") return !isEng;
+              return true;
+            }).map((scholar) => {
               const isEnglish = scholar.name === "Explanation" || scholar.name === "Couplet";
               return (
                 <div key={scholar.name}>
