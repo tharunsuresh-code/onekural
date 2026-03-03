@@ -151,6 +151,17 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
       setSaving(true);
       setSaved(false);
 
+      if (!reflection.trim()) {
+        // Delete existing entry if text is cleared
+        if (journalId) {
+          await supabase.from("journals").delete().eq("id", journalId);
+          setJournalId(null);
+        }
+        setSaving(false);
+        setSaved(false);
+        return;
+      }
+
       if (journalId) {
         await supabase
           .from("journals")
