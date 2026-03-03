@@ -18,10 +18,10 @@ const SIZES: Record<AspectRatio, { w: number; h: number; label: string }> = {
 };
 
 // Colors
-const CREAM = "#FAF7F2";
-const SAFFRON = "#F4A528";
-const DARK = "#1A1A1A";
-const DEEP_RED = "#8B1A1A";
+const CREAM = "#FBF8F3";
+const SAFFRON = "#C9964B";
+const DARK = "#2D2520";
+const DEEP_RED = "#A83C3C";
 
 // Layout
 const BOX_PADDING = 40;

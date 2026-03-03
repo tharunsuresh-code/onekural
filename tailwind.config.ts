@@ -9,10 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        saffron: "#F4A528",
-        "deep-red": "#8B1A1A",
-        cream: "#FAF7F2",
-        dark: "#1A1A1A",
+        saffron: "#C9964B",
+        "deep-red": "#A83C3C",
+        cream: "#FBF8F3",
+        dark: "#2D2520",
       },
       fontFamily: {
         tamil: ["var(--font-noto-tamil)", "serif"],

@@ -10,7 +10,6 @@ import { getDailyKuralId } from "@/lib/kurals";
 import { usePreferences } from "@/lib/preferences";
 import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
-import CommentariesSheet from "./CommentariesSheet";
 import OnboardingHint from "./OnboardingHint";
 
 interface KuralCardProps {
@@ -35,9 +34,8 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [showCommentaries, setShowCommentaries] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { displayMode, boxContent, setBoxContent } = usePreferences();
+  const { boxContent, setBoxContent } = usePreferences();
 
   // Horizontal swipe only — no y motion value so card never moves vertically
   const x = useMotionValue(0);
@@ -86,13 +84,6 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
       const threshold = 50;
       const velocityThreshold = 300;
 
-      // Swipe up: open commentaries (disabled in English-only mode)
-      const isVertical = Math.abs(info.offset.y) > Math.abs(info.offset.x);
-      if (displayMode !== "english" && isVertical && (info.offset.y < -threshold || info.velocity.y < -velocityThreshold)) {
-        setShowCommentaries(true);
-        return;
-      }
-
       // Horizontal swipes: prev/next kural
       if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
         navigateKural("next");
@@ -101,7 +92,7 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
       }
       animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
     },
-    [navigateKural, x, kural.id, displayMode]
+    [navigateKural, x, kural.id]
   );
 
   const bookName = BOOK_NAMES[kural.book]?.english ?? "";
@@ -169,74 +160,64 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
                 {bookName} · {kural.chapter_name_english}
               </span>
             </div>
-            {displayMode !== "english" && (
-              <button
-                onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
-                className="text-saffron/70 hover:text-saffron active:text-saffron transition-colors"
-                title="Swap"
-              >
-                <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 6h22" /><path d="M19 2l5 4-5 4" />
-                  <path d="M28 14H6" /><path d="M11 10l-5 4 5 4" />
-                </svg>
-              </button>
-            )}
+            <button
+              onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
+              className="text-saffron/70 hover:text-saffron active:text-saffron transition-colors"
+              title="Swap"
+            >
+              <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 6h22" /><path d="M19 2l5 4-5 4" />
+                <path d="M28 14H6" /><path d="M11 10l-5 4 5 4" />
+              </svg>
+            </button>
           </div>
 
-          {/* Kural box — full-bleed lines with warm fill */}
-          <div className="relative -mx-6 px-6 py-4 mb-4 text-center">
-            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(244,165,40,0.07) 0%, rgba(244,165,40,0.12) 50%, rgba(244,165,40,0.07) 100%)" }} />
-            <div className="absolute top-0 left-0 right-0 h-px bg-saffron/50" />
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-saffron/50" />
-            {displayMode === "english" ? (
-              <p className="relative text-sm text-dark/70 italic leading-relaxed whitespace-pre-line">
-                {kural.scholars.find(s => s.name === "Couplet")?.commentary ?? kural.meaning_english}
+          {/* Editorial decorative line — top */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="divider-editorial mx-auto mb-8 w-12"
+          />
+
+          {/* Kural text — typography hero */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="text-center mb-8 px-2"
+          >
+            {boxContent === "tamil" ? (
+              <p className="font-kural-tamil font-bold text-dark whitespace-pre-line text-balance">
+                {kural.kural_tamil}
               </p>
-            ) : boxContent === "tamil" ? (
-              <p className="relative font-tamil text-lg leading-loose text-dark whitespace-pre-line">{kural.kural_tamil}</p>
             ) : (
-              <p className="relative text-xl text-dark/70 italic whitespace-pre-line leading-relaxed">{kural.transliteration}</p>
+              <p className="font-serif text-3xl font-bold text-dark whitespace-pre-line leading-tight tracking-normal text-balance">
+                {kural.transliteration}
+              </p>
             )}
-          </div>
+          </motion.div>
 
-          {/* Below-box content per mode */}
-          {displayMode === "english" && (
-            <p className="text-base text-dark/80 leading-relaxed">
-              {kural.scholars.find(s => s.name === "Explanation")?.commentary ?? ""}
-            </p>
-          )}
-          {displayMode === "tamil" && (
-            <>
-              <div className="w-10 h-0.5 bg-saffron mb-4 rounded-full mx-auto" />
-              {boxContent === "tamil" ? (
-                <p className="text-base text-dark/60 italic whitespace-pre-line leading-relaxed text-center mb-4">
-                  {kural.transliteration}
-                </p>
-              ) : (
-                <p className="font-tamil text-sm leading-relaxed text-dark/70 whitespace-pre-line text-center mb-4">
-                  {kural.kural_tamil}
-                </p>
-              )}
-            </>
-          )}
-          {displayMode === "both" && (
-            <p className="text-base text-dark/80 leading-relaxed">
+          {/* Editorial decorative line — bottom */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+            className="divider-editorial mx-auto mb-8 w-12"
+          />
+
+          {/* Insight section — refined explanation */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="bg-white/40 backdrop-blur-sm rounded-lg px-6 py-5 shadow-amber text-center"
+          >
+            <p className="text-xs uppercase tracking-widest text-saffron/70 mb-3 font-medium">Insight</p>
+            <p className="font-serif text-base leading-relaxed text-dark/80">
               {kural.meaning_english}
             </p>
-          )}
-
-          {/* Tap hint for commentaries — hidden in English-only mode */}
-          {displayMode !== "english" && (
-            <button
-              onClick={() => setShowCommentaries(true)}
-              className="mt-4 flex flex-col items-center gap-1 w-full opacity-30 hover:opacity-60 transition-opacity"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M18 15l-6-6-6 6" />
-              </svg>
-              <span className="text-xs tracking-wide">Scholars</span>
-            </button>
-          )}
+          </motion.div>
         </motion.div>
 
         {/* Navigation row */}
@@ -302,12 +283,6 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
       {showShare && (
         <ShareCard kural={kural} onClose={() => setShowShare(false)} />
       )}
-
-      <CommentariesSheet
-        kural={kural}
-        open={showCommentaries}
-        onClose={() => setShowCommentaries(false)}
-      />
 
       <OnboardingHint />
     </>

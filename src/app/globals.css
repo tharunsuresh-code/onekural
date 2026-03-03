@@ -3,13 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --background: #FAF7F2;
-  --foreground: #1A1A1A;
+  --background: #FBF8F3;
+  --foreground: #2D2520;
+  --accent: #C9964B;
+  --accent-secondary: #A83C3C;
 }
 
 html, body {
   overscroll-behavior: none;
-  background-color: var(--background);
+  background: linear-gradient(135deg, #FBF8F3 0%, #F7F3ED 100%);
   color: var(--foreground);
 }
 
@@ -26,5 +28,27 @@ html, body {
   /* Clears fixed BottomNav (h-14 = 3.5rem) + safe-area + 1rem breathing room */
   .pb-nav {
     padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px) + 1rem);
+  }
+  /* Serif font (Crimson Text) */
+  .font-serif {
+    font-family: var(--font-crimson, Georgia, serif);
+  }
+  /* Tamil poetry text — responsive hero scale */
+  .font-kural-tamil {
+    font-family: var(--font-noto-tamil, serif);
+    font-size: clamp(1.25rem, 4.5vw, 1.75rem);
+    line-height: 1.8;
+    letter-spacing: -0.3px;
+  }
+  /* Editorial decorative line */
+  .divider-editorial {
+    height: 0.5px;
+    background: linear-gradient(90deg, transparent, #C9964B 25%, #C9964B 75%, transparent);
+    opacity: 0.6;
+  }
+
+  /* Premium shadow depth */
+  .shadow-amber {
+    box-shadow: 0 4px 12px rgba(201, 150, 75, 0.08);
   }
 }

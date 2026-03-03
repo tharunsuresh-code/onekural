@@ -8,7 +8,7 @@ const tabs = [
     label: "Home",
     href: "/",
     icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#F4A528" : "#1A1A1A80"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#C9964B" : "#2D252080"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
         <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
@@ -18,7 +18,7 @@ const tabs = [
     label: "Explore",
     href: "/explore",
     icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#F4A528" : "#1A1A1A80"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#C9964B" : "#2D252080"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
@@ -28,7 +28,7 @@ const tabs = [
     label: "Journal",
     href: "/journal",
     icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#F4A528" : "#1A1A1A80"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#C9964B" : "#2D252080"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
         <line x1="8" y1="7" x2="16" y2="7" />
@@ -40,7 +40,7 @@ const tabs = [
     label: "Profile",
     href: "/profile",
     icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#F4A528" : "#1A1A1A80"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#C9964B" : "#2D252080"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
         <circle cx="12" cy="7" r="4" />
       </svg>

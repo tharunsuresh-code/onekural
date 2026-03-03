@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Serif_Tamil, Inter } from "next/font/google";
+import { Noto_Serif_Tamil, Inter, Crimson_Text } from "next/font/google";
 import BottomNav from "@/components/BottomNav";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
@@ -16,6 +16,13 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+});
+
+const crimsonText = Crimson_Text({
+  subsets: ["latin"],
+  variable: "--font-crimson",
+  display: "swap",
+  weight: ["400", "600"],
 });
 
 export const metadata: Metadata = {
@@ -44,7 +51,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F4A528",
+  themeColor: "#C9964B",
   width: "device-width",
   initialScale: 1,
 };
@@ -55,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ta" className={`${notoSerifTamil.variable} ${inter.variable}`}>
+    <html lang="ta" className={`${notoSerifTamil.variable} ${inter.variable} ${crimsonText.variable}`}>
       <body className="font-sans antialiased bg-cream text-dark">
         <Providers>
           {children}
