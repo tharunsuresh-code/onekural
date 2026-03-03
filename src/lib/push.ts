@@ -49,6 +49,7 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
         subscription: subscription.toJSON(),
         deviceId: getDeviceId(),
         userId: userId ?? null,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
     });
 
