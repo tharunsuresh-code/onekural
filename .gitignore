@@ -40,3 +40,7 @@ next-env.d.ts
 
 # Build artifacts
 .seed-dist/
+
+# Translation scripts (work-in-progress)
+TRANSLATION_PLAN.md
+scripts/translate.ts

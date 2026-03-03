@@ -12,20 +12,24 @@ const LOCAL_KEY = "kural-journals";
 
 function useKeyboardOffset(): number {
   const [offset, setOffset] = useState(0);
-  const initialVVHeight = useRef(0);
   const initialWinHeight = useRef(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const vv = window.visualViewport;
-    initialVVHeight.current = vv?.height ?? window.innerHeight;
     initialWinHeight.current = window.innerHeight;
 
     function update() {
-      // visualViewport shrinks on iOS Safari; window.innerHeight shrinks on Firefox/Android
-      const vvDiff = initialVVHeight.current - (vv?.height ?? window.innerHeight);
-      const winDiff = initialWinHeight.current - window.innerHeight;
-      setOffset(Math.max(0, vvDiff, winDiff));
+      if (!vv) {
+        // Fallback for browsers without visualViewport (rare)
+        const winDiff = initialWinHeight.current - window.innerHeight;
+        setOffset(Math.max(0, winDiff));
+        return;
+      }
+      // Keyboard height = gap between bottom of layout viewport and bottom of visual viewport
+      // Works correctly on iOS Safari, Chrome Android, Firefox (no double-counting)
+      const fromBottom = window.innerHeight - vv.offsetTop - vv.height;
+      setOffset(Math.max(0, fromBottom));
     }
 
     vv?.addEventListener("resize", update);

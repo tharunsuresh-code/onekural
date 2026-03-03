@@ -11,6 +11,7 @@
     "generate-icons": "ts-node --project tsconfig.seed.json scripts/generate-icons.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@supabase/supabase-js": "^2.98.0",
     "framer-motion": "^12.34.3",
     "next": "14.2.35",

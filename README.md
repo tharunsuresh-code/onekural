@@ -1,36 +1,156 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OneKural
+
+> One kural a day. Read, reflect, and journal your thoughts on the timeless wisdom of Thiruvalluvar.
+
+A mobile-first Progressive Web App (PWA) for the Tamil diaspora. Every day, OneKural surfaces one verse from the Thirukkural — the 2,000-year-old Tamil classic of ethics, governance, and love — with the original Tamil, transliteration, English meaning, and scholarly commentaries.
+
+**Live:** [onekural.com](https://onekural.com)
+
+---
+
+## Features
+
+- **Daily Kural** — a new verse each day, deterministically chosen (no database needed)
+- **Explore** — browse all 1,330 kurals by book, chapter, or search
+- **Commentaries** — scholarly interpretations from multiple traditions
+- **Favourites** — save verses you want to return to
+- **Journal** — write personal reflections on any kural (authenticated)
+- **Push notifications** — opt-in daily reminder at 4 AM in your timezone
+- **PWA** — installable on iOS and Android, works offline
+
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Styling | Tailwind CSS (mobile-first) |
+| Auth & DB | Supabase (Postgres + Google OAuth) |
+| Hosting | Vercel |
+| Animations | Framer Motion |
+| Push | Web Push API + VAPID |
+| Cron | GitHub Actions (every 30 min) |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
+- (Optional) VAPID keys for push notifications
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up environment variables
+
+Copy `.env.local.example` to `.env.local` and fill in the values:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+
+# Push notifications (optional)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<vapid-public-key>
+VAPID_PRIVATE_KEY=<vapid-private-key>
+VAPID_MAILTO=mailto:you@example.com
+
+# Cron auth (optional but recommended)
+CRON_SECRET=<random-secret>
+```
+
+Generate VAPID keys with:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+### 3. Set up the database
+
+Run `supabase/schema.sql` in your Supabase SQL Editor. Then seed the kurals:
+
+```bash
+npm run seed
+```
+
+### 4. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run seed` | Seed the `kurals` table from JSON |
+| `npm run generate-icons` | Generate PWA icons into `public/icons/` |
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+  app/
+    page.tsx              # Home — daily kural
+    explore/              # Browse all kurals
+    kural/[id]/           # Individual kural detail
+    journal/              # User's journal entries
+    profile/              # Account & notification settings
+    api/
+      push/subscribe/     # Save push subscription
+      push/unsubscribe/   # Remove push subscription
+      push/send/          # Send daily notifications (cron target)
+  components/
+    KuralCard             # Daily kural on home page
+    KuralDetailCard       # Kural detail (explore/kural pages)
+    CommentariesSheet     # Scholarly commentary bottom sheet
+    JournalEditor         # Reflection editor bottom sheet
+    ShareCard             # Native share / copy sheet
+  lib/
+    kurals.ts             # getDailyKural(), getDailyKuralId()
+    supabase.ts           # Supabase client helpers
+supabase/
+  schema.sql              # Full DB schema + RLS policies
+public/
+  sw.js                   # Service worker (offline support)
+  manifest.json           # PWA manifest
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Database Schema
 
-## Deploy on Vercel
+- **kurals** — 1,330 verses (static, seeded). Daily kural ID is computed from the date, no DB query needed.
+- **journals** — per-user reflections, one per kural.
+- **favorites** — per-user saved kurals.
+- **push_subscriptions** — Web Push subscription objects, one per user.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All tables use Row Level Security. Users can only read/write their own data.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Push Notifications
+
+Notifications are sent daily at **4 AM in each subscriber's local timezone**. The endpoint `/api/push/send` filters subscriptions by timezone before sending.
+
+The GitHub Actions workflow (`.github/workflows/push-notifications.yml`) calls this endpoint every 30 minutes, which covers all timezone offsets including half-hour ones like IST.
+
+To set up:
+1. Add `CRON_SECRET` to both your Vercel environment and your GitHub repository secrets.
+2. Add `APP_URL` (e.g. `https://onekural.com`) as a GitHub Actions variable.
+
+## Deployment
+
+Deploy to Vercel with one click or via the CLI:
+
+```bash
+npx vercel
+```
+
+Required environment variables must be set in your Vercel project settings. The GitHub Actions cron replaces Vercel's built-in cron (which is limited to once per day on the free tier).
