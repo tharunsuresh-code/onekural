@@ -10,6 +10,11 @@ const VAPID_MAILTO = process.env.VAPID_MAILTO ?? "mailto:hello@onekural.app";
 // Authorized by CRON_SECRET in Vercel environment (set in vercel.json)
 const CRON_SECRET = process.env.CRON_SECRET;
 
+// Vercel cron jobs send GET requests; POST is kept for manual triggering
+export async function GET(request: NextRequest) {
+  return POST(request);
+}
+
 export async function POST(request: NextRequest) {
   // Verify cron secret when set (Vercel cron sends Authorization header)
   if (CRON_SECRET) {
