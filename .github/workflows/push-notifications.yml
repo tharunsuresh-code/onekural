@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Trigger push notification endpoint
         run: |
-          curl -f -X GET "${{ secrets.APP_URL }}/api/push/send" \
+          curl -f -X GET "${{ vars.APP_URL }}/api/push/send" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
