@@ -97,7 +97,7 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
       }
       animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
     },
-    [navigateKural, x, kural.id]
+    [navigateKural, x]
   );
 
   const bookName = BOOK_NAMES[kural.book]?.english ?? "";
