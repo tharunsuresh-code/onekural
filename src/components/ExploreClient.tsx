@@ -81,7 +81,7 @@ export default function ExploreClient() {
 
   return (
     <main className="max-w-content mx-auto px-6 pt-10 pb-24">
-      <h1 className="text-xl font-semibold text-dark mb-6">Explore</h1>
+      <h1 className="text-xl font-semibold text-dark dark:text-dark-fg mb-6">Explore</h1>
 
       {/* Search bar */}
       <div className="relative mb-6">
@@ -90,10 +90,10 @@ export default function ExploreClient() {
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="Search kurals, chapters…"
-          className="w-full bg-white border border-dark/10 rounded-xl px-4 py-3 pl-10 text-sm text-dark placeholder:text-dark/40 focus:outline-none focus:border-saffron/50 focus:ring-1 focus:ring-saffron/30"
+          className="w-full bg-white dark:bg-dark-subtle border border-dark/10 dark:border-dark-fg/20 rounded-xl px-4 py-3 pl-10 text-sm text-dark dark:text-dark-fg placeholder:text-dark/40 dark:placeholder:text-dark-fg/50 focus:outline-none focus:border-emerald/50 focus:ring-1 focus:ring-emerald/30 dark:focus:ring-emerald/40"
         />
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-dark/40"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-dark/40 dark:text-dark-fg/50"
           width="18"
           height="18"
           viewBox="0 0 24 24"
@@ -110,37 +110,37 @@ export default function ExploreClient() {
       {showSearch ? (
         <div>
           {isSearching ? (
-            <p className="text-sm text-dark/50 text-center py-8">
+            <p className="text-sm text-dark/50 dark:text-dark-fg/50 text-center py-8">
               Searching…
             </p>
           ) : searchResults.length === 0 ? (
-            <p className="text-sm text-dark/50 text-center py-8">
+            <p className="text-sm text-dark/50 dark:text-dark-fg/50 text-center py-8">
               No results found
             </p>
           ) : (
             <div className="space-y-3">
-              <p className="text-xs text-dark/50 mb-2">
+              <p className="text-xs text-dark/50 dark:text-dark-fg/50 mb-2">
                 {searchResults.length} result{searchResults.length !== 1 && "s"}
               </p>
               {searchResults.map((k) => (
                 <Link
                   key={k.id}
                   href={`/kural/${k.id}`}
-                  className="block bg-white border border-dark/10 rounded-xl p-4 hover:border-saffron/30 transition-colors"
+                  className="block bg-white dark:bg-dark-subtle border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-dark/50">
+                    <span className="text-xs text-dark/50 dark:text-dark-fg/60">
                       {BOOK_NAMES[k.book]?.english} ·{" "}
                       {k.chapter_name_english}
                     </span>
-                    <span className="text-xs text-saffron font-medium">
+                    <span className="text-xs text-emerald font-medium">
                       #{k.id}
                     </span>
                   </div>
-                  <p className="font-tamil text-sm leading-relaxed text-dark mb-1">
+                  <p className="font-tamil text-sm leading-relaxed text-dark dark:text-dark-fg mb-1">
                     {k.kural_tamil}
                   </p>
-                  <p className="text-xs text-dark/60 line-clamp-2">
+                  <p className="text-xs text-dark/60 dark:text-dark-fg/65 line-clamp-2">
                     {k.meaning_english}
                   </p>
                 </Link>
@@ -151,7 +151,7 @@ export default function ExploreClient() {
       ) : (
         <>
           {/* Book tabs */}
-          <div className="flex gap-1 mb-6 border-b border-dark/10">
+          <div className="flex gap-1 mb-6 border-b border-dark/10 dark:border-dark-fg/20">
             {BOOKS.map((book) => {
               const isActive = activeBook === book;
               return (
@@ -159,14 +159,14 @@ export default function ExploreClient() {
                   key={book}
                   onClick={() => setActiveBook(book)}
                   className={`relative flex-1 py-3 text-sm font-medium text-center transition-colors ${
-                    isActive ? "text-saffron" : "text-dark/50"
+                    isActive ? "text-emerald" : "text-dark/50 dark:text-dark-fg/50"
                   }`}
                 >
                   {BOOK_NAMES[book].english}
                   {isActive && (
                     <motion.div
                       layoutId="book-tab-underline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-saffron rounded-full"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald rounded-full"
                     />
                   )}
                 </button>
@@ -176,7 +176,7 @@ export default function ExploreClient() {
 
           {/* Chapter list */}
           {loadingChapters ? (
-            <p className="text-sm text-dark/50 text-center py-8">Loading…</p>
+            <p className="text-sm text-dark/50 dark:text-dark-fg/50 text-center py-8">Loading…</p>
           ) : (
             <div className="space-y-2">
               {chapters.map((ch) => {
@@ -186,28 +186,28 @@ export default function ExploreClient() {
                 return (
                   <div
                     key={ch.chapter}
-                    className="border border-dark/10 rounded-xl overflow-hidden"
+                    className="border border-dark/10 dark:border-dark-fg/20 rounded-xl overflow-hidden"
                   >
                     <button
                       onClick={() => toggleChapter(ch.chapter)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-left"
+                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-dark/2 dark:hover:bg-dark-fg/5 transition-colors"
                     >
                       <div>
-                        <p className="text-sm font-medium text-dark/80">
+                        <p className="text-sm font-medium text-dark/80 dark:text-dark-fg/85">
                           {ch.chapter_name_english}
                         </p>
-                        <p className="text-xs text-dark/40 font-tamil mt-0.5">
+                        <p className="text-xs text-dark/40 dark:text-dark-fg/50 font-tamil mt-0.5">
                           {ch.chapter_name_tamil}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-dark/40">
+                        <span className="text-xs text-dark/40 dark:text-dark-fg/50">
                           Ch. {ch.chapter}
                         </span>
                         <motion.span
                           animate={{ rotate: isExpanded ? 180 : 0 }}
                           transition={{ duration: 0.2 }}
-                          className="text-dark/40 text-xs"
+                          className="text-dark/40 dark:text-dark-fg/50 text-xs"
                         >
                           ▼
                         </motion.span>
@@ -222,9 +222,9 @@ export default function ExploreClient() {
                           transition={{ duration: 0.25, ease: "easeInOut" }}
                           className="overflow-hidden"
                         >
-                          <div className="px-4 pb-3 space-y-2 border-t border-dark/5 pt-3">
+                          <div className="px-4 pb-3 space-y-2 border-t border-dark/5 dark:border-dark-fg/10 pt-3">
                             {!kurals ? (
-                              <p className="text-xs text-dark/40 py-2">
+                              <p className="text-xs text-dark/40 dark:text-dark-fg/50 py-2">
                                 Loading…
                               </p>
                             ) : (
@@ -232,12 +232,12 @@ export default function ExploreClient() {
                                 <Link
                                   key={k.id}
                                   href={`/kural/${k.id}`}
-                                  className="block py-2 border-b border-dark/5 last:border-0 hover:bg-saffron/5 rounded px-2 -mx-2 transition-colors"
+                                  className="block py-2 border-b border-dark/5 dark:border-dark-fg/10 last:border-0 hover:bg-emerald/5 dark:hover:bg-emerald/10 rounded px-2 -mx-2 transition-colors"
                                 >
-                                  <p className="font-tamil text-sm leading-relaxed text-dark">
+                                  <p className="font-tamil text-sm leading-relaxed text-dark dark:text-dark-fg">
                                     {k.kural_tamil}
                                   </p>
-                                  <p className="text-xs text-dark/50 mt-1 line-clamp-1">
+                                  <p className="text-xs text-dark/50 dark:text-dark-fg/60 mt-1 line-clamp-1">
                                     #{k.id} · {k.meaning_english}
                                   </p>
                                 </Link>

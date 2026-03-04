@@ -49,17 +49,17 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3.5 border border-dark/10 rounded-xl">
+    <div className="flex items-center justify-between px-4 py-3.5 border border-dark/10 dark:border-dark-fg/20 rounded-xl">
       <div>
-        <p className="text-sm text-dark/80">Daily Reminder</p>
-        <p className="text-xs text-dark/40 mt-0.5">Morning kural notification</p>
+        <p className="text-sm text-dark/80 dark:text-dark-fg/85">Daily Reminder</p>
+        <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5">Morning kural notification</p>
       </div>
       <button
         onClick={toggle}
         disabled={loading}
         aria-label={subscribed ? "Disable daily reminder" : "Enable daily reminder"}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-          subscribed ? "bg-saffron" : "bg-dark/20"
+          subscribed ? "bg-emerald" : "bg-dark/20 dark:bg-dark-fg/25"
         } ${loading ? "opacity-50" : ""}`}
       >
         <span
@@ -84,7 +84,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <main className="max-w-content mx-auto px-6 pt-10 pb-24 flex items-center justify-center min-h-[60dvh]">
-        <div className="w-6 h-6 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
       </main>
     );
   }
@@ -107,56 +107,57 @@ export default function ProfilePage() {
                 unoptimized
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-saffron/20 flex items-center justify-center mb-4">
-                <span className="text-2xl font-semibold text-saffron">
+              <div className="w-20 h-20 rounded-full bg-emerald/20 dark:bg-emerald/15 flex items-center justify-center mb-4">
+                <span className="text-2xl font-semibold text-emerald">
                   {(user.user_metadata?.full_name?.[0] ?? user.email?.[0] ?? "U").toUpperCase()}
                 </span>
               </div>
             )}
-            <h1 className="text-lg font-semibold text-dark mb-1">
+            <h1 className="text-lg font-semibold text-dark dark:text-dark-fg mb-1">
               {user.user_metadata?.full_name ?? "User"}
             </h1>
-            <p className="text-sm text-dark/50 mb-4">{user.email}</p>
+            <p className="text-sm text-dark/50 dark:text-dark-fg/60 mb-4">{user.email}</p>
 
             {/* Favourites link */}
             <Link
               href="/profile/favorites"
-              className="text-sm text-saffron font-medium mb-4 hover:underline"
+              className="text-sm text-emerald font-medium mb-4 hover:underline"
             >
               My Favourites
             </Link>
 
             <button
               onClick={signOut}
-              className="text-sm text-dark/50 hover:text-deep-red transition-colors"
+              className="text-sm text-dark/50 dark:text-dark-fg/60 hover:text-deep-red dark:hover:text-deep-red/90 transition-colors"
             >
               Sign out
             </button>
           </>
         ) : (
           <>
-            <div className="w-20 h-20 rounded-full bg-dark/10 flex items-center justify-center mb-4">
+            <div className="w-20 h-20 rounded-full bg-dark/10 dark:bg-dark-fg/10 flex items-center justify-center mb-4">
               <svg
                 width="36"
                 height="36"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#2D252050"
+                stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="text-dark/30 dark:text-dark-fg/40"
               >
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </div>
-            <h1 className="text-lg font-semibold text-dark mb-1">Guest</h1>
-            <p className="text-sm text-dark/50 mb-4">
+            <h1 className="text-lg font-semibold text-dark dark:text-dark-fg mb-1">Guest</h1>
+            <p className="text-sm text-dark/50 dark:text-dark-fg/60 mb-4">
               Sign in to save your favourites and journal
             </p>
             <button
               onClick={() => setShowSignIn(true)}
-              className="bg-saffron text-white text-sm font-medium px-6 py-2.5 rounded-full hover:bg-saffron/90 transition-colors"
+              className="bg-emerald text-white text-sm font-medium px-6 py-2.5 rounded-full hover:bg-emerald/90 transition-colors"
             >
               Sign in
             </button>
@@ -170,16 +171,16 @@ export default function ProfilePage() {
       </div>
 
       {/* Settings list */}
-      <div className="border border-dark/10 rounded-xl overflow-hidden divide-y divide-dark/10">
+      <div className="border border-dark/10 dark:border-dark-fg/20 rounded-xl overflow-hidden divide-y divide-dark/10 dark:divide-dark-fg/20">
         {settingsItems.map((item) =>
           item.href ? (
             <Link
               key={item.label}
               href={item.href}
-              className="flex items-center justify-between px-4 py-3.5 hover:bg-dark/5 transition-colors"
+              className="flex items-center justify-between px-4 py-3.5 hover:bg-dark/5 dark:hover:bg-dark-fg/5 transition-colors"
             >
-              <p className="text-sm text-dark/80">{item.label}</p>
-              <span className="text-dark/30 text-xs">›</span>
+              <p className="text-sm text-dark/80 dark:text-dark-fg/85">{item.label}</p>
+              <span className="text-dark/30 dark:text-dark-fg/40 text-xs">›</span>
             </Link>
           ) : (
             <div
@@ -187,12 +188,12 @@ export default function ProfilePage() {
               className="flex items-center justify-between px-4 py-3.5"
             >
               <div>
-                <p className="text-sm text-dark/80">{item.label}</p>
+                <p className="text-sm text-dark/80 dark:text-dark-fg/85">{item.label}</p>
                 {item.description && (
-                  <p className="text-xs text-dark/40 mt-0.5">{item.description}</p>
+                  <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5">{item.description}</p>
                 )}
               </div>
-              <span className="text-dark/30 text-xs">›</span>
+              <span className="text-dark/30 dark:text-dark-fg/40 text-xs">›</span>
             </div>
           )
         )}

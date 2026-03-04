@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <main className="max-w-content mx-auto px-6 pt-10 pb-24">
       <Link
         href="/"
-        className="inline-flex items-center text-sm text-dark/50 mb-6 hover:text-saffron transition-colors"
+        className="inline-flex items-center text-sm text-dark/50 mb-6 hover:text-emerald transition-colors"
       >
         ← Back
       </Link>
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
                 href="https://supabase.com/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-saffron hover:underline"
+                className="text-emerald hover:underline"
               >
                 supabase.com/privacy
               </a>.
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
                 href="https://policies.google.com/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-saffron hover:underline"
+                className="text-emerald hover:underline"
               >
                 Google&apos;s Privacy Policy
               </a>.
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
             For privacy questions or data deletion requests, email us at{" "}
             <a
               href="mailto:stharunvikram@gmail.com"
-              className="text-saffron hover:underline"
+              className="text-emerald hover:underline"
             >
               stharunvikram@gmail.com
             </a>.

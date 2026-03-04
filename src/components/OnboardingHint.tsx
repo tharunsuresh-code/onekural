@@ -171,7 +171,7 @@ export default function OnboardingHint() {
 
             <button
               onClick={dismiss}
-              className="mt-2 bg-saffron text-white text-sm font-semibold px-10 py-2.5 rounded-full hover:bg-saffron/90 transition-colors"
+              className="mt-2 bg-emerald text-white text-sm font-semibold px-10 py-2.5 rounded-full hover:bg-emerald/90 transition-colors"
             >
               Got it
             </button>
