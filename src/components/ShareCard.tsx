@@ -165,7 +165,7 @@ async function generateImage(
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
 
-  let kuralLines: string[] = [];
+  const kuralLines: string[] = [];
   let kuralLineH: number;
 
   if (boxContent === "tamil") {
@@ -341,6 +341,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
     return () => {
       // Cleanup will be handled by state update
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kural.id, ratio, boxContent]);
 
   const handleShare = async () => {
