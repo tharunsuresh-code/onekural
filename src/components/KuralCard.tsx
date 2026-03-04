@@ -10,7 +10,6 @@ import { getDailyKuralId } from "@/lib/kurals";
 import { usePreferences } from "@/lib/preferences";
 import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
-import ExplanationSheet from "./ExplanationSheet";
 import OnboardingHint from "./OnboardingHint";
 import ThemeSwitcher from "./ThemeSwitcher";
 import { useAudio } from "@/lib/audio";
@@ -37,7 +36,6 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isPlaying, play, stop } = useAudio();
   const { boxContent, setBoxContent } = usePreferences();
@@ -225,14 +223,6 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
             <p className={`font-serif text-base leading-relaxed text-dark/80 dark:text-dark-fg/85 ${boxContent === "tamil" ? "font-tamil" : ""}`}>
               {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
             </p>
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={() => setShowExplanation(true)}
-                className="text-xs text-emerald/60 dark:text-emerald/70 hover:text-emerald transition-colors"
-              >
-                More ↓
-              </button>
-            </div>
           </motion.div>
         </motion.div>
 
@@ -306,10 +296,6 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
 
       {showShare && (
         <ShareCard kural={kural} onClose={() => setShowShare(false)} />
-      )}
-
-      {showExplanation && (
-        <ExplanationSheet kural={kural} onClose={() => setShowExplanation(false)} />
       )}
 
       <OnboardingHint />

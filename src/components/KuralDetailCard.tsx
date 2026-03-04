@@ -9,7 +9,6 @@ import { useFavorites } from "@/lib/favorites";
 import { usePreferences } from "@/lib/preferences";
 import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
-import ExplanationSheet from "./ExplanationSheet";
 import { useAudio } from "@/lib/audio";
 
 interface KuralDetailCardProps {
@@ -33,7 +32,6 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
   const { isPlaying, play, stop } = useAudio();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { boxContent, setBoxContent } = usePreferences();
@@ -181,14 +179,6 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
             <p className={`font-serif text-base leading-relaxed text-dark/80 dark:text-dark-fg/85 ${boxContent === "tamil" ? "font-tamil" : ""}`}>
               {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
             </p>
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={() => setShowExplanation(true)}
-                className="text-xs text-emerald/60 dark:text-emerald/70 hover:text-emerald transition-colors"
-              >
-                More ↓
-              </button>
-            </div>
           </motion.div>
         </motion.div>
 
@@ -259,10 +249,6 @@ export default function KuralDetailCard({ initialKural }: KuralDetailCardProps) 
 
       {showShare && (
         <ShareCard kural={kural} onClose={() => setShowShare(false)} />
-      )}
-
-      {showExplanation && (
-        <ExplanationSheet kural={kural} onClose={() => setShowExplanation(false)} />
       )}
     </>
   );
