@@ -51,7 +51,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#C9964B",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FFFFFF" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F0E0C" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -62,8 +65,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ta" className={`${notoSerifTamil.variable} ${inter.variable} ${crimsonText.variable}`}>
-      <body className="font-sans antialiased bg-cream text-dark">
+    <html lang="ta" className={`${notoSerifTamil.variable} ${inter.variable} ${crimsonText.variable} light`}>
+      <body className="font-sans antialiased bg-cream dark:bg-dark-bg text-dark dark:text-dark-fg">
         <Providers>
           {children}
           <BottomNav />

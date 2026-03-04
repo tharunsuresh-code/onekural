@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, animate } from "framer-motion";
 import type { Kural } from "@/lib/types";
-import { BOOK_NAMES } from "@/lib/types";
+import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
+import { usePreferences } from "@/lib/preferences";
 
 interface ShareCardProps {
   kural: Kural;
@@ -18,13 +19,11 @@ const SIZES: Record<AspectRatio, { w: number; h: number; label: string }> = {
 };
 
 // Colors
-const CREAM = "#FBF8F3";
-const SAFFRON = "#C9964B";
-const DARK = "#2D2520";
+const CREAM = "#FFFFFF";
+const EMERALD = "#1B5E4F";
+const DARK = "#1A1A1A";
 const DEEP_RED = "#A83C3C";
 
-// Layout
-const BOX_PADDING = 40;
 
 function wrapText(
   ctx: CanvasRenderingContext2D,
@@ -53,56 +52,71 @@ function wrapText(
 
 /**
  * Measure content height without drawing, so we can vertically center.
+ * Layout mirrors KuralDetailCard: kural open, Insight in a box.
  */
 function measureContent(
   ctx: CanvasRenderingContext2D,
   kural: Kural,
-  contentWidth: number
+  contentWidth: number,
+  boxContent: "tamil" | "transliteration"
 ): number {
   let h = 0;
 
   // Decorative dot + gap
   h += 12 + 40;
 
-  // Chapter badge line + gap before Tamil box
+  // Chapter badge + gap
   ctx.font = "28px Inter, sans-serif";
-  h += 28 + 40;
+  h += 28 + 48;
 
-  // Tamil box = BOX_PADDING top + text height + BOX_PADDING bottom
-  ctx.font = "52px 'Noto Serif Tamil', serif";
-  const tamilLines = kural.kural_tamil.split("\n");
-  let tamilH = 0;
-  for (const line of tamilLines) {
-    const { lines } = wrapText(ctx, line.trim(), 0, contentWidth, 72);
-    tamilH += lines.length * 72;
+  // Divider line top + gap (gap measured to top of glyph, textBaseline = "top")
+  h += 3 + 56;
+
+  // Open kural text (no box)
+  if (boxContent === "tamil") {
+    ctx.font = "bold 56px 'Noto Serif Tamil', serif";
+    const tamilLines = kural.kural_tamil.split("\n");
+    let tamilH = 0;
+    for (const line of tamilLines) {
+      const { lines } = wrapText(ctx, line.trim(), 0, contentWidth, 76);
+      tamilH += lines.length * 76;
+    }
+    h += tamilH;
+  } else {
+    ctx.font = "bold italic 48px Georgia, serif";
+    const translitLines = kural.transliteration.split("\n");
+    let translitH = 0;
+    for (const line of translitLines) {
+      const { lines } = wrapText(ctx, line.trim(), 0, contentWidth, 68);
+      translitH += lines.length * 68;
+    }
+    h += translitH;
   }
-  h += BOX_PADDING + tamilH + BOX_PADDING;
 
-  // Gap after box
-  h += 48;
+  // Divider line bottom + gap before insight box
+  h += 56 + 3 + 56;
 
-  // Transliteration
-  ctx.font = "italic 28px Inter, sans-serif";
-  const translitLines = kural.transliteration.split("\n");
-  for (const line of translitLines) {
-    const { lines } = wrapText(ctx, line.trim(), 0, contentWidth, 40);
-    h += lines.length * 40;
-  }
-
-  // Divider between transliteration and meaning
-  h += 20 + 2 + 20;
-
-  // Meaning text
-  ctx.font = "30px Inter, sans-serif";
-  const { lines: meaningLines } = wrapText(ctx, kural.meaning_english, 0, contentWidth, 46);
-  h += meaningLines.length * 46;
+  // Insight box: label + meaning text
+  const insightPadV = 44;
+  const insightPadH = 48;
+  const innerW = contentWidth - insightPadH * 2;
+  const insightText = boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english;
+  ctx.font = "500 24px Inter, sans-serif";
+  h += insightPadV; // top pad + label
+  h += 24 + 24; // label height + gap
+  ctx.font = boxContent === "tamil" ? "22px 'Noto Serif Tamil', serif" : "italic 26px Georgia, serif";
+  const insightLineH = boxContent === "tamil" ? 34 : 40;
+  const { lines: meaningLines } = wrapText(ctx, insightText, 0, innerW, insightLineH);
+  h += meaningLines.length * insightLineH;
+  h += insightPadV; // bottom pad
 
   return h;
 }
 
 async function generateImage(
   kural: Kural,
-  ratio: AspectRatio
+  ratio: AspectRatio,
+  boxContent: "tamil" | "transliteration"
 ): Promise<Blob> {
   const { w, h } = SIZES[ratio];
   const canvas = document.createElement("canvas");
@@ -118,17 +132,17 @@ async function generateImage(
   ctx.fillRect(0, 0, w, h);
 
   // Measure content to vertically center it
-  const contentHeight = measureContent(ctx, kural, contentWidth);
-  // Reserve space for badge (60) + watermark (60) at bottom
-  const bottomReserved = 140;
+  const contentHeight = measureContent(ctx, kural, contentWidth, boxContent);
+  const bottomReserved = 100;
   const topMin = ratio === "story" ? 120 : 80;
   const available = h - bottomReserved - topMin;
   const startY = Math.max(topMin, topMin + (available - contentHeight) / 2);
 
-  // Decorative dot
   let yPos = startY;
+
+  // Decorative dot (mirrors DEEP_RED dot on card)
   ctx.beginPath();
-  ctx.arc(w / 2, yPos, 6, 0, Math.PI * 2);
+  ctx.arc(w / 2, yPos + 6, 6, 0, Math.PI * 2);
   ctx.fillStyle = DEEP_RED;
   ctx.fill();
   yPos += 12 + 40;
@@ -138,118 +152,116 @@ async function generateImage(
   ctx.font = "28px Inter, sans-serif";
   ctx.fillStyle = DARK + "80";
   ctx.textAlign = "center";
-  ctx.fillText(
-    `${bookName} · ${kural.chapter_name_english}`,
-    w / 2,
-    yPos
-  );
-  yPos += 40;
+  ctx.fillText(`${bookName} · ${kural.chapter_name_english}`, w / 2, yPos);
+  yPos += 28 + 48;
 
-  // Tamil text — measure first, then draw with rounded box behind
-  ctx.font = "52px 'Noto Serif Tamil', serif";
-  const tamilLines = kural.kural_tamil.split("\n");
-  const tamilAllLines: string[] = [];
-  for (const line of tamilLines) {
-    const { lines } = wrapText(ctx, line.trim(), w / 2, contentWidth, 72);
-    tamilAllLines.push(...lines);
-  }
-  const tamilTextH = tamilAllLines.length * 72;
-  const boxH = BOX_PADDING + tamilTextH + BOX_PADDING;
+  // Divider line — top (mirrors editorial line on card)
+  ctx.fillStyle = EMERALD + "80";
+  ctx.fillRect(w / 2 - 24, yPos, 48, 3);
+  yPos += 3 + 56;
 
-  // Draw box
-  ctx.fillStyle = SAFFRON + "15";
-  ctx.strokeStyle = SAFFRON + "60";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.roundRect(pad, yPos, contentWidth, boxH, 20);
-  ctx.fill();
-  ctx.stroke();
-
-  // Draw Tamil text vertically centered in box
-  const boxCenterY = yPos + boxH / 2;
-  const firstLineY = boxCenterY - ((tamilAllLines.length - 1) * 72) / 2;
+  // Open kural text (no box) — textBaseline "top" so gaps above and below are visually equal
   ctx.fillStyle = DARK;
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  for (let i = 0; i < tamilAllLines.length; i++) {
-    ctx.fillText(tamilAllLines[i], w / 2, firstLineY + i * 72);
-  }
-  ctx.textBaseline = "alphabetic";
-  yPos += boxH;
+  ctx.textBaseline = "top";
 
-  // Gap after box
-  yPos += 48;
+  const kuralLines: string[] = [];
+  let kuralLineH: number;
 
-  // Transliteration
-  ctx.font = "italic 28px Inter, sans-serif";
-  ctx.fillStyle = DARK + "99";
-  ctx.textAlign = "center";
-  const translitLines = kural.transliteration.split("\n");
-  for (const line of translitLines) {
-    const { lines } = wrapText(ctx, line.trim(), w / 2, contentWidth, 40);
-    for (const wrappedLine of lines) {
-      ctx.fillText(wrappedLine, w / 2, yPos);
-      yPos += 40;
+  if (boxContent === "tamil") {
+    ctx.font = "bold 56px 'Noto Serif Tamil', serif";
+    kuralLineH = 76;
+    for (const line of kural.kural_tamil.split("\n")) {
+      const { lines } = wrapText(ctx, line.trim(), w / 2, contentWidth, kuralLineH);
+      kuralLines.push(...lines);
+    }
+  } else {
+    ctx.font = "bold italic 48px Georgia, serif";
+    kuralLineH = 68;
+    for (const line of kural.transliteration.split("\n")) {
+      const { lines } = wrapText(ctx, line.trim(), w / 2, contentWidth, kuralLineH);
+      kuralLines.push(...lines);
     }
   }
 
-  // Saffron divider — centered between transliteration and explanation
-  ctx.fillStyle = SAFFRON;
-  ctx.fillRect(w / 2 - 30, yPos, 60, 3);
-  yPos += 44;
+  for (let i = 0; i < kuralLines.length; i++) {
+    ctx.fillText(kuralLines[i], w / 2, yPos + i * kuralLineH);
+  }
+  ctx.textBaseline = "alphabetic";
+  yPos += kuralLines.length * kuralLineH;
 
-  // English meaning
-  ctx.font = "30px Inter, sans-serif";
-  ctx.fillStyle = DARK + "CC";
+  // Divider line — bottom
+  yPos += 56;
+  ctx.fillStyle = EMERALD + "80";
+  ctx.fillRect(w / 2 - 24, yPos, 48, 3);
+  yPos += 3 + 56;
+
+  // Insight box — mirrors the card's emerald-tinted rounded box
+  const insightPadV = 44;
+  const insightPadH = 48;
+  const innerW = contentWidth - insightPadH * 2;
+  const insightText = boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english;
+  const insightFont = boxContent === "tamil" ? "22px 'Noto Serif Tamil', serif" : "italic 26px Georgia, serif";
+  const insightLineH = boxContent === "tamil" ? 34 : 40;
+
+  // Measure insight box height
+  ctx.font = insightFont;
+  const { lines: meaningLines } = wrapText(ctx, insightText, w / 2, innerW, insightLineH);
+  const insightTextH = meaningLines.length * insightLineH;
+  const insightBoxH = insightPadV + 24 + 24 + insightTextH + insightPadV;
+
+  // Draw box
+  ctx.fillStyle = EMERALD + "14";
+  ctx.strokeStyle = EMERALD + "30";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(pad, yPos, contentWidth, insightBoxH, 20);
+  ctx.fill();
+  ctx.stroke();
+
+  // "INSIGHT" label — uppercase tracking, small, emerald
+  ctx.font = "500 22px Inter, sans-serif";
+  ctx.fillStyle = EMERALD + "B3"; // ~70% opacity
   ctx.textAlign = "center";
-  const { lines: meaningLines } = wrapText(ctx, kural.meaning_english, w / 2, contentWidth, 46);
-  for (const line of meaningLines) {
-    ctx.fillText(line, w / 2, yPos);
-    yPos += 46;
+  ctx.fillText("INSIGHT", w / 2, yPos + insightPadV + 22);
+
+  // Meaning text — Tamil or italic Georgia, matching card
+  ctx.font = insightFont;
+  ctx.fillStyle = DARK + "CC";
+  const meaningStartY = yPos + insightPadV + 22 + 24 + (boxContent === "tamil" ? 22 : 26);
+  for (let i = 0; i < meaningLines.length; i++) {
+    ctx.fillText(meaningLines[i], w / 2, meaningStartY + i * insightLineH);
   }
 
-  // Decorative corner flourishes (story only — fills the extra vertical space)
+  yPos += insightBoxH;
+
+  // Decorative corner flourishes (story only)
   if (ratio === "story") {
-    ctx.strokeStyle = SAFFRON + "20";
+    ctx.strokeStyle = EMERALD + "20";
     ctx.lineWidth = 2;
-
-    // Top-left corner arc
-    ctx.beginPath();
-    ctx.arc(pad, pad, 30, 0, Math.PI / 2);
-    ctx.stroke();
-
-    // Top-right corner arc
-    ctx.beginPath();
-    ctx.arc(w - pad, pad, 30, Math.PI / 2, Math.PI);
-    ctx.stroke();
-
-    // Bottom-left corner arc
-    ctx.beginPath();
-    ctx.arc(pad, h - pad, 30, (3 * Math.PI) / 2, 2 * Math.PI);
-    ctx.stroke();
-
-    // Bottom-right corner arc
-    ctx.beginPath();
-    ctx.arc(w - pad, h - pad, 30, Math.PI, (3 * Math.PI) / 2);
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(pad, pad, 30, 0, Math.PI / 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(w - pad, pad, 30, Math.PI / 2, Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pad, h - pad, 30, (3 * Math.PI) / 2, 2 * Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.arc(w - pad, h - pad, 30, Math.PI, (3 * Math.PI) / 2); ctx.stroke();
   }
 
-  // Kural number badge
-  const badgeY = h - 120;
-  ctx.fillStyle = SAFFRON + "1A";
+  // Kural number badge — top right, mirroring the card
   const badgeText = `#${kural.id}`;
   ctx.font = "bold 28px Inter, sans-serif";
   const badgeWidth = ctx.measureText(badgeText).width + 40;
-  const badgeX = w / 2 - badgeWidth / 2;
+  const badgeTopY = topMin - 10;
+  const badgeRight = w - pad;
+  const badgeLeft = badgeRight - badgeWidth;
+  ctx.fillStyle = EMERALD + "1A";
   ctx.beginPath();
-  ctx.roundRect(badgeX, badgeY - 20, badgeWidth, 40, 20);
+  ctx.roundRect(badgeLeft, badgeTopY, badgeWidth, 44, 22);
   ctx.fill();
-  ctx.strokeStyle = SAFFRON + "4D";
+  ctx.strokeStyle = EMERALD + "4D";
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = SAFFRON;
-  ctx.textAlign = "center";
-  ctx.fillText(badgeText, w / 2, badgeY + 8);
+  ctx.fillStyle = EMERALD;
+  ctx.textAlign = "right";
+  ctx.fillText(badgeText, badgeRight - 20, badgeTopY + 30);
 
   // Watermark
   ctx.font = "24px Inter, sans-serif";
@@ -265,6 +277,7 @@ async function generateImage(
 const SHEET_HEIGHT = 1200;
 
 export default function ShareCard({ kural, onClose }: ShareCardProps) {
+  const { boxContent } = usePreferences();
   const [ratio, setRatio] = useState<AspectRatio>("square");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
@@ -316,22 +329,20 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
     }
   }
 
-  // Generate preview when ratio changes
+  // Generate preview when kural or ratio changes
   useEffect(() => {
+    setPreviewUrl(null); // Clear preview to show loading state
     (async () => {
-      const blob = await generateImage(kural, ratio);
+      const blob = await generateImage(kural, ratio, boxContent);
       blobRef.current = blob;
       const url = URL.createObjectURL(blob);
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return url;
-      });
+      setPreviewUrl(url);
     })();
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      // Cleanup will be handled by state update
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kural, ratio]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kural.id, ratio, boxContent]);
 
   const handleShare = async () => {
     if (!blobRef.current) return;
@@ -375,7 +386,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="fixed inset-0 bg-dark/40 z-[60]"
+        className="fixed inset-0 bg-dark/40 dark:bg-dark/60 z-[60]"
         onClick={dismiss}
       />
 
@@ -386,7 +397,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
         dragConstraints={{ top: 0 }}
         dragElastic={{ top: 0.05, bottom: 0 }}
         onDragEnd={handleDragEnd}
-        className="fixed bottom-0 left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto flex flex-col"
+        className="fixed bottom-0 left-0 right-0 z-[60] bg-cream dark:bg-dark-subtle rounded-t-2xl max-w-content mx-auto flex flex-col"
       >
         {/* Handle — drag down or tap to close */}
         <button
@@ -394,7 +405,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
           aria-label="Close"
           className="flex-shrink-0 pt-3 pb-1 flex justify-center w-full"
         >
-          <div className="w-10 h-1 bg-dark/15 rounded-full" />
+          <div className="w-10 h-1 bg-dark/15 dark:bg-dark-fg/20 rounded-full" />
         </button>
 
         <div
@@ -407,8 +418,8 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
           }}
         >
           <div className="flex items-center justify-between mb-4 pt-3">
-            <h2 className="text-base font-semibold text-dark">Share Kural</h2>
-            <button onClick={dismiss} className="text-xs text-dark/40 hover:text-dark transition-colors">
+            <h2 className="text-base font-semibold text-dark dark:text-dark-fg">Share Kural</h2>
+            <button onClick={dismiss} className="text-xs text-dark/40 dark:text-dark-fg/50 hover:text-dark dark:hover:text-dark-fg transition-colors">
               Cancel
             </button>
           </div>
@@ -421,8 +432,8 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
                 onClick={() => setRatio(key)}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   ratio === key
-                    ? "border-saffron bg-saffron/10 text-saffron"
-                    : "border-dark/15 text-dark/40"
+                    ? "border-emerald bg-emerald/10 dark:bg-emerald/20 text-emerald"
+                    : "border-dark/15 dark:border-dark-fg/20 text-dark/40 dark:text-dark-fg/50"
                 }`}
               >
                 {SIZES[key].label}
@@ -431,7 +442,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
           </div>
 
           {/* Preview */}
-          <div className="bg-white rounded-xl border border-dark/10 p-3 mb-4 flex justify-center">
+          <div className="bg-white dark:bg-dark-subtle rounded-xl border border-dark/10 dark:border-dark-fg/20 p-3 mb-4 flex justify-center">
             {previewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -446,14 +457,14 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
               />
             ) : (
               <div
-                className="bg-dark/5 rounded-lg flex items-center justify-center"
+                className="bg-dark/5 dark:bg-dark-fg/10 rounded-lg flex items-center justify-center"
                 style={
                   ratio === "story"
                     ? { height: "260px", aspectRatio: "9 / 16" }
                     : { width: "100%", aspectRatio: "1 / 1" }
                 }
               >
-                <div className="w-5 h-5 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
               </div>
             )}
           </div>
@@ -462,7 +473,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
           <button
             onClick={handleShare}
             disabled={sharing || !previewUrl}
-            className="w-full bg-saffron text-white text-sm font-medium rounded-xl px-4 py-3 hover:bg-saffron/90 transition-colors disabled:opacity-50"
+            className="w-full bg-emerald text-white text-sm font-medium rounded-xl px-4 py-3 hover:bg-emerald/90 transition-colors disabled:opacity-50"
           >
             {sharing ? "Sharing..." : canShare ? "Share" : "Download Image"}
           </button>

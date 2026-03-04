@@ -80,7 +80,7 @@ export default function JournalPage() {
   if (authLoading || loading) {
     return (
       <main className="max-w-content mx-auto px-6 pt-10 pb-24 flex items-center justify-center min-h-[60dvh]">
-        <div className="w-6 h-6 border-2 border-saffron border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
       </main>
     );
   }
@@ -88,16 +88,16 @@ export default function JournalPage() {
   return (
     <>
       <main className="max-w-content mx-auto px-6 pt-10 pb-24">
-        <h1 className="text-xl font-semibold text-dark mb-6">Your Journal</h1>
+        <h1 className="text-xl font-semibold text-dark dark:text-dark-fg mb-6">Your Journal</h1>
 
         {/* Soft sign-in nudge for guests */}
         {!user && (
-          <div className="bg-saffron/5 border border-saffron/20 rounded-xl px-4 py-3 mb-6">
-            <p className="text-xs text-dark/50">
+          <div className="bg-emerald/5 dark:bg-emerald/10 border border-emerald/20 dark:border-emerald/30 rounded-xl px-4 py-3 mb-6">
+            <p className="text-xs text-dark/50 dark:text-dark-fg/60">
               Your reflections are saved on this device.{" "}
               <button
                 onClick={() => setShowSignIn(true)}
-                className="text-saffron hover:underline font-medium"
+                className="text-emerald hover:underline font-medium"
               >
                 Sign in
               </button>
@@ -108,8 +108,8 @@ export default function JournalPage() {
 
         {entries.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-dark/50 text-sm">No reflections yet</p>
-            <p className="text-dark/30 text-xs mt-1">
+            <p className="text-dark/50 dark:text-dark-fg/60 text-sm">No reflections yet</p>
+            <p className="text-dark/30 dark:text-dark-fg/40 text-xs mt-1">
               Tap the journal button on any kural to start writing
             </p>
           </div>
@@ -119,14 +119,14 @@ export default function JournalPage() {
               <button
                 key={entry.id}
                 onClick={() => handleEntryClick(entry.kural_id)}
-                className="w-full text-left border border-dark/10 rounded-xl p-4 hover:border-saffron/30 transition-colors"
+                className="w-full text-left border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-saffron font-medium">
+                  <span className="text-xs text-emerald font-medium">
                     Kural #{entry.kural_id}
                   </span>
                   {user && (
-                    <span className="text-xs text-dark/30">
+                    <span className="text-xs text-dark/40 dark:text-dark-fg/50">
                       {new Date(entry.updated_at).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
@@ -135,7 +135,7 @@ export default function JournalPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-dark/70 leading-relaxed line-clamp-3">
+                <p className="text-sm text-dark/70 dark:text-dark-fg/75 leading-relaxed line-clamp-3">
                   {entry.reflection}
                 </p>
               </button>

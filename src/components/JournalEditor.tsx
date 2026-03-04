@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { usePreferences } from "@/lib/preferences";
 import SignInModal from "./SignInModal";
 import type { Kural } from "@/lib/types";
 
@@ -76,6 +77,7 @@ const SHEET_HEIGHT = 1200;
 
 export default function JournalEditor({ kural, onClose, showKuralLink }: JournalEditorProps) {
   const { user } = useAuth();
+  const { boxContent, setBoxContent } = usePreferences();
   const keyboardOffset = useKeyboardOffset();
   const historyPushed = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -224,7 +226,7 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
     <>
       {/* Backdrop */}
       <motion.div
-        className="fixed inset-0 bg-dark/40 z-[59]"
+        className="fixed inset-0 bg-dark/40 dark:bg-dark/60 z-[59]"
         style={{ opacity: backdropOpacity }}
         onClick={dismiss}
       />
@@ -236,7 +238,7 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
         dragConstraints={{ top: 0 }}
         dragElastic={{ top: 0.05, bottom: 0 }}
         onDragEnd={handleDragEnd}
-        className="fixed left-0 right-0 z-[60] bg-cream rounded-t-2xl max-w-content mx-auto flex flex-col"
+        className="fixed left-0 right-0 z-[60] bg-cream dark:bg-dark-subtle rounded-t-2xl max-w-content mx-auto flex flex-col"
       >
         {/* Handle — drag down or tap to close */}
         <button
@@ -244,7 +246,7 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
           aria-label="Close"
           className="flex-shrink-0 pt-3 pb-1 flex justify-center w-full"
         >
-          <div className="w-10 h-1 bg-dark/15 rounded-full" />
+          <div className="w-10 h-1 bg-dark/15 dark:bg-dark-fg/20 rounded-full" />
         </button>
 
         <div
@@ -259,23 +261,38 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
           {/* Kural reference */}
           <div className="mb-4 pt-2">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-dark/40">
+              <span className="text-xs text-dark/40 dark:text-dark-fg/50">
                 Reflecting on Kural #{kural.id}
               </span>
-              <button
-                onClick={dismiss}
-                className="text-xs text-dark/40 hover:text-dark transition-colors"
-              >
-                Done
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
+                  className="text-emerald/70 dark:text-emerald/80 hover:text-emerald text-xs"
+                  title="Toggle Tamil/Transliteration"
+                >
+                  ↔
+                </button>
+                <button
+                  onClick={dismiss}
+                  className="text-xs text-dark/40 dark:text-dark-fg/50 hover:text-dark dark:hover:text-dark-fg transition-colors"
+                >
+                  Done
+                </button>
+              </div>
             </div>
-            <p className="font-tamil text-sm text-dark/70 leading-relaxed">
-              {kural.kural_tamil}
-            </p>
+            {boxContent === "tamil" ? (
+              <p className="font-tamil text-sm text-dark/70 dark:text-dark-fg/75 leading-relaxed">
+                {kural.kural_tamil}
+              </p>
+            ) : (
+              <p className="font-serif text-base italic text-dark/70 dark:text-dark-fg/75 leading-relaxed">
+                {kural.transliteration}
+              </p>
+            )}
             {showKuralLink && (
               <Link
                 href={`/kural/${kural.id}`}
-                className="inline-block mt-2 text-xs text-saffron hover:underline"
+                className="inline-block mt-2 text-xs text-emerald hover:underline"
               >
                 Go to Kural ↗
               </Link>
@@ -287,11 +304,10 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
             value={text}
             onChange={(e) => handleChange(e.target.value)}
             placeholder="Write your reflection..."
-            className="w-full bg-white border border-dark/10 rounded-xl p-4 text-sm text-dark leading-relaxed placeholder:text-dark/30 focus:outline-none focus:border-saffron resize-none transition-colors"
+            className="w-full bg-white dark:bg-dark-subtle border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 text-sm text-dark dark:text-dark-fg leading-relaxed placeholder:text-dark/30 dark:placeholder:text-dark-fg/40 focus:outline-none focus:border-emerald dark:focus:border-emerald resize-none transition-colors"
             rows={6}
-            autoFocus
             onFocus={(e) => {
-              // Fallback: ensure textarea scrolls into view after keyboard opens
+              // Ensure textarea scrolls into view after keyboard opens
               setTimeout(() => e.target.scrollIntoView({ block: "nearest", behavior: "smooth" }), 300);
             }}
           />
@@ -300,10 +316,10 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
           <div className="flex items-center justify-between mt-2 h-5">
             <span />
             {saving && (
-              <span className="text-xs text-dark/40">Saving...</span>
+              <span className="text-xs text-dark/40 dark:text-dark-fg/50">Saving...</span>
             )}
             {saved && !saving && (
-              <span className="text-xs text-green-600">
+              <span className="text-xs text-green-600 dark:text-green-500">
                 {user ? "Saved" : "Saved locally"}
               </span>
             )}
@@ -311,10 +327,10 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
 
           {/* Soft sign-in nudge for anonymous users */}
           {!user && showNudge && (
-            <p className="text-xs text-dark/40 text-center mt-3">
+            <p className="text-xs text-dark/40 dark:text-dark-fg/50 text-center mt-3">
               <button
                 onClick={() => setShowSignIn(true)}
-                className="text-saffron hover:underline"
+                className="text-emerald hover:underline"
               >
                 Sign in
               </button>
