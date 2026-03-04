@@ -3,16 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --background: #FBF8F3;
-  --foreground: #2D2520;
-  --accent: #C9964B;
+  --background: #FFFFFF;
+  --foreground: #1A1A1A;
+  --accent: #1B5E4F;
   --accent-secondary: #A83C3C;
+  --bg-base: #FFFFFF;
+  --text-base: #1A1A1A;
+  --bg-elevated: #F9F8F7;
+  --text-subtle: #666666;
+}
+
+html.dark {
+  --background: #0F0E0C;
+  --foreground: #F5F1ED;
+  --accent: #2A7D6F;
+  --accent-secondary: #E67A5C;
+  --bg-base: #0F0E0C;
+  --text-base: #F5F1ED;
+  --bg-elevated: #1A1916;
+  --text-subtle: #A89F97;
 }
 
 html, body {
   overscroll-behavior: none;
-  background: linear-gradient(135deg, #FBF8F3 0%, #F7F3ED 100%);
-  color: var(--foreground);
+  background: var(--bg-base);
+  color: var(--text-base);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @layer utilities {
@@ -43,12 +59,20 @@ html, body {
   /* Editorial decorative line */
   .divider-editorial {
     height: 0.5px;
-    background: linear-gradient(90deg, transparent, #C9964B 25%, #C9964B 75%, transparent);
-    opacity: 0.6;
+    background: linear-gradient(90deg, transparent, var(--accent) 25%, var(--accent) 75%, transparent);
+    opacity: 0.5;
+  }
+
+  html.dark .divider-editorial {
+    opacity: 0.4;
   }
 
   /* Premium shadow depth */
   .shadow-amber {
-    box-shadow: 0 4px 12px rgba(201, 150, 75, 0.08);
+    box-shadow: 0 2px 8px rgba(244, 165, 41, 0.06);
+  }
+
+  html.dark .shadow-amber {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 }

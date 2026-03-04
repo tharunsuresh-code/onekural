@@ -119,7 +119,7 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-dark/15 rounded-xl px-4 py-3 text-sm text-dark placeholder:text-dark/30 focus:outline-none focus:border-saffron transition-colors mb-3"
+                  className="w-full bg-white border border-dark/15 rounded-xl px-4 py-3 text-sm text-dark placeholder:text-dark/30 focus:outline-none focus:border-emerald transition-colors mb-3"
                   required
                 />
                 {error && (
@@ -128,7 +128,7 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
                 <button
                   type="submit"
                   disabled={sending}
-                  className="w-full bg-saffron text-white text-sm font-medium rounded-xl px-4 py-3 hover:bg-saffron/90 transition-colors disabled:opacity-50"
+                  className="w-full bg-emerald text-white text-sm font-medium rounded-xl px-4 py-3 hover:bg-emerald/90 transition-colors disabled:opacity-50"
                 >
                   {sending ? "Sending..." : "Send magic link"}
                 </button>
