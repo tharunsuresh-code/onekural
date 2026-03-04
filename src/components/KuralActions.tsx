@@ -29,20 +29,20 @@ export default function KuralActions({ kural }: KuralActionsProps) {
           className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border transition-colors ${
             faved
               ? "border-deep-red/30 bg-deep-red/5 text-deep-red"
-              : "border-dark/15 text-dark/50 hover:border-saffron/30"
+              : "border-dark/15 text-dark/50 hover:border-emerald/30"
           }`}
         >
           <span>{faved ? "♥" : "♡"}</span> Favourite
         </button>
         <button
           onClick={handleJournalClick}
-          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-dark/15 text-dark/50 hover:border-saffron/30 transition-colors"
+          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-dark/15 text-dark/50 hover:border-emerald/30 transition-colors"
         >
           <span>✎</span> Journal
         </button>
         <button
           onClick={() => setShowShare(true)}
-          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-dark/15 text-dark/50 hover:border-saffron/30 transition-colors"
+          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-dark/15 text-dark/50 hover:border-emerald/30 transition-colors"
         >
           <span>↑</span> Share
         </button>

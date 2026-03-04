@@ -13,6 +13,7 @@ export interface Kural {
   transliteration: string;
   meaning_english: string;
   scholars: Scholar[];
+  scholars_en?: string;
   themes: string[];
 }
 
@@ -21,6 +22,15 @@ export const BOOK_NAMES: Record<number, { tamil: string; english: string }> = {
   2: { tamil: "பொருட்பால்", english: "Porul" },
   3: { tamil: "இன்பத்துப்பால்", english: "Inbam" },
 };
+
+/** Returns Solomon Popoye's Tamil commentary, falling back to the first Tamil scholar entry. */
+export function getSolomonTamil(kural: Kural): string {
+  const solomon = kural.scholars?.find((s) => s.name === "சாலமன் பாப்பையா");
+  if (solomon) return solomon.commentary;
+  // Fallback: first scholar whose name is in Tamil script (non-ASCII)
+  const tamil = kural.scholars?.find((s) => /[^\u0000-\u007F]/.test(s.name));
+  return tamil?.commentary ?? kural.meaning_english;
+}
 
 export interface Chapter {
   chapter: number;

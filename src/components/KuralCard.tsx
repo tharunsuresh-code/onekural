@@ -4,13 +4,16 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
 import type { Kural } from "@/lib/types";
-import { BOOK_NAMES } from "@/lib/types";
+import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
 import { getDailyKuralId } from "@/lib/kurals";
 import { usePreferences } from "@/lib/preferences";
 import JournalEditor from "./JournalEditor";
 import ShareCard from "./ShareCard";
+import ExplanationSheet from "./ExplanationSheet";
 import OnboardingHint from "./OnboardingHint";
+import ThemeSwitcher from "./ThemeSwitcher";
+import { useAudio } from "@/lib/audio";
 
 interface KuralCardProps {
   initialKural: Kural;
@@ -34,7 +37,9 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isPlaying, play, stop } = useAudio();
   const { boxContent, setBoxContent } = usePreferences();
 
   // Horizontal swipe only — no y motion value so card never moves vertically
@@ -115,24 +120,27 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
           transition={{ duration: 0.4 }}
           className="relative flex justify-center mb-6"
         >
+          {/* Theme switcher */}
+          <ThemeSwitcher />
+
           {/* Centered brand */}
           <div className="text-center">
             <h1 className="text-xl font-bold tracking-wide">
-              <span className="text-saffron">One</span><span className="text-dark">Kural</span>
+              <span className="text-emerald">One</span><span className="text-dark dark:text-dark-fg">Kural</span>
             </h1>
             {kural.id === localDailyKuralId && (
               <>
-                <p className="text-[10px] uppercase tracking-widest text-saffron/80 font-medium mt-1">
+                <p className="text-[10px] uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1">
                   Today&apos;s Kural
                 </p>
-                <p className="text-xs text-dark/40 mt-0.5" suppressHydrationWarning>{dateStr}</p>
+                <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5" suppressHydrationWarning>{dateStr}</p>
               </>
             )}
           </div>
           {/* Kural number badge pinned to the right */}
           <Link
             href={`/kural/${kural.id}`}
-            className="absolute right-0 top-0 text-xs bg-saffron/10 text-saffron border border-saffron/30 rounded-full px-3 py-1 font-medium"
+            className="absolute right-0 top-0 text-xs bg-emerald/10 dark:bg-emerald/20 text-emerald border border-emerald/30 dark:border-emerald/40 rounded-full px-3 py-1 font-medium"
           >
             #{kural.id}
           </Link>
@@ -156,13 +164,13 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
-              <span className="text-xs text-dark/50 tracking-wide">
+              <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
                 {bookName} · {kural.chapter_name_english}
               </span>
             </div>
             <button
               onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
-              className="text-saffron/70 hover:text-saffron active:text-saffron transition-colors"
+              className="text-emerald/70 dark:text-emerald/80 hover:text-emerald dark:hover:text-emerald active:text-emerald transition-colors"
               title="Swap"
             >
               <svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -188,11 +196,11 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
             className="text-center mb-8 px-2"
           >
             {boxContent === "tamil" ? (
-              <p className="font-kural-tamil font-bold text-dark whitespace-pre-line text-balance">
+              <p className="font-kural-tamil font-bold text-dark dark:text-dark-fg whitespace-pre-line text-balance">
                 {kural.kural_tamil}
               </p>
             ) : (
-              <p className="font-serif text-3xl font-bold text-dark whitespace-pre-line leading-tight tracking-normal text-balance">
+              <p className="font-serif text-3xl font-bold text-dark dark:text-dark-fg whitespace-pre-line leading-tight tracking-normal text-balance">
                 {kural.transliteration}
               </p>
             )}
@@ -211,12 +219,20 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="bg-white/40 backdrop-blur-sm rounded-lg px-6 py-5 shadow-amber text-center"
+            className="bg-emerald/8 dark:bg-emerald/10 backdrop-blur-sm rounded-lg px-6 py-5 shadow-sm dark:shadow-none border border-emerald/10 dark:border-emerald/20 text-center"
           >
-            <p className="text-xs uppercase tracking-widest text-saffron/70 mb-3 font-medium">Insight</p>
-            <p className="font-serif text-base leading-relaxed text-dark/80">
-              {kural.meaning_english}
+            <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-3 font-medium">Insight</p>
+            <p className={`font-serif text-base leading-relaxed text-dark/80 dark:text-dark-fg/85 ${boxContent === "tamil" ? "font-tamil" : ""}`}>
+              {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
             </p>
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={() => setShowExplanation(true)}
+                className="text-xs text-emerald/60 dark:text-emerald/70 hover:text-emerald transition-colors"
+              >
+                More ↓
+              </button>
+            </div>
           </motion.div>
         </motion.div>
 
@@ -224,17 +240,17 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
         <div className="flex items-center justify-between py-3">
           <button
             onClick={() => navigateKural("prev")}
-            className="flex items-center gap-1.5 text-sm text-dark/40 hover:text-dark/70 active:text-dark transition-colors"
+            className="flex items-center gap-1.5 text-sm text-dark/40 dark:text-dark-fg/50 hover:text-dark/70 dark:hover:text-dark-fg/80 active:text-dark dark:active:text-dark-fg transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 1L1 7.5L7 14" />
             </svg>
             <span className="text-xs">#{prevId}</span>
           </button>
-          <span className="text-xs text-dark/25">{kural.id} / 1330</span>
+          <span className="text-xs text-dark/25 dark:text-dark-fg/30">{kural.id} / 1330</span>
           <button
             onClick={() => navigateKural("next")}
-            className="flex items-center gap-1.5 text-sm text-dark/40 hover:text-dark/70 active:text-dark transition-colors"
+            className="flex items-center gap-1.5 text-sm text-dark/40 dark:text-dark-fg/50 hover:text-dark/70 dark:hover:text-dark-fg/80 active:text-dark dark:active:text-dark-fg transition-colors"
           >
             <span className="text-xs">#{nextId}</span>
             <svg width="16" height="16" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -248,25 +264,33 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
-          className="flex items-center justify-between pt-4 border-t border-dark/10"
+          className="flex items-center justify-between pt-4 border-t border-dark/10 dark:border-dark-fg/10"
         >
+          <button
+            onClick={() => isPlaying ? stop() : play(kural.kural_tamil)}
+            className={`text-sm flex items-center gap-1.5 transition-colors ${
+              isPlaying ? "text-emerald" : "text-dark/50 dark:text-dark-fg/50"
+            }`}
+          >
+            <span>{isPlaying ? "■" : "♪"}</span> {isPlaying ? "Stop" : "Listen"}
+          </button>
           <button
             onClick={() => toggleFavorite(kural.id)}
             className={`text-sm flex items-center gap-1.5 transition-colors ${
-              faved ? "text-deep-red" : "text-dark/50"
+              faved ? "text-deep-red dark:text-deep-red/80" : "text-dark/50 dark:text-dark-fg/50"
             }`}
           >
             <span>{faved ? "♥" : "♡"}</span> Favourite
           </button>
           <button
             onClick={() => setShowJournal(true)}
-            className="text-sm text-dark/50 flex items-center gap-1.5"
+            className="text-sm text-dark/50 dark:text-dark-fg/50 flex items-center gap-1.5"
           >
             <span>✎</span> Journal
           </button>
           <button
             onClick={() => setShowShare(true)}
-            className="text-sm text-dark/50 flex items-center gap-1.5"
+            className="text-sm text-dark/50 dark:text-dark-fg/50 flex items-center gap-1.5"
           >
             <span>↑</span> Share
           </button>
@@ -282,6 +306,10 @@ export default function KuralCard({ initialKural, dailyKuralId }: KuralCardProps
 
       {showShare && (
         <ShareCard kural={kural} onClose={() => setShowShare(false)} />
+      )}
+
+      {showExplanation && (
+        <ExplanationSheet kural={kural} onClose={() => setShowExplanation(false)} />
       )}
 
       <OnboardingHint />
