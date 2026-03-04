@@ -118,7 +118,11 @@ self.addEventListener("push", (event) => {
 // ─── Notification click ────────────────────────────────────────────────────
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || "/";
+  // Always use an absolute URL so openWindow/navigate work correctly in PWA
+  const targetUrl = new URL(
+    event.notification.data?.url || "/",
+    self.location.origin
+  ).href;
 
   event.waitUntil(
     self.clients
@@ -126,11 +130,10 @@ self.addEventListener("notificationclick", (event) => {
       .then((clients) => {
         const existing = clients.find((c) => c.url.includes(self.location.origin));
         if (existing) {
-          existing.focus();
-          existing.navigate(targetUrl);
-        } else {
-          self.clients.openWindow(targetUrl);
+          // Return the promise chain so the SW stays alive until navigation completes
+          return existing.focus().then(() => existing.navigate(targetUrl));
         }
+        return self.clients.openWindow(targetUrl);
       })
   );
 });
