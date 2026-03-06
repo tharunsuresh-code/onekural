@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { Kural } from "@/lib/types";
+import { usePreferences } from "@/lib/preferences";
 
 interface ExplanationSheetProps {
   kural: Kural;
@@ -11,7 +12,31 @@ interface ExplanationSheetProps {
 
 const SHEET_HEIGHT = 1200;
 
+function renderExplanation(text: string) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  return lines.map((line, i) => {
+    const hasBold = /\*\*/.test(line);
+    const prevHasBold = i > 0 && /\*\*/.test(lines[i - 1]);
+
+    // bold → bold: single newline feel; anything else: larger gap
+    const marginClass = i === 0 ? "" : hasBold && prevHasBold ? "mt-2" : "mt-6";
+
+    const parts = line.split(/\*\*(.+?)\*\*/g);
+    return (
+      <p key={i} className={marginClass}>
+        {parts.map((p, j) =>
+          j % 2 === 1 ? (
+            <strong key={j} className="font-semibold text-dark/90 dark:text-dark-fg/95">{p}</strong>
+          ) : p
+        )}
+      </p>
+    );
+  });
+}
+
 export default function ExplanationSheet({ kural, onClose }: ExplanationSheetProps) {
+  const { boxContent } = usePreferences();
+  const lang = boxContent === "tamil" ? "tamil" : "english";
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetY = useMotionValue(SHEET_HEIGHT);
   const backdropOpacity = useTransform(sheetY, [0, SHEET_HEIGHT * 0.4], [1, 0]);
@@ -51,8 +76,7 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
     }
   }
 
-  const couplet = kural.scholars?.find((s) => s.name === "Couplet")?.commentary;
-  const commentary = kural.scholars_en;
+  const content = lang === "tamil" ? kural.explanation_tamil : kural.explanation_english;
 
   return (
     <>
@@ -91,64 +115,30 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
           }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-5 pt-1">
-            <div>
-              <span className="text-xs text-dark/40 dark:text-dark-fg/50">
-                Kural #{kural.id} · {kural.chapter_name_english}
-              </span>
-            </div>
+          <div className="flex items-center justify-between mb-6 pt-1">
+            <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald font-medium">
+              {lang === "tamil" ? "விளக்கம்" : "Explanation"}
+            </p>
             <button
               onClick={dismiss}
-              className="text-xs text-dark/40 dark:text-dark-fg/50 hover:text-dark dark:hover:text-dark-fg transition-colors"
+              aria-label="Close"
+              className="text-dark/35 dark:text-dark-fg/45 hover:text-dark dark:hover:text-dark-fg transition-colors leading-none"
             >
-              Done
+              ✕
             </button>
           </div>
 
-          {/* Tamil kural for reference */}
-          <p className="font-tamil text-sm text-dark/60 dark:text-dark-fg/65 leading-relaxed mb-5">
-            {kural.kural_tamil}
-          </p>
-
-          <div className="h-px bg-emerald/20 dark:bg-emerald/30 mb-5" />
-
-          {/* Couplet */}
-          {couplet && (
-            <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-2 font-medium">
-                Couplet
-              </p>
-              <p className="font-serif text-base italic leading-relaxed text-dark/75 dark:text-dark-fg/80">
-                {couplet}
-              </p>
-            </div>
-          )}
-
-          {/* Commentary */}
-          {commentary ? (
-            <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-2 font-medium">
-                Commentary
-              </p>
-              <p className="font-serif text-base leading-relaxed text-dark/80 dark:text-dark-fg/85">
-                {commentary}
-              </p>
+          {content ? (
+            <div className={`text-sm leading-relaxed text-dark/75 dark:text-dark-fg/80 ${
+              lang === "tamil" ? "font-tamil" : "font-serif"
+            }`}>
+              {renderExplanation(content)}
             </div>
           ) : (
-            <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-2 font-medium">
-                Commentary
-              </p>
-              <p className="text-sm text-dark/35 dark:text-dark-fg/40 italic">
-                Extended commentary coming soon.
-              </p>
-            </div>
+            <p className="text-sm text-dark/40 dark:text-dark-fg/50 italic">
+              Explanation coming soon.
+            </p>
           )}
-
-          {/* Attribution */}
-          <p className="text-xs text-dark/30 dark:text-dark-fg/35 text-center mt-2">
-            G.U. Pope, 1886 — public domain
-          </p>
         </div>
       </motion.div>
     </>

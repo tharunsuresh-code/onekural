@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getKural } from "@/lib/kurals";
-import KuralDetailCard from "@/components/KuralDetailCard";
+import KuralCard from "@/components/KuralCard";
 
 interface Props {
   params: { id: string };
@@ -17,5 +17,5 @@ export default async function KuralDetailPage({ params }: Props) {
     notFound();
   }
 
-  return <KuralDetailCard initialKural={kural} />;
+  return <KuralCard initialKural={kural} />;
 }
