@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
@@ -47,6 +47,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
   const { isPlaying, play, stop } = useAudio();
   const { boxContent, setBoxContent } = usePreferences();
 
+  const swipeStartY = useRef<number | null>(null);
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
@@ -249,20 +250,30 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
             </p>
           </motion.div>
 
-          {/* Swipe-up hint */}
-          <motion.div
+          {/* Swipe-up / tap hint → opens explanation */}
+          <motion.button
+            onClick={() => setShowExplanation(true)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.7 }}
-            className="flex flex-col items-center gap-0.5 mt-4"
+            className="flex flex-col items-center gap-0.5 mt-4 hover:opacity-60 active:opacity-40 transition-opacity"
           >
             <span className="text-dark/25 dark:text-dark-fg/25 text-xs leading-none">↑</span>
             <span className="text-[10px] uppercase tracking-widest text-dark/25 dark:text-dark-fg/25">Explanation</span>
-          </motion.div>
+          </motion.button>
         </motion.div>
 
         {/* Navigation row */}
-        <div className="flex items-center justify-between py-3">
+        <div
+          className="flex items-center justify-between py-3"
+          onTouchStart={(e) => { swipeStartY.current = e.touches[0].clientY; }}
+          onTouchEnd={(e) => {
+            if (swipeStartY.current === null) return;
+            const dy = e.changedTouches[0].clientY - swipeStartY.current;
+            if (dy < -40) setShowExplanation(true);
+            swipeStartY.current = null;
+          }}
+        >
           <button
             onClick={() => navigateKural("prev")}
             className="flex items-center gap-1.5 text-sm text-dark/40 dark:text-dark-fg/50 hover:text-dark/70 dark:hover:text-dark-fg/80 active:text-dark dark:active:text-dark-fg transition-colors"

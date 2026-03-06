@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+// TODO: same as /api/kural/[id] — revert to cached once data is stable.
+export const dynamic = "force-dynamic";
 import { getKuralsByChapter } from "@/lib/kurals";
 
 export async function GET(request: NextRequest) {
