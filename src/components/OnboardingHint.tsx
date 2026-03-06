@@ -65,23 +65,6 @@ function MobileHints() {
         </span>
       </div>
 
-      <div className="w-20 h-px bg-white/15 rounded-full" />
-
-      {/* Dark / light mode */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex items-center gap-2 text-white/80">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-          <span className="text-white/40 text-sm">/</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-        </div>
-        <span className="text-xs text-white/60 text-center leading-relaxed">
-          Tap ☀/☾ in the header<br />to switch theme
-        </span>
-      </div>
     </>
   );
 }
@@ -146,23 +129,6 @@ function DesktopHints() {
         </span>
       </div>
 
-      <div className="w-20 h-px bg-white/15 rounded-full" />
-
-      {/* Dark / light mode */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex items-center gap-2 text-white/80">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-          <span className="text-white/40 text-sm">/</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-        </div>
-        <span className="text-xs text-white/60 text-center leading-relaxed">
-          Click ☀/☾ in the header<br />to switch theme
-        </span>
-      </div>
     </>
   );
 }
@@ -204,6 +170,25 @@ export default function OnboardingHint() {
             onClick={(e) => e.stopPropagation()}
           >
             {isMobile ? <MobileHints /> : <DesktopHints />}
+
+            {/* Theme toggle callout — overlays the actual button position (pt-14 px-6 in KuralCard) */}
+            <div className="fixed top-[60px] left-[14px] flex items-start gap-2 pointer-events-none">
+              {/* Pulsing ring around the real button */}
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <motion.div
+                  animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.2, ease: "easeOut" }}
+                  className="absolute inset-0 rounded-lg bg-white/60"
+                />
+                <div className="absolute inset-0 rounded-lg border border-white/70" />
+              </div>
+              {/* Label pointing right from the button */}
+              <div className="mt-1.5">
+                <span className="text-xs text-white/80 leading-relaxed whitespace-nowrap">
+                  Tap to switch<br />light / dark
+                </span>
+              </div>
+            </div>
 
             <button
               onClick={dismiss}
