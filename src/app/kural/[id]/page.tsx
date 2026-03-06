@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 import { getKural } from "@/lib/kurals";
 import KuralCard from "@/components/KuralCard";
 
-export const revalidate = 3600; // regenerate at most once per hour
-
 interface Props {
   params: { id: string };
 }
