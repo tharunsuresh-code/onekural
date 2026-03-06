@@ -263,12 +263,12 @@ async function generateImage(
   ctx.textAlign = "right";
   ctx.fillText(badgeText, badgeRight - 20, badgeTopY + 30);
 
-  // Watermark — அ · OneKural, bottom-left
+  // Watermark — அ · OneKural, bottom-center
   ctx.font = "28px 'Noto Serif Tamil', serif";
   ctx.fillStyle = DARK + "35";
-  ctx.textAlign = "left";
+  ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText("அ · OneKural", pad, h - 50);
+  ctx.fillText("அ · OneKural", w / 2, h - 50);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob!), "image/png");
