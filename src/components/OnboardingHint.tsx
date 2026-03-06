@@ -161,6 +161,29 @@ export default function OnboardingHint() {
           className="fixed inset-0 z-[70] bg-dark/80 flex flex-col items-center justify-center px-8"
           onClick={dismiss}
         >
+          {/* Theme toggle callout — absolute within the fixed backdrop so it isn't
+              affected by the y-transform on the inner motion.div below.
+              left: max(24px, calc((100vw - 680px)/2 + 24px)) tracks the ThemeSwitcher
+              at px-6 inside the max-w-content centered card on any screen width. */}
+          <div
+            className="absolute flex items-start gap-2 pointer-events-none"
+            style={{ top: "56px", left: "max(24px, calc((100vw - 680px) / 2 + 24px))" }}
+          >
+            <div className="relative w-10 h-10 flex-shrink-0">
+              <motion.div
+                animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
+                transition={{ repeat: Infinity, duration: 1.2, ease: "easeOut" }}
+                className="absolute inset-0 rounded-lg bg-white/60"
+              />
+              <div className="absolute inset-0 rounded-lg border border-white/70" />
+            </div>
+            <div className="mt-1.5">
+              <span className="text-xs text-white/80 leading-relaxed whitespace-nowrap">
+                Tap to switch<br />light / dark
+              </span>
+            </div>
+          </div>
+
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -170,25 +193,6 @@ export default function OnboardingHint() {
             onClick={(e) => e.stopPropagation()}
           >
             {isMobile ? <MobileHints /> : <DesktopHints />}
-
-            {/* Theme toggle callout — overlays the actual button position (pt-14 px-6 in KuralCard) */}
-            <div className="fixed top-[60px] left-[14px] flex items-start gap-2 pointer-events-none">
-              {/* Pulsing ring around the real button */}
-              <div className="relative w-10 h-10 flex-shrink-0">
-                <motion.div
-                  animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.2, ease: "easeOut" }}
-                  className="absolute inset-0 rounded-lg bg-white/60"
-                />
-                <div className="absolute inset-0 rounded-lg border border-white/70" />
-              </div>
-              {/* Label pointing right from the button */}
-              <div className="mt-1.5">
-                <span className="text-xs text-white/80 leading-relaxed whitespace-nowrap">
-                  Tap to switch<br />light / dark
-                </span>
-              </div>
-            </div>
 
             <button
               onClick={dismiss}

@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import { getKural } from "@/lib/kurals";
 import KuralCard from "@/components/KuralCard";
 
+// TODO: once kural data is stable (no more bulk explanation updates), remove
+// force-dynamic and re-enable static generation with generateStaticParams.
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: { id: string };
 }
