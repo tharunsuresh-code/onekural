@@ -44,3 +44,4 @@ next-env.d.ts
 # Translation scripts (work-in-progress)
 TRANSLATION_PLAN.md
 scripts/translate.ts
+scripts/output/

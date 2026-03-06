@@ -15,6 +15,8 @@ export interface Kural {
   scholars: Scholar[];
   scholars_en?: string;
   themes: string[];
+  explanation_english?: string | null;
+  explanation_tamil?: string | null;
 }
 
 export const BOOK_NAMES: Record<number, { tamil: string; english: string }> = {
