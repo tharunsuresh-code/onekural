@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
 :root {
   --background: #FFFFFF;
   --foreground: #1A1A1A;

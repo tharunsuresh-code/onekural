@@ -8,14 +8,13 @@ import { createCanvas } from "canvas";
 import * as fs from "fs";
 import * as path from "path";
 
-const SAFFRON = "#F4A528";
-const DEEP_RED = "#8B1A1A";
-const CREAM = "#FAF7F2";
+const EMERALD = "#1B5E4F";
+const WHITE = "#FFFFFF";
 
 function drawIcon(
   size: number,
   maskable: boolean,
-  bgColor: string = SAFFRON
+  bgColor: string = EMERALD
 ): Buffer {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext("2d");
@@ -27,10 +26,8 @@ function drawIcon(
   // Background
   ctx.fillStyle = bgColor;
   if (maskable) {
-    // Full bleed background for maskable
     ctx.fillRect(0, 0, size, size);
   } else {
-    // Rounded rect for regular icons
     const radius = size * 0.2;
     ctx.beginPath();
     ctx.moveTo(radius, 0);
@@ -46,19 +43,22 @@ function drawIcon(
     ctx.fill();
   }
 
-  // Draw "OK" monogram — "O" (for OneKural) in Tamil-inspired style
-  // We use the Tamil "ஒ" character (short O) as the monogram
+  // Draw "அ" lettermark — use actual bounding box to visually center Tamil glyph
   const fontSizeMain = safeZone * 0.52;
-  ctx.fillStyle = DEEP_RED;
+  ctx.fillStyle = WHITE;
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `bold ${fontSizeMain}px serif`;
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `bold ${fontSizeMain}px 'Noto Serif Tamil', serif`;
 
   const centerX = size / 2;
-  const centerY = size / 2 + offset * 0.1;
+  const glyphCenter = size / 2 + offset * 0.1;
 
-  // Draw "ஒ" Tamil character
-  ctx.fillText("ஒ", centerX, centerY);
+  // Measure actual rendered bounds to correct for Tamil descenders/ascenders
+  const metrics = ctx.measureText("அ");
+  const glyphHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+  const textY = glyphCenter + metrics.actualBoundingBoxAscent - glyphHeight / 2;
+
+  ctx.fillText("அ", centerX, textY);
 
   return canvas.toBuffer("image/png");
 }
@@ -67,17 +67,19 @@ function drawFavicon(size: number): Buffer {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext("2d");
 
-  // Simple square with saffron bg
-  ctx.fillStyle = SAFFRON;
+  ctx.fillStyle = EMERALD;
   ctx.fillRect(0, 0, size, size);
 
-  // Small "ஒ"
   const fontSize = size * 0.65;
-  ctx.fillStyle = DEEP_RED;
+  ctx.fillStyle = WHITE;
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `bold ${fontSize}px serif`;
-  ctx.fillText("ஒ", size / 2, size / 2);
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `bold ${fontSize}px 'Noto Serif Tamil', serif`;
+
+  const metrics = ctx.measureText("அ");
+  const glyphHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+  const textY = size / 2 + metrics.actualBoundingBoxAscent - glyphHeight / 2;
+  ctx.fillText("அ", size / 2, textY);
 
   return canvas.toBuffer("image/png");
 }
