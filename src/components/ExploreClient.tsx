@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Chapter, Kural } from "@/lib/types";
 import { BOOK_NAMES } from "@/lib/types";
+import { usePreferences } from "@/lib/preferences";
 
 const BOOKS = [1, 2, 3] as const;
 
@@ -20,6 +21,7 @@ export default function ExploreClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [loadingChapters, setLoadingChapters] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
+  const { boxContent, setBoxContent } = usePreferences();
 
   // Fetch chapters when book changes
   useEffect(() => {
@@ -81,7 +83,15 @@ export default function ExploreClient() {
 
   return (
     <main className="max-w-content mx-auto px-6 pt-10 pb-24">
-      <h1 className="text-xl font-semibold text-dark dark:text-dark-fg mb-6">Explore</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-semibold text-dark dark:text-dark-fg">Explore</h1>
+        <button
+          onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
+          className="text-xs px-2.5 py-1 rounded-full bg-emerald/15 dark:bg-emerald/20 text-emerald hover:bg-emerald/25 dark:hover:bg-emerald/30 transition-colors"
+        >
+          {boxContent === "tamil" ? "English" : "தமிழ்"}
+        </button>
+      </div>
 
       {/* Search bar */}
       <div className="relative mb-6">
@@ -137,9 +147,15 @@ export default function ExploreClient() {
                       #{k.id}
                     </span>
                   </div>
-                  <p className="font-tamil text-sm leading-relaxed text-dark dark:text-dark-fg mb-1">
-                    {k.kural_tamil}
-                  </p>
+                  {boxContent === "tamil" ? (
+                    <p className="font-tamil text-sm leading-relaxed text-dark dark:text-dark-fg mb-1">
+                      {k.kural_tamil}
+                    </p>
+                  ) : (
+                    <p className="font-serif text-base italic text-dark dark:text-dark-fg mb-1 leading-relaxed">
+                      {k.transliteration}
+                    </p>
+                  )}
                   <p className="text-xs text-dark/60 dark:text-dark-fg/65 line-clamp-2">
                     {k.meaning_english}
                   </p>
@@ -234,9 +250,15 @@ export default function ExploreClient() {
                                   href={`/kural/${k.id}`}
                                   className="block py-2 border-b border-dark/5 dark:border-dark-fg/10 last:border-0 hover:bg-emerald/5 dark:hover:bg-emerald/10 rounded px-2 -mx-2 transition-colors"
                                 >
-                                  <p className="font-tamil text-sm leading-relaxed text-dark dark:text-dark-fg">
-                                    {k.kural_tamil}
-                                  </p>
+                                  {boxContent === "tamil" ? (
+                                    <p className="font-tamil text-sm leading-relaxed text-dark dark:text-dark-fg">
+                                      {k.kural_tamil}
+                                    </p>
+                                  ) : (
+                                    <p className="font-serif text-base italic text-dark dark:text-dark-fg leading-relaxed">
+                                      {k.transliteration}
+                                    </p>
+                                  )}
                                   <p className="text-xs text-dark/50 dark:text-dark-fg/60 mt-1 line-clamp-1">
                                     #{k.id} · {k.meaning_english}
                                   </p>
