@@ -244,7 +244,9 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
             transition={{ duration: 0.6, delay: 0.5 }}
             className="bg-emerald/8 dark:bg-emerald/10 backdrop-blur-sm rounded-lg px-6 py-5 shadow-sm dark:shadow-none border border-emerald/10 dark:border-emerald/20 text-center"
           >
-            <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-3 font-medium">Insight</p>
+            <p className={`text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-3 font-medium ${boxContent === "tamil" ? "font-tamil text-sm" : ""}`}>
+              {boxContent === "tamil" ? "பொருள்" : "Insight"}
+            </p>
             <p className={`font-serif leading-relaxed text-dark/80 dark:text-dark-fg/85 ${boxContent === "tamil" ? "font-tamil text-sm" : "text-base"}`}>
               {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
             </p>
