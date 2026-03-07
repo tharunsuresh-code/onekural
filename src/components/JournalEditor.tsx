@@ -264,21 +264,12 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
               <span className="text-xs text-dark/40 dark:text-dark-fg/50">
                 Reflecting on Kural #{kural.id}
               </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
-                  className="text-emerald/70 dark:text-emerald/80 hover:text-emerald text-xs"
-                  title="Toggle Tamil/Transliteration"
-                >
-                  ↔
-                </button>
-                <button
-                  onClick={dismiss}
-                  className="text-xs text-dark/40 dark:text-dark-fg/50 hover:text-dark dark:hover:text-dark-fg transition-colors"
-                >
-                  Done
-                </button>
-              </div>
+              <button
+                onClick={dismiss}
+                className="text-xs text-dark/40 dark:text-dark-fg/50 hover:text-dark dark:hover:text-dark-fg transition-colors"
+              >
+                Done
+              </button>
             </div>
             {boxContent === "tamil" ? (
               <p className="font-tamil text-sm text-dark/70 dark:text-dark-fg/75 leading-relaxed">
