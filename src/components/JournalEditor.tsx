@@ -77,7 +77,7 @@ const SHEET_HEIGHT = 1200;
 
 export default function JournalEditor({ kural, onClose, showKuralLink }: JournalEditorProps) {
   const { user } = useAuth();
-  const { boxContent, setBoxContent } = usePreferences();
+  const { boxContent } = usePreferences();
   const keyboardOffset = useKeyboardOffset();
   const historyPushed = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
