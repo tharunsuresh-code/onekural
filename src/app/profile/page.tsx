@@ -94,45 +94,64 @@ export default function ProfilePage() {
       {/* Avatar + user info / sign in */}
       <div className="flex flex-col items-center mb-10">
         {user ? (
-          <>
-            {/* Avatar */}
-            {user.user_metadata?.avatar_url ? (
-              <Image
-                src={user.user_metadata.avatar_url}
-                alt=""
-                width={80}
-                height={80}
-                className="rounded-full mb-4 object-cover"
-                referrerPolicy="no-referrer"
-                unoptimized
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-emerald/20 dark:bg-emerald/15 flex items-center justify-center mb-4">
-                <span className="text-2xl font-semibold text-emerald">
-                  {(user.user_metadata?.full_name?.[0] ?? user.email?.[0] ?? "U").toUpperCase()}
-                </span>
-              </div>
-            )}
-            <h1 className="text-lg font-semibold text-dark dark:text-dark-fg mb-1">
-              {user.user_metadata?.full_name ?? "User"}
-            </h1>
-            <p className="text-sm text-dark/50 dark:text-dark-fg/60 mb-4">{user.email}</p>
-
-            {/* Favourites link */}
-            <Link
-              href="/profile/favorites"
-              className="text-sm text-emerald font-medium mb-4 hover:underline"
-            >
-              My Favourites
-            </Link>
-
+          <div className="w-full relative">
+            {/* Logout icon — top right */}
             <button
               onClick={signOut}
-              className="text-sm text-dark/50 dark:text-dark-fg/60 hover:text-deep-red dark:hover:text-deep-red/90 transition-colors"
+              aria-label="Sign out"
+              className="absolute top-0 right-0 p-2 text-dark/50 dark:text-dark-fg/60 hover:text-deep-red dark:hover:text-deep-red/90 transition-colors"
+              title="Sign out"
             >
-              Sign out
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
             </button>
-          </>
+
+            {/* User info — centered */}
+            <div className="flex flex-col items-center">
+              {/* Avatar */}
+              {user.user_metadata?.avatar_url ? (
+                <Image
+                  src={user.user_metadata.avatar_url}
+                  alt=""
+                  width={80}
+                  height={80}
+                  className="rounded-full mb-4 object-cover"
+                  referrerPolicy="no-referrer"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-emerald/20 dark:bg-emerald/15 flex items-center justify-center mb-4">
+                  <span className="text-2xl font-semibold text-emerald">
+                    {(user.user_metadata?.full_name?.[0] ?? user.email?.[0] ?? "U").toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <h1 className="text-lg font-semibold text-dark dark:text-dark-fg mb-1">
+                {user.user_metadata?.full_name ?? "User"}
+              </h1>
+              <p className="text-sm text-dark/50 dark:text-dark-fg/60 mb-4">{user.email}</p>
+
+              {/* Favourites link */}
+              <Link
+                href="/profile/favorites"
+                className="text-sm text-emerald font-medium hover:underline"
+              >
+                My Favourites
+              </Link>
+            </div>
+          </div>
         ) : (
           <>
             <div className="w-20 h-20 rounded-full bg-dark/10 dark:bg-dark-fg/10 flex items-center justify-center mb-4">
