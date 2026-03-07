@@ -102,8 +102,16 @@ for (const icon of icons) {
   console.log(`✓ ${icon.name}`);
 }
 
-const faviconBuf = drawFavicon(32);
-fs.writeFileSync(path.join(__dirname, "../public/icons/favicon-32.png"), faviconBuf);
+// Use rounded icon design for favicon (32px version)
+const roundedFaviconBuf = drawIcon(32, false);
+fs.writeFileSync(path.join(__dirname, "../public/icons/favicon-32.png"), roundedFaviconBuf);
 console.log("✓ favicon-32.png");
+
+// Also create favicon.ico in root (Firefox compatibility)
+fs.copyFileSync(
+  path.join(__dirname, "../public/icons/favicon-32.png"),
+  path.join(__dirname, "../public/favicon.ico")
+);
+console.log("✓ favicon.ico");
 
 console.log("\nAll icons generated in public/icons/");
