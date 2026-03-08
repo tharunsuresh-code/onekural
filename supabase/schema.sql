@@ -77,13 +77,16 @@ create policy "users manage own push subscriptions"
 -- ─────────────────────────────────────────
 -- Auto-update updated_at on journal edits
 -- ─────────────────────────────────────────
-create or replace function update_updated_at()
-returns trigger as $$
+create or replace function public.update_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 create trigger journals_updated_at
   before update on journals
