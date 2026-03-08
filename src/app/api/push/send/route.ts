@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
 
   const expiredIds: string[] = [];
   let sent = 0;
+  const errors: Array<{ subscriptionId: string; error: string }> = [];
 
   for (const [date, rows] of Array.from(dateGroups.entries())) {
     const kural = await getDailyKural(date);
@@ -95,7 +96,17 @@ export async function POST(request: NextRequest) {
             const e = err as { statusCode: number };
             if (e.statusCode === 410 || e.statusCode === 404) {
               expiredIds.push(row.id);
+            } else {
+              errors.push({
+                subscriptionId: row.id,
+                error: `HTTP ${e.statusCode}`,
+              });
             }
+          } else if (err instanceof Error) {
+            errors.push({
+              subscriptionId: row.id,
+              error: err.message,
+            });
           }
         }
       })
@@ -110,5 +121,5 @@ export async function POST(request: NextRequest) {
       .in("id", expiredIds);
   }
 
-  return NextResponse.json({ sent, expired: expiredIds.length });
+  return NextResponse.json({ sent, expired: expiredIds.length, errors });
 }
