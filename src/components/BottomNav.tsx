@@ -60,10 +60,17 @@ export default function BottomNav() {
               ? pathname === "/"
               : pathname.startsWith(tab.href);
 
+          const handleHomeClick = () => {
+            if (tab.href === "/" && pathname === "/") {
+              window.dispatchEvent(new CustomEvent("onekural:go-home"));
+            }
+          };
+
           return (
             <Link
               key={tab.href}
               href={tab.href}
+              onClick={handleHomeClick}
               className="flex flex-col items-center gap-0.5 py-1 px-3 -mb-px"
             >
               {tab.icon(isActive)}

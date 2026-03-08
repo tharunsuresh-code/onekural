@@ -52,7 +52,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
 
-  // Home-only: midnight rollover + daily kural correction
+  // Home-only: midnight rollover + daily kural correction + home-icon reset
   useEffect(() => {
     if (!isHome) return;
     const localDate = new Date().toLocaleDateString("en-CA");
@@ -70,7 +70,20 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
     };
     sessionStorage.setItem("kural-date", localDate);
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+
+    const handleGoHome = () => {
+      const todayId = getDailyKuralId(new Date().toLocaleDateString("en-CA"));
+      fetchKural(todayId).then((k) => { if (k) setKural(k); });
+      setShowJournal(false);
+      setShowShare(false);
+      setShowExplanation(false);
+    };
+    window.addEventListener("onekural:go-home", handleGoHome);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("onekural:go-home", handleGoHome);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -110,7 +123,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
     [navigateKural, x]
   );
 
-  const bookName = BOOK_NAMES[kural.book]?.english ?? "";
+  const isTamil = boxContent === "tamil";
+  const bookName = BOOK_NAMES[kural.book]?.[isTamil ? "tamil" : "english"] ?? "";
   const dateStr = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
@@ -192,7 +206,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
               <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
-                {bookName} · {kural.chapter_name_english}
+                {bookName} · {isTamil ? kural.chapter_name_tamil : kural.chapter_name_english}
               </span>
             </div>
             <button

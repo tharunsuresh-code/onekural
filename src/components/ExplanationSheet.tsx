@@ -13,12 +13,16 @@ interface ExplanationSheetProps {
 const SHEET_HEIGHT = 1200;
 
 function renderExplanation(text: string) {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  // Normalize: split inline bold terms (". **") onto their own lines so the
+  // spacing logic works consistently for both English and Tamil explanations.
+  const normalized = text.replace(/(\.\s+)(\*\*)/g, ".\n\n$2");
+
+  const lines = normalized.split(/\r?\n/).filter((l) => l.trim());
   return lines.map((line, i) => {
     const hasBold = /\*\*/.test(line);
     const prevHasBold = i > 0 && /\*\*/.test(lines[i - 1]);
 
-    // bold → bold: single newline feel; anything else: larger gap
+    // bold → bold: tight spacing; anything else: larger gap
     const marginClass = i === 0 ? "" : hasBold && prevHasBold ? "mt-2" : "mt-6";
 
     const parts = line.split(/\*\*(.+?)\*\*/g);
@@ -47,6 +51,10 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
       animate(sheetY, 0, { type: "spring", stiffness: 380, damping: 38 });
     });
 
+    // Prevent underlying page from scrolling/swiping while sheet is open
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     if (typeof window === "undefined") return;
     history.pushState({ oneKuralSheet: true }, "");
     historyPushed.current = true;
@@ -55,7 +63,10 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
       animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
     };
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      document.body.style.overflow = prevOverflow;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,6 +96,7 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
         className="fixed inset-0 bg-dark/40 dark:bg-dark/60 z-[59]"
         style={{ opacity: backdropOpacity }}
         onClick={dismiss}
+        onPointerDown={(e) => e.stopPropagation()}
       />
 
       {/* Sheet */}
@@ -108,7 +120,7 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
         <div
           ref={scrollRef}
           className="px-6 pb-10 overflow-y-auto"
-          style={{ touchAction: "pan-y" }}
+          style={{ touchAction: "pan-y", overscrollBehavior: "contain" }}
           onPointerDown={(e) => {
             const el = scrollRef.current;
             if (el && el.scrollTop > 0) e.stopPropagation();
