@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const STORAGE_KEY = "onekural-onboarded-v2";
@@ -132,6 +132,8 @@ function DesktopHints() {
 export default function OnboardingHint() {
   const [show, setShow] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [langBtnRect, setLangBtnRect] = useState<DOMRect | null>(null);
+  const rafRef = useRef<number>();
 
   useEffect(() => {
     setIsMobile(window.matchMedia("(pointer: coarse)").matches);
@@ -140,6 +142,16 @@ export default function OnboardingHint() {
       return () => clearTimeout(t);
     }
   }, []);
+
+  // Measure the language toggle button position once the overlay is visible
+  useEffect(() => {
+    if (!show) return;
+    rafRef.current = requestAnimationFrame(() => {
+      const btn = document.querySelector<HTMLElement>("[data-lang-toggle]");
+      if (btn) setLangBtnRect(btn.getBoundingClientRect());
+    });
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [show]);
 
   function dismiss() {
     localStorage.setItem(STORAGE_KEY, "1");
@@ -162,7 +174,7 @@ export default function OnboardingHint() {
               left: max(24px, calc((100vw - 680px)/2 + 24px)) tracks the ThemeSwitcher
               at px-6 inside the max-w-content centered card on any screen width. */}
           <div
-            className="absolute flex items-start gap-2 pointer-events-none"
+            className="absolute flex items-center gap-2 pointer-events-none"
             style={{ top: "56px", left: "max(24px, calc((100vw - 680px) / 2 + 24px))" }}
           >
             <div className="relative w-10 h-10 flex-shrink-0">
@@ -173,12 +185,36 @@ export default function OnboardingHint() {
               />
               <div className="absolute inset-0 rounded-lg border border-white/70" />
             </div>
-            <div className="mt-1.5">
-              <span className="text-xs text-white/80 leading-relaxed whitespace-nowrap">
-                Tap to switch<br />light / dark
-              </span>
-            </div>
+            <span className="text-xs text-white/80 leading-relaxed whitespace-nowrap">
+              Tap to switch<br />light / dark
+            </span>
           </div>
+
+          {/* Language switch callout — text above the button, anchored from button bottom */}
+          {langBtnRect && (
+            <div
+              className="absolute flex flex-col items-end gap-1.5 pointer-events-none"
+              style={{
+                bottom: window.innerHeight - langBtnRect.bottom,
+                right: window.innerWidth - langBtnRect.right,
+              }}
+            >
+              <span className="text-xs text-white/80 leading-relaxed whitespace-nowrap text-right">
+                Tap to switch<br />Tamil / English
+              </span>
+              <div
+                className="relative flex-shrink-0"
+                style={{ width: langBtnRect.width, height: langBtnRect.height }}
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.2, ease: "easeOut", delay: 0.3 }}
+                  className="absolute inset-0 rounded-full bg-white/60"
+                />
+                <div className="absolute inset-0 rounded-full border border-white/70" />
+              </div>
+            </div>
+          )}
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
