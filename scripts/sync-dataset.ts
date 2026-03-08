@@ -48,23 +48,27 @@ const records = rows.map((r) => ({
   explanation_tamil: r.explanation_tamil || null,
 }));
 
-let updated = 0;
-let errors = 0;
+async function main() {
+  let updated = 0;
+  let errors = 0;
 
-for (let i = 0; i < records.length; i += BATCH_SIZE) {
-  const batch = records.slice(i, i + BATCH_SIZE);
-  const { error } = await supabase
-    .from("kurals")
-    .upsert(batch, { onConflict: "id" });
+  for (let i = 0; i < records.length; i += BATCH_SIZE) {
+    const batch = records.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase
+      .from("kurals")
+      .upsert(batch, { onConflict: "id" });
 
-  if (error) {
-    console.error(`Batch ${i / BATCH_SIZE + 1} error:`, error.message);
-    errors += batch.length;
-  } else {
-    updated += batch.length;
-    process.stdout.write(`\rUpserted ${updated}/${records.length}...`);
+    if (error) {
+      console.error(`Batch ${i / BATCH_SIZE + 1} error:`, error.message);
+      errors += batch.length;
+    } else {
+      updated += batch.length;
+      process.stdout.write(`\rUpserted ${updated}/${records.length}...`);
+    }
   }
+
+  console.log(`\nDone. ${updated} upserted, ${errors} errors.`);
+  process.exit(errors > 0 ? 1 : 0);
 }
 
-console.log(`\nDone. ${updated} upserted, ${errors} errors.`);
-process.exit(errors > 0 ? 1 : 0);
+main();
