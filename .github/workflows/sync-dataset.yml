@@ -1,6 +1,7 @@
 name: Sync dataset to Supabase
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
