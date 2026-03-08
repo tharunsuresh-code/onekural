@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // Upsert on device_id — one row per device, supports multiple devices per user.
   const { error } = await supabaseAdmin
     .from("push_subscriptions")
     .upsert(
