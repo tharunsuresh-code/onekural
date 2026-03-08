@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Chapter, Kural } from "@/lib/types";
@@ -21,10 +21,7 @@ export default function ExploreClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [loadingChapters, setLoadingChapters] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
-  const chapterRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const { boxContent, setBoxContent } = usePreferences();
-
-  const chapterNumbers = useMemo(() => chapters.map((c) => c.chapter), [chapters]);
 
   // Fetch chapters when book changes
   useEffect(() => {
@@ -80,36 +77,6 @@ export default function ExploreClient() {
       }
     },
     [expandedChapter, chapterKurals]
-  );
-
-  const navigateChapter = useCallback(
-    (direction: 1 | -1) => {
-      if (chapterNumbers.length === 0) return;
-      const currentIdx = expandedChapter
-        ? chapterNumbers.indexOf(expandedChapter)
-        : -1;
-      const nextIdx =
-        currentIdx === -1
-          ? direction === 1 ? 0 : chapterNumbers.length - 1
-          : (currentIdx + direction + chapterNumbers.length) % chapterNumbers.length;
-      const nextChapter = chapterNumbers[nextIdx];
-      setExpandedChapter(nextChapter);
-      if (!chapterKurals[nextChapter]) {
-        fetch(`/api/kurals?chapter=${nextChapter}`)
-          .then((r) => r.json())
-          .then((data) =>
-            setChapterKurals((prev) => ({ ...prev, [nextChapter]: data }))
-          );
-      }
-      // Scroll the target chapter row into view after animation settles
-      setTimeout(() => {
-        chapterRefs.current[nextChapter]?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 50);
-    },
-    [chapterNumbers, expandedChapter, chapterKurals]
   );
 
   const showSearch = searchQuery.trim().length > 0;
@@ -227,15 +194,7 @@ export default function ExploreClient() {
           {loadingChapters ? (
             <p className="text-sm text-dark/50 dark:text-dark-fg/50 text-center py-8">Loading…</p>
           ) : (
-            <motion.div
-              className="space-y-2"
-              onPanEnd={(_, info) => {
-                const isHorizontal = Math.abs(info.offset.x) > Math.abs(info.offset.y);
-                if (isHorizontal && Math.abs(info.offset.x) > 50) {
-                  navigateChapter(info.offset.x < 0 ? 1 : -1);
-                }
-              }}
-            >
+            <div className="space-y-2">
               {chapters.map((ch) => {
                 const isExpanded = expandedChapter === ch.chapter;
                 const kurals = chapterKurals[ch.chapter];
@@ -243,7 +202,6 @@ export default function ExploreClient() {
                 return (
                   <div
                     key={ch.chapter}
-                    ref={(el) => { chapterRefs.current[ch.chapter] = el; }}
                     className="border border-dark/10 dark:border-dark-fg/20 rounded-xl overflow-hidden"
                   >
                     <button
@@ -314,7 +272,7 @@ export default function ExploreClient() {
                   </div>
                 );
               })}
-            </motion.div>
+            </div>
           )}
         </>
       )}
