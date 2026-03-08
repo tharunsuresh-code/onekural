@@ -47,7 +47,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
   const { isPlaying, play, stop } = useAudio();
   const { boxContent, setBoxContent } = usePreferences();
 
-  const swipeStartY = useRef<number | null>(null);
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
@@ -104,16 +103,11 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
   );
 
   const handleDragEnd = useCallback(
-    (_: unknown, info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }) => {
+    (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
       const threshold = 50;
       const velocityThreshold = 300;
 
-      if (
-        (info.offset.y < -80 || info.velocity.y < -500) &&
-        Math.abs(info.offset.y) > Math.abs(info.offset.x)
-      ) {
-        setShowExplanation(true);
-      } else if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
+      if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
         navigateKural("next");
       } else if (info.offset.x > threshold || info.velocity.x > velocityThreshold) {
         navigateKural("prev");
@@ -190,16 +184,16 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
         {/* Swipeable card */}
         <motion.div
           key={kural.id}
-          drag
-          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-          dragElastic={{ left: 0.15, right: 0.15, top: 0, bottom: 0 }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={{ left: 0.15, right: 0.15 }}
           dragSnapToOrigin
           onDragEnd={handleDragEnd}
           style={{ x, opacity, rotate }}
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex-1 flex flex-col justify-center"
+          className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-center"
         >
           {/* Chapter badge + swap button */}
           <div className="flex items-center justify-between mb-4">
@@ -266,30 +260,22 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
             </p>
           </motion.div>
 
-          {/* Swipe-up / tap hint → opens explanation */}
+          {/* Explanation hint */}
           <motion.button
             onClick={() => setShowExplanation(true)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.7 }}
-            className="flex flex-col items-center gap-0.5 mt-4 hover:opacity-60 active:opacity-40 transition-opacity"
+            className="w-full flex flex-col items-center gap-1.5 mt-4 py-3 hover:opacity-60 active:opacity-40 transition-opacity"
           >
-            <span className="text-dark/25 dark:text-dark-fg/25 text-xs leading-none">↑</span>
-            <span className="text-[10px] uppercase tracking-widest text-dark/25 dark:text-dark-fg/25">Explanation</span>
+            <span className="text-xs uppercase tracking-widest text-dark/40 dark:text-dark-fg/40 font-medium">
+              Tap for Explanation
+            </span>
           </motion.button>
         </motion.div>
 
         {/* Navigation row */}
-        <div
-          className="flex items-center justify-between py-3"
-          onTouchStart={(e) => { swipeStartY.current = e.touches[0].clientY; }}
-          onTouchEnd={(e) => {
-            if (swipeStartY.current === null) return;
-            const dy = e.changedTouches[0].clientY - swipeStartY.current;
-            if (dy < -40) setShowExplanation(true);
-            swipeStartY.current = null;
-          }}
-        >
+        <div className="flex items-center justify-between py-3">
           <button
             onClick={() => navigateKural("prev")}
             className="flex items-center gap-1.5 text-sm text-dark/40 dark:text-dark-fg/50 hover:text-dark/70 dark:hover:text-dark-fg/80 active:text-dark dark:active:text-dark-fg transition-colors"

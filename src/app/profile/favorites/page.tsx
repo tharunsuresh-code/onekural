@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useFavorites } from "@/lib/favorites";
+import { usePreferences } from "@/lib/preferences";
 import type { Kural } from "@/lib/types";
 
 export default function FavoritesPage() {
   const { favorites, loaded } = useFavorites();
+  const { boxContent } = usePreferences();
   const [kurals, setKurals] = useState<Kural[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,9 +71,15 @@ export default function FavoritesPage() {
                   #{kural.id}
                 </span>
               </div>
-              <p className="font-tamil text-base leading-relaxed text-dark dark:text-dark-fg mb-2">
-                {kural.kural_tamil}
-              </p>
+              {boxContent === "tamil" ? (
+                <p className="font-tamil text-base leading-relaxed text-dark dark:text-dark-fg mb-2">
+                  {kural.kural_tamil}
+                </p>
+              ) : (
+                <p className="font-serif text-base italic leading-relaxed text-dark dark:text-dark-fg mb-2">
+                  {kural.transliteration}
+                </p>
+              )}
               <p className="text-xs text-dark/60 dark:text-dark-fg/65 leading-relaxed line-clamp-2">
                 {kural.meaning_english}
               </p>

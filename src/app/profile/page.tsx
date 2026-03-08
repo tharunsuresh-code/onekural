@@ -73,8 +73,8 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 }
 
 const settingsItems = [
-  { label: "About OneKural", description: "Version 0.1.0", href: null },
-  { label: "Privacy Policy", description: "", href: "/privacy" },
+  { label: "Give Feedback", href: "/profile/feedback" },
+  { label: "About OneKural", href: "/about" },
 ];
 
 export default function ProfilePage() {
@@ -191,31 +191,23 @@ export default function ProfilePage() {
 
       {/* Settings list */}
       <div className="border border-dark/10 dark:border-dark-fg/20 rounded-xl overflow-hidden divide-y divide-dark/10 dark:divide-dark-fg/20">
-        {settingsItems.map((item) =>
-          item.href ? (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex items-center justify-between px-4 py-3.5 hover:bg-dark/5 dark:hover:bg-dark-fg/5 transition-colors"
-            >
-              <p className="text-sm text-dark/80 dark:text-dark-fg/85">{item.label}</p>
-              <span className="text-dark/30 dark:text-dark-fg/40 text-xs">›</span>
-            </Link>
-          ) : (
-            <div
-              key={item.label}
-              className="flex items-center justify-between px-4 py-3.5"
-            >
-              <div>
-                <p className="text-sm text-dark/80 dark:text-dark-fg/85">{item.label}</p>
-                {item.description && (
-                  <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5">{item.description}</p>
-                )}
-              </div>
-              <span className="text-dark/30 dark:text-dark-fg/40 text-xs">›</span>
-            </div>
-          )
-        )}
+        {settingsItems.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="flex items-center justify-between px-4 py-3.5 hover:bg-dark/5 dark:hover:bg-dark-fg/5 transition-colors"
+          >
+            <p className="text-sm text-dark/80 dark:text-dark-fg/85">{item.label}</p>
+            <span className="text-dark/30 dark:text-dark-fg/40 text-xs">›</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Legal links */}
+      <div className="flex items-center justify-center gap-3 mt-6 text-xs text-dark/35 dark:text-dark-fg/40">
+        <Link href="/privacy" className="hover:text-emerald transition-colors">Privacy Policy</Link>
+        <span>·</span>
+        <Link href="/terms" className="hover:text-emerald transition-colors">Terms of Service</Link>
       </div>
 
       <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
