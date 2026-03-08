@@ -113,6 +113,20 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
           <div className="w-10 h-1 bg-dark/15 dark:bg-dark-fg/20 rounded-full" />
         </button>
 
+        {/* Header — outside scroll so it stays visible */}
+        <div className="flex items-center justify-between px-6 pt-1 pb-4 flex-shrink-0">
+          <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald font-medium">
+            {lang === "tamil" ? "விளக்கம்" : "Explanation"}
+          </p>
+          <button
+            onClick={dismiss}
+            aria-label="Close"
+            className="text-dark/35 dark:text-dark-fg/45 hover:text-dark dark:hover:text-dark-fg transition-colors leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
         <div
           ref={scrollRef}
           className="px-6 pb-10 overflow-y-auto"
@@ -122,20 +136,6 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
             if (el && el.scrollTop > 0) e.stopPropagation();
           }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 pt-1">
-            <p className="text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald font-medium">
-              {lang === "tamil" ? "விளக்கம்" : "Explanation"}
-            </p>
-            <button
-              onClick={dismiss}
-              aria-label="Close"
-              className="text-dark/35 dark:text-dark-fg/45 hover:text-dark dark:hover:text-dark-fg transition-colors leading-none"
-            >
-              ✕
-            </button>
-          </div>
-
           {content ? (
             <div className={`text-sm leading-relaxed text-dark/75 dark:text-dark-fg/80 ${
               lang === "tamil" ? "font-tamil" : "font-serif"

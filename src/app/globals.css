@@ -53,10 +53,10 @@ html, body {
   .font-serif {
     font-family: var(--font-crimson, Georgia, serif);
   }
-  /* Tamil poetry text — responsive hero scale */
+  /* Tamil poetry text — px-based clamp so system font scale cannot cause overflow */
   .font-kural-tamil {
     font-family: var(--font-noto-tamil, serif);
-    font-size: clamp(1.25rem, 4.5vw, 1.75rem);
+    font-size: clamp(18px, 4.5vw, 28px);
     line-height: 1.8;
     letter-spacing: -0.3px;
   }

@@ -1,10 +1,13 @@
 /**
- * Seed script — populates the `kurals` and `daily_kurals` tables.
+ * Seed script — populates the `kurals` table.
  *
  * Usage:
  *   npx ts-node --project tsconfig.seed.json scripts/seed.ts
  *
  * Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local
+ *
+ * Note: daily kural selection is handled deterministically in lib/kurals.ts
+ * via a pre-shuffled Fisher-Yates order — no daily_kurals table needed.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -145,30 +148,7 @@ async function main() {
     console.log(`Seeded kurals ${i + 1}–${Math.min(i + BATCH, rows.length)}`);
   }
 
-  // ── Seed daily_kurals: today + 365 days ahead ─────────────────────────────
-
-  console.log("Seeding daily_kurals...");
-
-  const today = new Date();
-  const dailyRows: { date: string; kural_id: number }[] = [];
-
-  // Simple deterministic assignment: (day-of-year + year offset) mod 1330
-  for (let d = 0; d < 365; d++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + d);
-    const dateStr = date.toISOString().split("T")[0];
-    // Use a fixed epoch start kural so today always maps consistently
-    const kuralId = ((Math.floor(date.getTime() / 86400000) + 1) % 1330) + 1;
-    dailyRows.push({ date: dateStr, kural_id: kuralId });
-  }
-
-  const { error: dailyError } = await supabase
-    .from("daily_kurals")
-    .upsert(dailyRows, { onConflict: "date" });
-
-  if (dailyError) throw dailyError;
-
-  console.log("Done! 1330 kurals and 365 daily assignments seeded.");
+  console.log("Done! 1330 kurals seeded.");
 }
 
 main().catch((err) => {

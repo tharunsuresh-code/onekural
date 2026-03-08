@@ -49,19 +49,17 @@ function MobileHints() {
 
       <div className="w-20 h-px bg-white/15 rounded-full" />
 
-      {/* Swipe up */}
+      {/* Tap for Explanation callout */}
       <div className="flex flex-col items-center gap-3">
         <motion.div
-          animate={{ y: [-10, 0, -10] }}
+          animate={{ scale: [1, 1.04, 1] }}
           transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-          className="text-white/80"
+          className="border border-white/60 rounded-lg px-5 py-2.5 text-xs uppercase tracking-widest text-white/80 font-medium"
         >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 15l-6-6-6 6" />
-          </svg>
+          Tap for Explanation
         </motion.div>
         <span className="text-xs text-white/60 text-center leading-relaxed">
-          Swipe up<br />for explanation
+          Click here for<br />further explanation
         </span>
       </div>
 
@@ -113,19 +111,17 @@ function DesktopHints() {
 
       <div className="w-20 h-px bg-white/15 rounded-full" />
 
-      {/* Explanation button */}
+      {/* Tap for Explanation callout */}
       <div className="flex flex-col items-center gap-3">
         <motion.div
-          animate={{ y: [-6, 0, -6] }}
+          animate={{ scale: [1, 1.04, 1] }}
           transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-          className="text-white/80"
+          className="border border-white/60 rounded-lg px-5 py-2.5 text-xs uppercase tracking-widest text-white/80 font-medium"
         >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 15l-6-6-6 6" />
-          </svg>
+          Tap for Explanation
         </motion.div>
         <span className="text-xs text-white/60 text-center leading-relaxed">
-          Click <strong className="text-white/80">Explanation</strong><br />for full breakdown
+          Click here for<br />further explanation
         </span>
       </div>
 
