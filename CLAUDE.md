@@ -20,6 +20,9 @@ src/
     explore/             # Browse by book/chapter + search
     journal/             # Auth-gated journal list + editor
     profile/             # Auth + push notification settings
+    profile/feedback/    # Feedback form → Supabase feedback table
+    about/               # About OneKural page
+    terms/               # Terms of Service
     privacy/             # Required for Google OAuth crawler
     api/
       kurals/            # GET /api/kurals?id=N
@@ -32,7 +35,7 @@ src/
 
 supabase/
   schema.sql             # Full DB schema
-  migrations/            # Applied in order (001, 002, 003)
+  migrations/            # Applied in order (001–006)
 
 scripts/
   seed.ts                # Loads kural CSV/JSON into Supabase
@@ -53,16 +56,14 @@ VAPID_PRIVATE_KEY=
 
 ## Supabase Setup
 
-Manual SQL before first deploy:
-```sql
-ALTER TABLE push_subscriptions ADD CONSTRAINT push_subscriptions_user_id_unique UNIQUE (user_id);
-```
+Apply migrations in order from `supabase/migrations/` (001–006 already applied).
 
-Apply migrations in order from `supabase/migrations/`.
+Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one row per device. No `UNIQUE(user_id)` constraint (intentionally dropped in migration 006 for multi-device support).
 
 ## Key Gotchas
 
-- **Tamil font size**: Use `text-xl` not `text-2xl` — Chrome HarfBuzz renders wider, causes line wrap
+- **Tamil font size**: Use `px`-based clamp in CSS (`clamp(18px, 4.5vw, 28px)`) — rem-based clamp grows with system font scale causing overflow; class is `.font-kural-tamil` in `globals.css`
+- **Favicon**: Replace `src/app/favicon.ico` (not `public/favicon.ico`) — Next.js App Router uses the app dir version. Also add `src/app/icon.png` for PNG fallback in Firefox
 - **API caching**: Next.js 14 GET handlers cache by default. Use `revalidate` or `force-dynamic` to opt out. Vercel Data Cache persists across deploys — purge manually if needed.
 - **iOS safe area**: `.pb-nav { padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px) + 1rem) }`
 - **Bottom sheets**: Use `history.pushState` + `popstate` for Android back-button dismiss
@@ -94,5 +95,4 @@ BOOK_NAMES: { 1: Aram, 2: Porul, 3: Inbam }
 
 ## Phase Status
 
-- Phases 1–4: Complete (auth, favourites, journal, share, PWA, push)
-- Phase 5: Pending — mobile gesture testing, perf audit, Vercel deploy, GitHub push, Cloudflare domain
+- All phases complete. App live at https://onekural.com (Vercel + Cloudflare domain).
