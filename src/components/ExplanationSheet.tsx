@@ -13,11 +13,7 @@ interface ExplanationSheetProps {
 const SHEET_HEIGHT = 1200;
 
 function renderExplanation(text: string) {
-  // Normalize: split inline bold terms (". **") onto their own lines so the
-  // spacing logic works consistently for both English and Tamil explanations.
-  const normalized = text.replace(/(\.\s+)(\*\*)/g, ".\n\n$2");
-
-  const lines = normalized.split(/\r?\n/).filter((l) => l.trim());
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
   return lines.map((line, i) => {
     const hasBold = /\*\*/.test(line);
     const prevHasBold = i > 0 && /\*\*/.test(lines[i - 1]);
