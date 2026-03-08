@@ -47,7 +47,7 @@ export default function FeedbackPage() {
 
       <h1 className="text-xl font-semibold text-dark dark:text-dark-fg mb-2">Give Feedback</h1>
       <p className="text-sm text-dark/50 dark:text-dark-fg/60 mb-8">
-        We'd love to hear what you think about OneKural.
+        We&apos;d love to hear what you think about OneKural.
       </p>
 
       {submitted ? (
