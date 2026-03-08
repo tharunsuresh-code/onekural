@@ -21,7 +21,7 @@ export default function AboutPage() {
         <p>
           OneKural brings the ancient wisdom of the Thirukkural into your daily life —
           one verse at a time. Written by the Tamil poet-philosopher Thiruvalluvar
-          over two thousand years ago, the Thirukkural's 1330 couplets cover every
+          over two thousand years ago, the Thirukkural&apos;s 1330 couplets cover every
           aspect of human life: virtue, wealth, and love.
         </p>
         <p>
@@ -32,7 +32,7 @@ export default function AboutPage() {
         </p>
         <p>
           OneKural is built with love for the Tamil diaspora and for anyone curious
-          about one of the world's great literary and philosophical traditions.
+          about one of the world&apos;s great literary and philosophical traditions.
         </p>
       </div>
     </main>
