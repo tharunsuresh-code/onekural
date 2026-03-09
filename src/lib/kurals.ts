@@ -104,7 +104,7 @@ export async function searchKurals(query: string): Promise<Kural[]> {
     .from("kurals")
     .select("*")
     .or(
-      `kural_tamil.ilike.%${q}%,meaning_english.ilike.%${q}%,chapter_name_english.ilike.%${q}%,chapter_name_tamil.ilike.%${q}%,transliteration.ilike.%${q}%`
+      `kural_tamil.ilike.%${q}%,meaning_english.ilike.%${q}%,meaning_tamil.ilike.%${q}%,chapter_name_english.ilike.%${q}%,chapter_name_tamil.ilike.%${q}%,transliteration.ilike.%${q}%`
     )
     .order("id", { ascending: true })
     .limit(50);
