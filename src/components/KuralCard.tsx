@@ -15,6 +15,7 @@ import ExplanationSheet from "./ExplanationSheet";
 import OnboardingHint from "./OnboardingHint";
 import ThemeSwitcher from "./ThemeSwitcher";
 import { useAudio } from "@/lib/audio";
+import { MAX_KURAL_ID } from "@/lib/constants";
 
 interface KuralCardProps {
   initialKural: Kural;
@@ -23,7 +24,7 @@ interface KuralCardProps {
 }
 
 async function fetchKural(id: number): Promise<Kural | null> {
-  if (id < 1 || id > 1330) return null;
+  if (id < 1 || id > MAX_KURAL_ID) return null;
   try {
     const res = await fetch(`/api/kural/${id}`);
     if (!res.ok) return null;
@@ -91,8 +92,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
       if (isAnimating) return;
       const nextId =
         direction === "next"
-          ? kural.id < 1330 ? kural.id + 1 : 1
-          : kural.id > 1 ? kural.id - 1 : 1330;
+          ? kural.id < MAX_KURAL_ID ? kural.id + 1 : 1
+          : kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
 
       setIsAnimating(true);
       const nextKural = await fetchKural(nextId);
@@ -125,8 +126,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
     month: "long",
   });
   const faved = isFavorite(kural.id);
-  const prevId = kural.id > 1 ? kural.id - 1 : 1330;
-  const nextId = kural.id < 1330 ? kural.id + 1 : 1;
+  const prevId = kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
+  const nextId = kural.id < MAX_KURAL_ID ? kural.id + 1 : 1;
 
   return (
     <>
