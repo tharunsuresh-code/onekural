@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Chapter, Kural } from "@/lib/types";
 import { BOOK_NAMES } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences";
+import { MAX_KURAL_ID } from "@/lib/constants";
 
 const BOOKS = [1, 2, 3] as const;
 
@@ -35,7 +36,7 @@ export default function ExploreClient() {
       .finally(() => setLoadingChapters(false));
   }, [activeBook]);
 
-  // Debounced search
+  // Debounced search — direct kural ID lookup when input is a plain integer
   const handleSearch = useCallback((q: string) => {
     setSearchQuery(q);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -43,6 +44,18 @@ export default function ExploreClient() {
     if (!q.trim()) {
       setSearchResults([]);
       setIsSearching(false);
+      return;
+    }
+
+    // If the query is a bare integer in range 1–MAX_KURAL_ID, fetch that kural directly
+    const numericId = parseInt(q.trim(), 10);
+    if (String(numericId) === q.trim() && numericId >= 1 && numericId <= MAX_KURAL_ID) {
+      setIsSearching(true);
+      fetch(`/api/kural/${numericId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => setSearchResults(data ? [data] : []))
+        .catch(() => setSearchResults([]))
+        .finally(() => setIsSearching(false));
       return;
     }
 
@@ -99,7 +112,7 @@ export default function ExploreClient() {
           type="text"
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search kurals, chapters…"
+          placeholder="Search kurals, chapters, or enter a number…"
           className="w-full bg-white dark:bg-dark-subtle border border-dark/10 dark:border-dark-fg/20 rounded-xl px-4 py-3 pl-10 text-sm text-dark dark:text-dark-fg placeholder:text-dark/40 dark:placeholder:text-dark-fg/50 focus:outline-none focus:border-emerald/50 focus:ring-1 focus:ring-emerald/30 dark:focus:ring-emerald/40"
         />
         <svg
