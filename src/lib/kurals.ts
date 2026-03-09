@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Kural, Chapter } from "./types";
+import { MAX_KURAL_ID } from "./constants";
 
 // Fixed epoch: Jan 1 2025 IST.
 const EPOCH_IST = "2025-01-01";
@@ -15,8 +16,8 @@ const DAILY_ORDER: number[] = (() => {
     x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
     return (x >>> 0) / 0xFFFFFFFF;
   };
-  const arr = Array.from({ length: 1330 }, (_, i) => i + 1);
-  for (let i = 1329; i > 0; i--) {
+  const arr = Array.from({ length: MAX_KURAL_ID }, (_, i) => i + 1);
+  for (let i = MAX_KURAL_ID - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
@@ -40,7 +41,7 @@ export function getDailyKuralId(dateIST: string = getTodayIST()): number {
   const today = new Date(dateIST + "T00:00:00Z").getTime();
   const epoch = new Date(EPOCH_IST + "T00:00:00Z").getTime();
   const daysSinceEpoch = Math.floor((today - epoch) / 86_400_000);
-  return DAILY_ORDER[((daysSinceEpoch % 1330) + 1330) % 1330];
+  return DAILY_ORDER[((daysSinceEpoch % MAX_KURAL_ID) + MAX_KURAL_ID) % MAX_KURAL_ID];
 }
 
 export async function getDailyKural(dateIST: string = getTodayIST()): Promise<Kural> {
