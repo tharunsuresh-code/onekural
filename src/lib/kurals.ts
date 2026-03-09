@@ -2,8 +2,8 @@ import { supabase } from "./supabase";
 import type { Kural, Chapter } from "./types";
 import { MAX_KURAL_ID } from "./constants";
 
-// Fixed epoch: Jan 1 2025 IST.
-const EPOCH_IST = "2025-01-01";
+// Fixed epoch: Jan 1 2025 (calendar date anchor, timezone-agnostic).
+const EPOCH = "2025-01-01";
 
 /**
  * Seeded Fisher-Yates shuffle of kural IDs 1–1330.
@@ -25,27 +25,28 @@ const DAILY_ORDER: number[] = (() => {
 })();
 
 /**
- * Returns today's date as YYYY-MM-DD in IST (Asia/Kolkata).
- * Everyone sees the same kural — it rolls over at midnight Chennai time.
+ * Returns today's date as YYYY-MM-DD in the user's local timezone.
+ * Used as the default fallback — callers on the client pass their own local date;
+ * the server-side home page relies on KuralCard to correct it on hydration.
  */
-export function getTodayIST(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+export function getTodayLocal(): string {
+  return new Date().toLocaleDateString("en-CA");
 }
 
 /**
- * Deterministically maps any IST date string to a kural ID (1–1330).
+ * Deterministically maps a calendar date string (YYYY-MM-DD) to a kural ID (1–1330).
  * Uses a pre-shuffled order so consecutive days show unrelated kurals.
- * Same result for all users on the same IST calendar date, forever.
+ * The same date always returns the same kural, regardless of who calls it.
  */
-export function getDailyKuralId(dateIST: string = getTodayIST()): number {
-  const today = new Date(dateIST + "T00:00:00Z").getTime();
-  const epoch = new Date(EPOCH_IST + "T00:00:00Z").getTime();
+export function getDailyKuralId(date: string = getTodayLocal()): number {
+  const today = new Date(date + "T00:00:00Z").getTime();
+  const epoch = new Date(EPOCH + "T00:00:00Z").getTime();
   const daysSinceEpoch = Math.floor((today - epoch) / 86_400_000);
   return DAILY_ORDER[((daysSinceEpoch % MAX_KURAL_ID) + MAX_KURAL_ID) % MAX_KURAL_ID];
 }
 
-export async function getDailyKural(dateIST: string = getTodayIST()): Promise<Kural> {
-  const id = getDailyKuralId(dateIST);
+export async function getDailyKural(date: string = getTodayLocal()): Promise<Kural> {
+  const id = getDailyKuralId(date);
   const { data, error } = await supabase
     .from("kurals")
     .select("*")

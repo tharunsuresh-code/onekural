@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getDailyKuralId, getTodayIST } from "@/lib/kurals";
+import { getDailyKuralId, getTodayLocal } from "@/lib/kurals";
 
 describe("getDailyKuralId", () => {
   it("returns a number between 1 and 1330 inclusive", () => {
@@ -34,9 +34,9 @@ describe("getDailyKuralId", () => {
   });
 });
 
-describe("getTodayIST", () => {
+describe("getTodayLocal", () => {
   it("returns a YYYY-MM-DD formatted string", () => {
-    const today = getTodayIST();
+    const today = getTodayLocal();
     expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
