@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isValidPushSubscription } from "@/lib/validate";
 
 export async function POST(request: NextRequest) {
   const { subscription, deviceId, userId, timezone } = await request.json();
@@ -14,14 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Validate WebPush subscription structure
-  if (
-    typeof subscription !== "object" ||
-    typeof subscription.endpoint !== "string" ||
-    !subscription.endpoint.startsWith("https://") ||
-    typeof subscription.keys !== "object" ||
-    typeof subscription.keys.p256dh !== "string" ||
-    typeof subscription.keys.auth !== "string"
-  ) {
+  if (!isValidPushSubscription(subscription)) {
     return NextResponse.json({ error: "Invalid push subscription" }, { status: 400 });
   }
 
