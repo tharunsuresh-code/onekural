@@ -8,6 +8,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing subscription or deviceId" }, { status: 400 });
   }
 
+  // Validate deviceId is a string of reasonable length
+  if (typeof deviceId !== "string" || deviceId.length > 64) {
+    return NextResponse.json({ error: "Invalid deviceId" }, { status: 400 });
+  }
+
+  // Validate WebPush subscription structure
+  if (
+    typeof subscription !== "object" ||
+    typeof subscription.endpoint !== "string" ||
+    !subscription.endpoint.startsWith("https://") ||
+    typeof subscription.keys !== "object" ||
+    typeof subscription.keys.p256dh !== "string" ||
+    typeof subscription.keys.auth !== "string"
+  ) {
+    return NextResponse.json({ error: "Invalid push subscription" }, { status: 400 });
+  }
+
   const supabaseAdmin = createClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
