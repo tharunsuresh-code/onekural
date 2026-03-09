@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { searchKurals } from "@/lib/kurals";
 
 export async function GET(request: NextRequest) {
-  const query = request.nextUrl.searchParams.get("q") ?? "";
+  const query = (request.nextUrl.searchParams.get("q") ?? "").slice(0, 200);
   if (!query.trim()) {
     return NextResponse.json([]);
   }
