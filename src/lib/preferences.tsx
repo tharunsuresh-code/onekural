@@ -1,6 +1,10 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback } from "react";
+
+// useLayoutEffect fires before paint on the client; fall back to useEffect on the server
+// to avoid SSR warnings from Next.js.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import type { ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -39,8 +43,10 @@ function readLocalPrefs(): Prefs {
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
 
-  // Load from localStorage on mount, then check Supabase user metadata
-  useEffect(() => {
+  // Read localStorage before first paint to prevent flash of default content.
+  // Supabase check is async and may update prefs after paint (acceptable — only
+  // fires on first sign-in when no local data exists).
+  useIsomorphicLayoutEffect(() => {
     const local = readLocalPrefs();
     setPrefs(local);
 
