@@ -20,17 +20,17 @@ export default function FavoritesPage() {
       return;
     }
 
-    // Fetch all favorited kurals
-    Promise.all(
-      favorites.map((id) =>
-        fetch(`/api/kural/${id}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null)
-      )
-    ).then((results) => {
-      setKurals(results.filter(Boolean));
-      setLoading(false);
-    });
+    // Fetch all favorited kurals in one request
+    fetch(`/api/kurals/batch?ids=${favorites.join(",")}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((results) => {
+        setKurals(Array.isArray(results) ? results : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setKurals([]);
+        setLoading(false);
+      });
   }, [favorites, loaded]);
 
   return (
