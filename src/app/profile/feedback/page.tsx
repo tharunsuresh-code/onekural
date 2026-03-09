@@ -3,10 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
 
 export default function FeedbackPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "";
 
@@ -22,13 +21,19 @@ export default function FeedbackPage() {
     setSubmitting(true);
     setError("");
 
-    const { error: err } = await supabase.from("feedback").insert({
-      name: name.trim(),
-      message: message.trim(),
-      user_id: user?.id ?? null,
+    const res = await fetch("/api/feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        message: message.trim(),
+      }),
     });
 
-    if (err) {
+    if (!res.ok) {
       setError("Something went wrong. Please try again.");
     } else {
       setSubmitted(true);
