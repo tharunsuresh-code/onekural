@@ -16,12 +16,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret when set (Vercel cron sends Authorization header)
-  if (CRON_SECRET) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // Always validate — if CRON_SECRET unset, endpoint is disabled
+  const auth = request.headers.get("authorization");
+  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
