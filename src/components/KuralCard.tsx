@@ -46,7 +46,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
   const [showExplanation, setShowExplanation] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isPlaying, play, stop } = useAudio();
-  const { boxContent, setBoxContent } = usePreferences();
+  const { boxContent, setBoxContent, prefsReady } = usePreferences();
 
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
@@ -202,7 +202,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
           <div className="my-auto">
             {/* Chapter badge + swap button */}
-            <div className="flex items-center justify-between mb-4">
+            <div className={`flex items-center justify-between mb-4${!prefsReady ? " invisible" : ""}`}>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
                 <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
@@ -270,7 +270,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
             {/* Explanation hint */}
             <motion.button
               onClick={() => setShowExplanation(true)}
-              initial={{ opacity: 0 }}
+              initial={prefsReady ? { opacity: 0 } : false}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, delay: 0.7 }}
               className="w-full flex flex-col items-center gap-1.5 mt-4 py-3 hover:opacity-60 active:opacity-40 transition-opacity"
