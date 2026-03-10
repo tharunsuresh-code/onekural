@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
@@ -16,6 +16,11 @@ import OnboardingHint from "./OnboardingHint";
 import ThemeSwitcher from "./ThemeSwitcher";
 import { useAudio } from "@/lib/audio";
 import { MAX_KURAL_ID } from "@/lib/constants";
+
+// useLayoutEffect fires before the browser paints (client-only);
+// fall back to useEffect on the server so SSR doesn't warn.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface KuralCardProps {
   initialKural: Kural;
@@ -40,6 +45,9 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
 
   const [kural, setKural] = useState<Kural>(initialKural);
   const [localDailyKuralId, setLocalDailyKuralId] = useState(dailyKuralId ?? 0);
+  // True while we're fetching the client-corrected daily kural (server/client date mismatch).
+  // Starts false so SSR and initial hydration agree; useLayoutEffect sets it before first paint.
+  const [kuralLoading, setKuralLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -52,15 +60,27 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
 
-  // Home-only: midnight rollover + daily kural correction + home-icon reset
-  useEffect(() => {
+  // Correct the kural BEFORE the first browser paint so users never see the stale
+  // server-cached kural. This fires when the server's IST date still differs from
+  // the client's local date (e.g. non-IST timezones or a very brief cache window).
+  const localDate = new Date().toLocaleDateString("en-CA");
+  useIsomorphicLayoutEffect(() => {
     if (!isHome) return;
-    const localDate = new Date().toLocaleDateString("en-CA");
     const localId = getDailyKuralId(localDate);
     setLocalDailyKuralId(localId);
     if (localId !== initialKural.id) {
-      fetchKural(localId).then((k) => { if (k) setKural(k); });
+      setKuralLoading(true);
+      fetchKural(localId).then((k) => {
+        if (k) setKural(k);
+        setKuralLoading(false);
+      });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Home-only: midnight rollover + home-icon reset
+  useEffect(() => {
+    if (!isHome) return;
 
     const handleVisibility = () => {
       if (document.visibilityState !== "visible") return;
@@ -200,7 +220,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
           className="flex-1 min-h-0 overflow-y-auto flex flex-col"
         >
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
-          <div className="my-auto">
+          <div className={`my-auto${kuralLoading ? " invisible" : ""}`}>
             {/* Chapter badge + swap button */}
             <div className={`flex items-center justify-between mb-4${!prefsReady ? " invisible" : ""}`}>
               <div className="flex items-center gap-2">

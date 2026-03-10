@@ -34,6 +34,16 @@ export function getTodayLocal(): string {
 }
 
 /**
+ * Returns today's date as YYYY-MM-DD in IST (UTC+5:30).
+ * Used server-side so the daily kural matches what Indian users see client-side.
+ * Without this, Vercel (UTC) and IST clients disagree on the date for 5.5 h/day.
+ */
+export function getTodayIST(): string {
+  const ist = new Date(Date.now() + (5 * 60 + 30) * 60 * 1000);
+  return ist.toISOString().slice(0, 10);
+}
+
+/**
  * Deterministically maps a calendar date string (YYYY-MM-DD) to a kural ID (1–1330).
  * Uses a pre-shuffled order so consecutive days show unrelated kurals.
  * The same date always returns the same kural, regardless of who calls it.
@@ -45,7 +55,7 @@ export function getDailyKuralId(date: string = getTodayLocal()): number {
   return DAILY_ORDER[((daysSinceEpoch % MAX_KURAL_ID) + MAX_KURAL_ID) % MAX_KURAL_ID];
 }
 
-export async function getDailyKural(date: string = getTodayLocal()): Promise<Kural> {
+export async function getDailyKural(date: string = getTodayIST()): Promise<Kural> {
   const id = getDailyKuralId(date);
   const { data, error } = await supabase
     .from("kurals")
