@@ -16,6 +16,7 @@ interface Prefs {
 
 interface PreferencesContextValue extends Prefs {
   setBoxContent: (content: BoxContent) => void;
+  prefsReady: boolean;
 }
 
 const DEFAULT_PREFS: Prefs = { boxContent: "tamil" };
@@ -24,6 +25,7 @@ const STORAGE_KEY = "kural-prefs";
 const PreferencesContext = createContext<PreferencesContextValue>({
   ...DEFAULT_PREFS,
   setBoxContent: () => {},
+  prefsReady: false,
 });
 
 function readLocalPrefs(): Prefs {
@@ -42,6 +44,7 @@ function readLocalPrefs(): Prefs {
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const [prefsReady, setPrefsReady] = useState(false);
 
   // Read localStorage before first paint to prevent flash of default content.
   // Supabase check is async and may update prefs after paint (acceptable — only
@@ -49,6 +52,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   useIsomorphicLayoutEffect(() => {
     const local = readLocalPrefs();
     setPrefs(local);
+    setPrefsReady(true);
 
     (async () => {
       const { data } = await supabase.auth.getUser();
@@ -85,7 +89,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   return (
-    <PreferencesContext.Provider value={{ ...prefs, setBoxContent }}>
+    <PreferencesContext.Provider value={{ ...prefs, setBoxContent, prefsReady }}>
       {children}
     </PreferencesContext.Provider>
   );
