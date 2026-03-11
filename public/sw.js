@@ -94,6 +94,58 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// ─── IDB helpers (used by pushsubscriptionchange) ──────────────────────────
+const IDB_NAME = "onekural-push";
+const IDB_STORE = "meta";
+
+function openPushIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function getFromIDB(key) {
+  return openPushIDB().then(
+    (db) =>
+      new Promise((resolve) => {
+        const tx = db.transaction(IDB_STORE, "readonly");
+        const r = tx.objectStore(IDB_STORE).get(key);
+        r.onsuccess = () => resolve(r.result ?? null);
+        r.onerror = () => resolve(null);
+      })
+  );
+}
+
+// ─── Push subscription auto-refresh ────────────────────────────────────────
+// Fires when the browser silently rotates the push endpoint (rare but real).
+// Re-subscribes and saves the new subscription to the server so the next
+// daily push reaches the correct endpoint.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  const options = event.oldSubscription?.options;
+  if (!options) return;
+  event.waitUntil(
+    Promise.all([
+      self.registration.pushManager.subscribe(options),
+      getFromIDB("device_id"),
+    ])
+      .then(([newSub, deviceId]) => {
+        if (!deviceId) return;
+        return fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription: newSub.toJSON(),
+            deviceId,
+          }),
+        });
+      })
+      .catch(console.error)
+  );
+});
+
 // ─── Push ──────────────────────────────────────────────────────────────────
 self.addEventListener("push", (event) => {
   let data = { title: "OneKural", body: "Your daily kural is ready." };
