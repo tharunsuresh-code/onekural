@@ -280,7 +280,9 @@ const SHEET_HEIGHT = 1200;
 export default function ShareCard({ kural, onClose }: ShareCardProps) {
   const { boxContent } = usePreferences();
   const [ratio, setRatio] = useState<AspectRatio>("square");
+  const [displayedRatio, setDisplayedRatio] = useState<AspectRatio>("square");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewReady, setPreviewReady] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [canShare, setCanShare] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -330,18 +332,24 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
     }
   }
 
-  // Generate preview when kural or ratio changes
+  // When ratio changes: fade out (150ms) → reshape (350ms) → generate → fade in.
   useEffect(() => {
-    setPreviewUrl(null); // Clear preview to show loading state
-    (async () => {
+    setPreviewReady(false);
+    let cancelled = false;
+    // After fade-out, update the displayed ratio to trigger layout animation
+    const reshapeTimer = setTimeout(() => {
+      if (!cancelled) setDisplayedRatio(ratio);
+    }, 150);
+    // After fade-out + reshape, generate the new image
+    const generateTimer = setTimeout(async () => {
       const blob = await generateImage(kural, ratio, boxContent);
+      if (cancelled) return;
       blobRef.current = blob;
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
-    })();
-    return () => {
-      // Cleanup will be handled by state update
-    };
+      setPreviewReady(true);
+    }, 500);
+    return () => { cancelled = true; clearTimeout(reshapeTimer); clearTimeout(generateTimer); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kural.id, ratio, boxContent]);
 
@@ -445,17 +453,27 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
           {/* Preview */}
           <div className="bg-white dark:bg-dark-subtle rounded-xl border border-dark/10 dark:border-dark-fg/20 p-3 mb-4 flex justify-center">
             {previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={previewUrl}
-                alt="Share card preview"
-                className="rounded-lg"
+              <motion.div
+                layout
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                className="rounded-lg overflow-hidden bg-white"
                 style={
-                  ratio === "story"
-                    ? { height: "260px", width: "auto" }
+                  displayedRatio === "story"
+                    ? { height: "260px", aspectRatio: "9 / 16" }
                     : { width: "100%", aspectRatio: "1 / 1" }
                 }
-              />
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Share card preview"
+                  className="w-full h-full object-cover"
+                  style={{
+                    opacity: previewReady ? 1 : 0,
+                    transition: previewReady ? "opacity 0.5s ease" : "opacity 0.15s ease",
+                  }}
+                />
+              </motion.div>
             ) : (
               <div
                 className="bg-dark/5 dark:bg-dark-fg/10 rounded-lg flex items-center justify-center"

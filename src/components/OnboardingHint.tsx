@@ -186,7 +186,7 @@ export default function OnboardingHint() {
               <div className="absolute inset-0 rounded-lg border border-white/70" />
             </div>
             <span className="text-xs text-white/80 leading-relaxed whitespace-nowrap">
-              Tap to switch<br />light / dark
+              Tap to switch<br />light / dark / system
             </span>
           </div>
 

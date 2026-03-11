@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
   const { data: subs, error } = await supabaseAdmin
     .from("push_subscriptions")
-    .select("id, subscription, timezone");
+    .select("id, subscription, timezone, user_id");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -75,20 +75,33 @@ export async function POST(request: NextRequest) {
     dateGroups.get(localDate)!.push(row);
   }
 
+  // Batch-fetch language preferences from user metadata for all logged-in subscribers
+  const userIds = Array.from(new Set((subs ?? []).map((r) => r.user_id).filter(Boolean))) as string[];
+  const langPrefMap = new Map<string, string>();
+  await Promise.allSettled(
+    userIds.map(async (uid) => {
+      const { data } = await supabaseAdmin.auth.admin.getUserById(uid);
+      const pref = data?.user?.user_metadata?.kuralPrefs?.boxContent;
+      if (pref === "transliteration") langPrefMap.set(uid, "transliteration");
+    })
+  );
+
   const expiredIds: string[] = [];
   let sent = 0;
   const errors: Array<{ subscriptionId: string; error: string }> = [];
 
   for (const [date, rows] of Array.from(dateGroups.entries())) {
     const kural = await getDailyKural(date);
-    const payload = JSON.stringify({
-      title: "OneKural — Daily Thirukkural",
-      body: kural.kural_tamil,
-      url: "/",
-    });
 
     await Promise.allSettled(
       rows.map(async (row: (typeof toNotify)[0]) => {
+        const langPref = row.user_id ? (langPrefMap.get(row.user_id) ?? "tamil") : "tamil";
+        const body = langPref === "transliteration" ? kural.transliteration : kural.kural_tamil;
+        const payload = JSON.stringify({
+          title: "OneKural — Daily Thirukkural",
+          body,
+          url: "/",
+        });
         try {
           await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload);
           sent++;

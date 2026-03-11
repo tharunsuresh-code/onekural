@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
@@ -12,21 +12,28 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function getSystemPreference(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function getEffective(t: Theme): "light" | "dark" {
+  return t === "system" ? getSystemPreference() : t;
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("system");
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // Get saved preference or detect system preference
     const saved = localStorage.getItem("theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial = saved || (prefersDark ? "dark" : "light");
+    const initial: Theme = saved ?? "system";
     setTheme(initial);
 
     const html = document.documentElement;
     html.classList.remove("light", "dark");
-    html.classList.add(initial);
+    html.classList.add(getEffective(initial));
   }, []);
 
   useEffect(() => {
@@ -34,12 +41,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const html = document.documentElement;
     html.classList.remove("light", "dark");
-    html.classList.add(theme);
+    html.classList.add(getEffective(theme));
     localStorage.setItem("theme", theme);
+
+    // When in system mode, update the DOM class if the OS preference changes
+    if (theme === "system") {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = (e: MediaQueryListEvent) => {
+        html.classList.remove("light", "dark");
+        html.classList.add(e.matches ? "dark" : "light");
+      };
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }
   }, [theme, isClient]);
 
+  // Cycle: light → dark → system → light
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+    setTheme((prev) => prev === "light" ? "dark" : prev === "dark" ? "system" : "light");
   };
 
   return (
