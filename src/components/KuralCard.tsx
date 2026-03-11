@@ -156,21 +156,11 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                 <h1 className="text-xl font-bold tracking-wide">
                   <span className="text-emerald">One</span><span className="text-dark dark:text-dark-fg">Kural</span>
                 </h1>
-                {kural.id === localDailyKuralId && (
-                  <>
-                    <p className="text-[10px] uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1">
-                      Today&apos;s Kural
-                    </p>
-                    <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5" suppressHydrationWarning>{dateStr}</p>
-                  </>
-                )}
+                <p className={`text-[10px] uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>
+                  Today&apos;s Kural
+                </p>
+                <p className={`text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5 ${kural.id === localDailyKuralId ? "" : "invisible"}`} suppressHydrationWarning>{dateStr}</p>
               </div>
-              <Link
-                href={`/kural/${kural.id}`}
-                className="absolute right-0 top-0 text-xs bg-emerald/10 dark:bg-emerald/20 text-emerald border border-emerald/30 dark:border-emerald/40 rounded-full px-3 py-1 font-medium"
-              >
-                #{kural.id}
-              </Link>
             </>
           ) : (
             <>
@@ -185,12 +175,28 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
               >
                 ← Back
               </button>
-              <span className="absolute right-0 top-0 text-xs bg-emerald/10 dark:bg-emerald/20 text-emerald border border-emerald/30 dark:border-emerald/40 rounded-full px-3 py-1 font-medium">
-                #{kural.id}
-              </span>
             </>
           )}
         </motion.div>
+
+        {/* Chapter badge + lang switch — fixed above scroll area, never moves */}
+        <div
+          className={`flex items-center justify-between mb-3 transition-opacity duration-300 ${prefsReady ? "opacity-100" : "opacity-0"}`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
+            <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
+              {bookName} · {isTamil ? kural.chapter_name_tamil : kural.chapter_name_english}
+            </span>
+          </div>
+          <button
+            data-lang-toggle
+            onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
+            className="text-xs px-2.5 py-1 rounded-full bg-emerald/15 dark:bg-emerald/20 text-emerald hover:bg-emerald/25 dark:hover:bg-emerald/30 transition-colors"
+          >
+            {boxContent === "tamil" ? "English" : "தமிழ்"}
+          </button>
+        </div>
 
         {/* Non-scrolling wrapper — skeleton is absolute here so it always covers
             the visible viewport area, even when the card content is scrolled. */}
@@ -201,102 +207,54 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
               centering works when content is short, but content is scrollable
               (not clipped) when font size is large. */}
         <motion.div
-          key={kural.id}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={{ left: 0.15, right: 0.15 }}
           dragSnapToOrigin
           onDragEnd={handleDragEnd}
           style={{ x, opacity, rotate }}
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
           className="h-full overflow-y-auto flex flex-col"
         >
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
-          <div className="my-auto">
-            {/* Chapter badge + swap button */}
+          <div className="my-auto py-2">
+            <AnimatePresence mode="wait">
             <motion.div
-              animate={{ opacity: prefsReady ? 1 : 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center justify-between mb-4"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
-                <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
-                  {bookName} · {isTamil ? kural.chapter_name_tamil : kural.chapter_name_english}
-                </span>
-              </div>
-              <button
-                data-lang-toggle
-                onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
-                className="text-xs px-2.5 py-1 rounded-full bg-emerald/15 dark:bg-emerald/20 text-emerald hover:bg-emerald/25 dark:hover:bg-emerald/30 transition-colors"
-              >
-                {boxContent === "tamil" ? "English" : "தமிழ்"}
-              </button>
-            </motion.div>
-
-            {/* Editorial decorative line — top */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              className="divider-editorial mx-auto mb-8 w-12"
-            />
-
-            {/* Kural text */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-center mb-8 px-2"
-            >
-              {boxContent === "tamil" ? (
-                <p className="font-kural-tamil font-bold text-dark dark:text-dark-fg whitespace-pre-line text-balance">
-                  {kural.kural_tamil}
-                </p>
-              ) : (
-                <p className="font-serif text-3xl font-bold text-dark dark:text-dark-fg whitespace-pre-line leading-tight tracking-normal text-balance">
-                  {kural.transliteration}
-                </p>
-              )}
-            </motion.div>
-
-            {/* Editorial decorative line — bottom */}
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-              className="divider-editorial mx-auto mb-8 w-12"
-            />
-
-            {/* Insight */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="bg-emerald/8 dark:bg-emerald/10 backdrop-blur-sm rounded-lg px-6 py-5 shadow-sm dark:shadow-none border border-emerald/10 dark:border-emerald/20 text-center"
-            >
-              <p className={`text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-3 font-medium ${boxContent === "tamil" ? "font-tamil text-sm" : ""}`}>
-                {boxContent === "tamil" ? "பொருள்" : "Insight"}
-              </p>
-              <p className={`font-serif leading-relaxed text-dark/80 dark:text-dark-fg/85 ${boxContent === "tamil" ? "font-tamil text-sm" : "text-base"}`}>
-                {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
-              </p>
-            </motion.div>
-
-            {/* Explanation hint */}
-            <motion.button
-              onClick={() => setShowExplanation(true)}
-              initial={prefsReady ? { opacity: 0 } : false}
+              key={kural.id}
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.7 }}
-              className="w-full flex flex-col items-center gap-1.5 mt-4 py-3 hover:opacity-60 active:opacity-40 transition-opacity"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
             >
-              <span className="text-xs uppercase tracking-widest text-dark/40 dark:text-dark-fg/40 font-medium">
-                Tap for Explanation
-              </span>
-            </motion.button>
+              {/* Editorial decorative line — top */}
+              <div className="divider-editorial mx-auto mb-8 w-12" />
+
+              {/* Kural text */}
+              <div className="text-center mb-8 px-2">
+                {boxContent === "tamil" ? (
+                  <p className="font-kural-tamil font-bold text-dark dark:text-dark-fg whitespace-pre-line text-balance">
+                    {kural.kural_tamil}
+                  </p>
+                ) : (
+                  <p className="font-serif text-3xl font-bold text-dark dark:text-dark-fg whitespace-pre-line leading-tight tracking-normal text-balance">
+                    {kural.transliteration}
+                  </p>
+                )}
+              </div>
+
+              {/* Editorial decorative line — bottom */}
+              <div className="divider-editorial mx-auto mb-8 w-12" />
+
+              {/* Insight */}
+              <div className="bg-emerald/8 dark:bg-emerald/10 backdrop-blur-sm rounded-lg px-6 py-5 shadow-sm dark:shadow-none border border-emerald/10 dark:border-emerald/20 text-center">
+                <p className={`text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-3 font-medium ${boxContent === "tamil" ? "font-tamil text-sm" : ""}`}>
+                  {boxContent === "tamil" ? "பொருள்" : "Insight"}
+                </p>
+                <p className={`font-serif leading-relaxed text-dark/80 dark:text-dark-fg/85 ${boxContent === "tamil" ? "font-tamil text-sm" : "text-base"}`}>
+                  {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
+                </p>
+              </div>
+            </motion.div>
+            </AnimatePresence>
           </div>
         </motion.div>
 
@@ -308,17 +266,11 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, delay: 0.3 }}
+                transition={{ duration: 0.25, delay: 0.5 }}
                 className="absolute inset-0 z-10 flex flex-col pointer-events-none bg-[var(--bg-base)] overflow-hidden"
                 aria-hidden
               >
                 <div className="my-auto space-y-8">
-                  {/* Chapter badge row */}
-                  <div className="flex items-center gap-2">
-                    <div className="skeleton-shimmer w-2 h-2 rounded-full" />
-                    <div className="skeleton-shimmer h-3 w-36 rounded" />
-                  </div>
-
                   {/* Top divider */}
                   <div className="skeleton-shimmer h-px w-12 mx-auto" />
 
@@ -344,6 +296,16 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
             )}
           </AnimatePresence>
         </div>
+
+        {/* Tap for Explanation — fixed above nav row, never moves */}
+        <button
+          onClick={() => setShowExplanation(true)}
+          className="w-full flex flex-col items-center gap-1.5 py-2 hover:opacity-60 active:opacity-40 transition-opacity"
+        >
+          <span className="text-xs uppercase tracking-widest text-dark/40 dark:text-dark-fg/40 font-medium">
+            Tap for Explanation
+          </span>
+        </button>
 
         {/* Navigation row */}
         <div className="flex items-center justify-between py-3">
