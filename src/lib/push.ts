@@ -107,12 +107,13 @@ export async function unsubscribeFromPush(): Promise<boolean> {
   }
 }
 
-/** Check if this device is currently subscribed. */
+/** Check if this device is currently subscribed. Backfills IDB for existing subscribers. */
 export async function isPushSubscribed(): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
+    if (sub !== null) saveDeviceIdToIDB(getDeviceId());
     return sub !== null;
   } catch {
     return false;
