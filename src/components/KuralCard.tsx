@@ -24,15 +24,9 @@ interface KuralCardProps {
   adjacentKurals?: Record<string, Kural>;
 }
 
-// TODO: remove before deploy
-const DEV_FETCH_DELAY_MS = 2000;
-
 async function fetchKural(id: number): Promise<Kural | null> {
   if (id < 1 || id > MAX_KURAL_ID) return null;
   try {
-    if (process.env.NODE_ENV === "development") {
-      await new Promise((r) => setTimeout(r, DEV_FETCH_DELAY_MS));
-    }
     const res = await fetch(`/api/kural/${id}`);
     if (!res.ok) return null;
     return res.json();
