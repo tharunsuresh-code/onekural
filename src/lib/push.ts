@@ -6,6 +6,22 @@
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const DEVICE_ID_KEY = "onekural-device-id";
+const IDB_NAME = "onekural-push";
+const IDB_STORE = "meta";
+
+/** Persist device_id in IDB so the service worker can read it on pushsubscriptionchange. */
+function saveDeviceIdToIDB(deviceId: string): void {
+  try {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => {
+      const tx = req.result.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(deviceId, "device_id");
+    };
+  } catch {
+    // IDB unavailable — non-fatal
+  }
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -57,6 +73,7 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
       console.error("[Push] Failed to save subscription:", await res.text());
       return false;
     }
+    saveDeviceIdToIDB(getDeviceId());
     return true;
   } catch (err) {
     console.error("[Push] Subscribe error:", err);
@@ -90,12 +107,13 @@ export async function unsubscribeFromPush(): Promise<boolean> {
   }
 }
 
-/** Check if this device is currently subscribed. */
+/** Check if this device is currently subscribed. Backfills IDB for existing subscribers. */
 export async function isPushSubscribed(): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
+    if (sub !== null) saveDeviceIdToIDB(getDeviceId());
     return sub !== null;
   } catch {
     return false;
