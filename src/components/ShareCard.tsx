@@ -280,7 +280,6 @@ const SHEET_HEIGHT = 1200;
 export default function ShareCard({ kural, onClose }: ShareCardProps) {
   const { boxContent } = usePreferences();
   const [ratio, setRatio] = useState<AspectRatio>("square");
-  const [displayedRatio, setDisplayedRatio] = useState<AspectRatio>("square");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewReady, setPreviewReady] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -332,24 +331,18 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
     }
   }
 
-  // When ratio changes: fade out (150ms) → reshape (350ms) → generate → fade in.
+  // Generate preview when kural or ratio changes — fade out, generate, fade in.
   useEffect(() => {
     setPreviewReady(false);
     let cancelled = false;
-    // After fade-out, update the displayed ratio to trigger layout animation
-    const reshapeTimer = setTimeout(() => {
-      if (!cancelled) setDisplayedRatio(ratio);
-    }, 150);
-    // After fade-out + reshape, generate the new image
-    const generateTimer = setTimeout(async () => {
+    (async () => {
       const blob = await generateImage(kural, ratio, boxContent);
       if (cancelled) return;
       blobRef.current = blob;
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
+      setPreviewUrl(URL.createObjectURL(blob));
       setPreviewReady(true);
-    }, 500);
-    return () => { cancelled = true; clearTimeout(reshapeTimer); clearTimeout(generateTimer); };
+    })();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kural.id, ratio, boxContent]);
 
@@ -450,41 +443,18 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
             ))}
           </div>
 
-          {/* Preview */}
-          <div className="bg-white dark:bg-dark-subtle rounded-xl border border-dark/10 dark:border-dark-fg/20 p-3 mb-4 flex justify-center">
+          {/* Preview — fixed 1:1 box, image fits inside with object-contain */}
+          <div className="bg-dark/5 dark:bg-dark-fg/10 rounded-xl border border-dark/10 dark:border-dark-fg/20 p-3 mb-4 w-full aspect-square flex items-center justify-center">
             {previewUrl ? (
-              <motion.div
-                layout
-                transition={{ duration: 0.35, ease: "easeInOut" }}
-                className="rounded-lg overflow-hidden bg-white"
-                style={
-                  displayedRatio === "story"
-                    ? { height: "260px", aspectRatio: "9 / 16" }
-                    : { width: "100%", aspectRatio: "1 / 1" }
-                }
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={previewUrl}
-                  alt="Share card preview"
-                  className="w-full h-full object-cover"
-                  style={{
-                    opacity: previewReady ? 1 : 0,
-                    transition: previewReady ? "opacity 0.5s ease" : "opacity 0.15s ease",
-                  }}
-                />
-              </motion.div>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewUrl}
+                alt="Share card preview"
+                className="w-full h-full rounded-lg object-contain transition-opacity duration-300"
+                style={{ opacity: previewReady ? 1 : 0 }}
+              />
             ) : (
-              <div
-                className="bg-dark/5 dark:bg-dark-fg/10 rounded-lg flex items-center justify-center"
-                style={
-                  ratio === "story"
-                    ? { height: "260px", aspectRatio: "9 / 16" }
-                    : { width: "100%", aspectRatio: "1 / 1" }
-                }
-              >
-                <div className="w-5 h-5 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
-              </div>
+              <div className="w-5 h-5 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
             )}
           </div>
 
