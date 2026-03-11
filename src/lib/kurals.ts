@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { Kural, Chapter } from "./types";
-import { MAX_KURAL_ID } from "./constants";
+import { MAX_KURAL_ID, MS_PER_DAY } from "./constants";
 
 // Fixed epoch: Jan 1 2025 (calendar date anchor, timezone-agnostic).
 const EPOCH = "2025-01-01";
@@ -41,7 +41,7 @@ export function getTodayLocal(): string {
 export function getDailyKuralId(date: string = getTodayLocal()): number {
   const today = new Date(date + "T00:00:00Z").getTime();
   const epoch = new Date(EPOCH + "T00:00:00Z").getTime();
-  const daysSinceEpoch = Math.floor((today - epoch) / 86_400_000);
+  const daysSinceEpoch = Math.floor((today - epoch) / MS_PER_DAY);
   return DAILY_ORDER[((daysSinceEpoch % MAX_KURAL_ID) + MAX_KURAL_ID) % MAX_KURAL_ID];
 }
 

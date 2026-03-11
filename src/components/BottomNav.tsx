@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { emitNavStart } from "./NavigationProgress";
 
 const tabs = [
   {
@@ -60,17 +61,19 @@ export default function BottomNav() {
               ? pathname === "/"
               : pathname.startsWith(tab.href);
 
-          const handleHomeClick = () => {
+          const handleClick = () => {
             if (tab.href === "/" && pathname === "/") {
               window.dispatchEvent(new CustomEvent("onekural:go-home"));
+              return;
             }
+            if (!isActive) emitNavStart();
           };
 
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              onClick={handleHomeClick}
+              onClick={handleClick}
               className="flex flex-col items-center gap-0.5 py-1 px-3 -mb-px"
             >
               {tab.icon(isActive)}

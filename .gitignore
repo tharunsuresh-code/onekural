@@ -45,3 +45,6 @@ next-env.d.ts
 TRANSLATION_PLAN.md
 scripts/translate.ts
 scripts/output/
+
+# Local planning docs
+/docs/
