@@ -124,9 +124,11 @@ function getFromIDB(key) {
 // Re-subscribes and saves the new subscription to the server so the next
 // daily push reaches the correct endpoint.
 self.addEventListener("pushsubscriptionchange", (event) => {
+  const options = event.oldSubscription?.options;
+  if (!options) return;
   event.waitUntil(
     Promise.all([
-      self.registration.pushManager.subscribe(event.oldSubscription.options),
+      self.registration.pushManager.subscribe(options),
       getFromIDB("device_id"),
     ])
       .then(([newSub, deviceId]) => {
