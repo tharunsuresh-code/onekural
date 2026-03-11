@@ -216,7 +216,11 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
           <div className="my-auto">
             {/* Chapter badge + swap button */}
-            <div className={`flex items-center justify-between mb-4${!prefsReady ? " invisible" : ""}`}>
+            <motion.div
+              animate={{ opacity: prefsReady ? 1 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center justify-between mb-4"
+            >
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
                 <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
@@ -230,7 +234,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
               >
                 {boxContent === "tamil" ? "English" : "தமிழ்"}
               </button>
-            </div>
+            </motion.div>
 
             {/* Editorial decorative line — top */}
             <motion.div
