@@ -68,6 +68,25 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 - **iOS safe area**: `.pb-nav { padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px) + 1rem) }`
 - **Bottom sheets**: Use `history.pushState` + `popstate` for Android back-button dismiss
 - **Daily kural**: Rolls over at midnight IST via `visibilitychange` listener
+- **Local network testing**: `npm run dev -- --hostname 0.0.0.0` then connect phone to `http://<hostname -I>:3000` on same WiFi
+
+## Animation Patterns (Framer Motion)
+
+- **Kural card navigation**: Do NOT put `key` on the outer drag `motion.div` — it breaks drag MotionValues. Instead key a narrow inner `motion.div` wrapping only the content that changes (dividers + kural text + insight).
+- **Crossfade on key change**: Use `<AnimatePresence mode="wait">` + `exit={{ opacity: 0 }}` on the keyed child. Without `exit`, the old element unmounts instantly causing a flash before the new one fades in.
+- **`initial={false}` on AnimatePresence**: Suppresses enter animations for ALL children unconditionally — not just on first page mount. Avoid it if you want key-change animations to play.
+- **Static elements**: Chapter badge, language switch, and "Tap for Explanation" must live outside the keyed div — otherwise they blink on every kural navigation (especially visible in Firefox).
+
+## Layout Stability
+
+- **Fixed header height**: Use `invisible` (not conditional rendering) for elements that appear/disappear (e.g. "Today's Kural" sub-label). Conditional rendering changes header height and causes the chapter row below to jump.
+- **Scroll area isolation**: Chapter badge + lang switch belong above the `flex-1` scroll container; "Tap for Explanation" belongs below it. Placing them inside the scrollable drag area causes jarring vertical shifts as content height changes between kurals.
+
+## Share Image (Canvas)
+
+- **Font sizes in `measureContent` must exactly match `generateImage`** — they are separate functions and drift silently causes misaligned layout.
+- **Tamil kural font**: `44px / 62lh` — 56px was too large and pushed the insight box into the watermark on longer verses.
+- **Content overflow guard**: `bottomReserved` + `topMin` in `generateImage` clamp the vertical centering; always verify with a long kural (e.g. a 3-line transliteration) before shipping font size changes.
 
 ## PWA / Push Notifications
 

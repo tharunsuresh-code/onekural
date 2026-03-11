@@ -14,8 +14,8 @@ interface ShareCardProps {
 type AspectRatio = "story" | "square";
 
 const SIZES: Record<AspectRatio, { w: number; h: number; label: string }> = {
-  story: { w: 1080, h: 1920, label: "Story (9:16)" },
   square: { w: 1080, h: 1080, label: "Square (1:1)" },
+  story: { w: 1080, h: 1920, label: "Story (9:16)" },
 };
 
 // Colors
@@ -74,12 +74,12 @@ function measureContent(
 
   // Open kural text (no box)
   if (boxContent === "tamil") {
-    ctx.font = "bold 56px 'Noto Serif Tamil', serif";
+    ctx.font = "bold 44px 'Noto Serif Tamil', serif";
     const tamilLines = kural.kural_tamil.split("\n");
     let tamilH = 0;
     for (const line of tamilLines) {
-      const { lines } = wrapText(ctx, line.trim(), 0, contentWidth, 76);
-      tamilH += lines.length * 76;
+      const { lines } = wrapText(ctx, line.trim(), 0, contentWidth, 62);
+      tamilH += lines.length * 62;
     }
     h += tamilH;
   } else {
@@ -169,8 +169,8 @@ async function generateImage(
   let kuralLineH: number;
 
   if (boxContent === "tamil") {
-    ctx.font = "bold 56px 'Noto Serif Tamil', serif";
-    kuralLineH = 76;
+    ctx.font = "bold 44px 'Noto Serif Tamil', serif";
+    kuralLineH = 62;
     for (const line of kural.kural_tamil.split("\n")) {
       const { lines } = wrapText(ctx, line.trim(), w / 2, contentWidth, kuralLineH);
       kuralLines.push(...lines);
