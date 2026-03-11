@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
 import type { Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
@@ -21,11 +21,18 @@ interface KuralCardProps {
   initialKural: Kural;
   mode?: "home" | "detail";
   dailyKuralId?: number;
+  adjacentKurals?: Record<string, Kural>;
 }
+
+// TODO: remove before deploy
+const DEV_FETCH_DELAY_MS = 2000;
 
 async function fetchKural(id: number): Promise<Kural | null> {
   if (id < 1 || id > MAX_KURAL_ID) return null;
   try {
+    if (process.env.NODE_ENV === "development") {
+      await new Promise((r) => setTimeout(r, DEV_FETCH_DELAY_MS));
+    }
     const res = await fetch(`/api/kural/${id}`);
     if (!res.ok) return null;
     return res.json();
@@ -34,7 +41,7 @@ async function fetchKural(id: number): Promise<Kural | null> {
   }
 }
 
-export default function KuralCard({ initialKural, mode = "detail", dailyKuralId }: KuralCardProps) {
+export default function KuralCard({ initialKural, mode = "detail", dailyKuralId, adjacentKurals }: KuralCardProps) {
   const router = useRouter();
   const isHome = mode === "home";
 
@@ -46,6 +53,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
   const [showExplanation, setShowExplanation] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isPlaying, play, stop } = useAudio();
+  const [audioUnavailable, setAudioUnavailable] = useState(false);
+  const audioUnavailableTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { boxContent, setBoxContent, prefsReady } = usePreferences();
 
   const x = useMotionValue(0);
@@ -59,7 +68,14 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
     const localId = getDailyKuralId(localDate);
     setLocalDailyKuralId(localId);
     if (localId !== initialKural.id) {
-      fetchKural(localId).then((k) => { if (k) setKural(k); });
+      // Use server-prefetched adjacent kurals to correct instantly (no network fetch).
+      // Falls back to fetching if the date is somehow not covered.
+      const prefetched = adjacentKurals?.[localDate];
+      if (prefetched) {
+        setKural(prefetched);
+      } else {
+        fetchKural(localId).then((k) => { if (k) setKural(k); });
+      }
     }
 
     const handleVisibility = () => {
@@ -182,6 +198,10 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
           )}
         </motion.div>
 
+        {/* Non-scrolling wrapper — skeleton is absolute here so it always covers
+            the visible viewport area, even when the card content is scrolled. */}
+        <div className="relative flex-1 min-h-0">
+
         {/* Swipeable card
             — no justify-center: use my-auto on inner wrapper instead so that
               centering works when content is short, but content is scrollable
@@ -197,7 +217,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex-1 min-h-0 overflow-y-auto flex flex-col"
+          className="h-full overflow-y-auto flex flex-col"
         >
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
           <div className="my-auto">
@@ -282,6 +302,51 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
           </div>
         </motion.div>
 
+          {/* Slow-network skeleton — absolute on the non-scrolling wrapper so it
+              always covers the visible area regardless of scroll position */}
+          <AnimatePresence>
+            {isAnimating && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, delay: 0.3 }}
+                className="absolute inset-0 z-10 flex flex-col pointer-events-none bg-[var(--bg-base)] overflow-hidden"
+                aria-hidden
+              >
+                <div className="my-auto space-y-8">
+                  {/* Chapter badge row */}
+                  <div className="flex items-center gap-2">
+                    <div className="skeleton-shimmer w-2 h-2 rounded-full" />
+                    <div className="skeleton-shimmer h-3 w-36 rounded" />
+                  </div>
+
+                  {/* Top divider */}
+                  <div className="skeleton-shimmer h-px w-12 mx-auto" />
+
+                  {/* Kural text lines */}
+                  <div className="flex flex-col items-center gap-3 px-2">
+                    <div className="skeleton-shimmer h-7 w-4/5 rounded" />
+                    <div className="skeleton-shimmer h-7 w-3/4 rounded" />
+                    <div className="skeleton-shimmer h-7 w-2/3 rounded" />
+                  </div>
+
+                  {/* Bottom divider */}
+                  <div className="skeleton-shimmer h-px w-12 mx-auto" />
+
+                  {/* Insight box */}
+                  <div className="rounded-lg px-6 py-5 border border-emerald/10 dark:border-emerald/20 space-y-3">
+                    <div className="skeleton-shimmer h-3 w-14 mx-auto rounded" />
+                    <div className="skeleton-shimmer h-4 w-full rounded" />
+                    <div className="skeleton-shimmer h-4 w-5/6 mx-auto rounded" />
+                    <div className="skeleton-shimmer h-4 w-4/6 mx-auto rounded" />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Navigation row */}
         <div className="flex items-center justify-between py-3">
           <button
@@ -312,14 +377,36 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId 
           transition={{ duration: 0.4, delay: 0.3 }}
           className="flex items-center justify-between pt-4 border-t border-dark/10 dark:border-dark-fg/10"
         >
-          <button
-            onClick={() => isPlaying ? stop() : play(kural.kural_tamil)}
-            className={`text-sm flex items-center gap-1.5 transition-colors ${
-              isPlaying ? "text-emerald" : "text-dark/50 dark:text-dark-fg/50"
-            }`}
-          >
-            <span>{isPlaying ? "■" : "♪"}</span> {isPlaying ? "Stop" : "Listen"}
-          </button>
+          <div className="relative">
+            <button
+              onClick={async () => {
+                if (isPlaying) { stop(); return; }
+                const ok = await play(kural.kural_tamil);
+                if (!ok) {
+                  if (audioUnavailableTimer.current) clearTimeout(audioUnavailableTimer.current);
+                  setAudioUnavailable(true);
+                  audioUnavailableTimer.current = setTimeout(() => setAudioUnavailable(false), 3500);
+                }
+              }}
+              className={`text-sm flex items-center gap-1.5 transition-colors ${
+                isPlaying ? "text-emerald" : "text-dark/50 dark:text-dark-fg/50"
+              }`}
+            >
+              <span>{isPlaying ? "■" : "♪"}</span> {isPlaying ? "Stop" : "Listen"}
+            </button>
+            <AnimatePresence>
+              {audioUnavailable && (
+                <motion.p
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 text-center text-[11px] leading-tight bg-dark/90 dark:bg-dark-fg/90 text-dark-fg dark:text-dark rounded-lg px-3 py-2 pointer-events-none"
+                >
+                  Tamil voice not available on this device
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
           <button
             onClick={() => toggleFavorite(kural.id)}
             className={`text-sm flex items-center gap-1.5 transition-colors ${

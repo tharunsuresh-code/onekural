@@ -3,6 +3,7 @@ import { Noto_Serif_Tamil, Inter, Crimson_Text } from "next/font/google";
 import BottomNav from "@/components/BottomNav";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import NavigationProgress from "@/components/NavigationProgress";
 import "./globals.css";
 
 const notoSerifTamil = Noto_Serif_Tamil({
@@ -69,6 +70,7 @@ export default function RootLayout({
     <html lang="ta" className={`${notoSerifTamil.variable} ${inter.variable} ${crimsonText.variable} light`}>
       <body className="font-sans antialiased bg-cream dark:bg-dark-bg text-dark dark:text-dark-fg">
         <Providers>
+          <NavigationProgress />
           {children}
           <BottomNav />
           <ServiceWorkerRegistrar />
