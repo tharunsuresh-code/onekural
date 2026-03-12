@@ -1,0 +1,89 @@
+# OneKural
+
+> One kural a day. Read, reflect, and journal your thoughts on the timeless wisdom of Thiruvalluvar.
+
+OneKural is a mobile-first Progressive Web App (PWA) that surfaces a daily verse from the **Thirukkural** — a 2,000-year-old Tamil classic of ethics, governance, and love by the poet-saint **Thiruvalluvar**. The app provides the original Tamil, transliteration, English meaning, Tamil meaning, and scholarly commentaries for all 1,330 verses.
+
+**Live site:** https://onekural.com
+
+---
+
+## The Thirukkural
+
+- **Author:** Thiruvalluvar
+- **Language:** Classical Tamil
+- **Total verses:** 1,330 kurals
+- **Structure:** 3 books → 133 chapters → 10 kurals each
+
+### Books (பால்)
+
+| Book | Tamil | English | Chapters | Kurals |
+|------|-------|---------|----------|--------|
+| 1 | அறத்துப்பால் | Aram (Virtue) | 1–38 | 1–380 |
+| 2 | பொருட்பால் | Porul (Wealth) | 39–108 | 381–1080 |
+| 3 | இன்பத்துப்பால் | Inbam (Love) | 109–133 | 1081–1330 |
+
+---
+
+## Data Access
+
+### Static JSON (recommended for bulk access)
+
+All 1,330 kurals as a single JSON file:
+
+```
+GET https://onekural.com/data/kurals.json
+```
+
+Returns an array of Kural objects — see schema below.
+
+### REST API
+
+Base URL: `https://onekural.com`
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/kural/{id}` | Single kural by ID (1–1330) |
+| `GET /api/kurals?chapter=N` | All 10 kurals in chapter N (1–133) |
+| `GET /api/kurals/batch?ids=1,2,3` | Batch fetch up to 100 kurals by ID |
+| `GET /api/chapters?book=N` | All chapters in book N (1, 2, or 3) |
+| `GET /api/search?q=query` | Full-text search (max 50 results) |
+
+OpenAPI spec: https://onekural.com/openapi.yaml
+
+---
+
+## Kural Object Schema
+
+```json
+{
+  "id": 1,
+  "book": 1,
+  "chapter": 1,
+  "chapter_name_tamil": "கடவுள் வாழ்த்து",
+  "chapter_name_english": "The Praise of God",
+  "kural_tamil": "அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு.",
+  "transliteration": "Agara mudala ezhutthellaam aadhi\nBhagavan mudatre ulagu.",
+  "meaning_english": "As the letter A is the first of all letters, so the eternal God is first in the world.",
+  "meaning_tamil": "எழுத்துக்கள் எல்லாம் அகரத்தை முதலாக கொண்டிருப்பது போல, உலகம் கடவுளை முதலாகக் கொண்டுள்ளது.",
+  "explanation_english": "...",
+  "explanation_tamil": "..."
+}
+```
+
+---
+
+## Key Pages
+
+- **Home (daily kural):** https://onekural.com
+- **Individual kural:** https://onekural.com/kural/{id} (e.g. /kural/1)
+- **Explore by chapter:** https://onekural.com/explore
+- **About:** https://onekural.com/about
+
+---
+
+## Source Code
+
+GitHub: https://github.com/tharunsuresh-code/onekural
+
+Tech stack: Next.js 14, TypeScript, Tailwind CSS, Supabase (Postgres), Vercel

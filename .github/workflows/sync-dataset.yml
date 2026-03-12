@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "data/kurals.csv"
+      - "public/data/kurals.json"
 
 jobs:
   sync:
@@ -20,7 +20,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Sync kurals.csv → Supabase
+      - name: Sync kurals.json → Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Sync data/kurals.csv → Supabase kurals table
+ * Sync public/data/kurals.json → Supabase kurals table
  *
  * Usage:
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/sync-dataset.ts
@@ -10,10 +10,9 @@
 
 import fs from "fs";
 import path from "path";
-import { parse } from "csv-parse/sync";
 import { createClient } from "@supabase/supabase-js";
 
-const CSV_PATH = path.join(process.cwd(), "data", "kurals.csv");
+const JSON_PATH = path.join(process.cwd(), "public", "data", "kurals.json");
 const BATCH_SIZE = 100;
 
 const url = process.env.SUPABASE_URL;
@@ -25,28 +24,9 @@ if (!url || !key) {
 
 const supabase = createClient(url, key);
 
-const raw = fs.readFileSync(CSV_PATH, "utf-8");
-const rows = parse(raw, { columns: true, skip_empty_lines: true }) as Record<
-  string,
-  string
->[];
+const records = JSON.parse(fs.readFileSync(JSON_PATH, "utf-8"));
 
-console.log(`Loaded ${rows.length} rows from ${CSV_PATH}`);
-
-// Cast numeric fields
-const records = rows.map((r) => ({
-  id: Number(r.id),
-  book: Number(r.book),
-  chapter: Number(r.chapter),
-  chapter_name_tamil: r.chapter_name_tamil || null,
-  chapter_name_english: r.chapter_name_english || null,
-  kural_tamil: r.kural_tamil || null,
-  transliteration: r.transliteration || null,
-  meaning_english: r.meaning_english || null,
-  meaning_tamil: r.meaning_tamil || null,
-  explanation_english: r.explanation_english || null,
-  explanation_tamil: r.explanation_tamil || null,
-}));
+console.log(`Loaded ${records.length} records from ${JSON_PATH}`);
 
 async function main() {
   let updated = 0;

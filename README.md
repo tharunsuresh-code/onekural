@@ -126,6 +126,52 @@ public/
   manifest.json           # PWA manifest
 ```
 
+## Data & API
+
+All 1,330 kurals are publicly accessible — no API key required.
+
+### Static JSON dump (recommended for bulk access)
+
+```bash
+curl https://onekural.com/data/kurals.json
+```
+
+Returns all 1,330 kurals as a JSON array. Ideal for RAG pipelines, offline use, or data analysis.
+
+### REST API
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/kural/{id}` | Single kural (id: 1–1330) |
+| `GET /api/kurals?chapter=N` | All 10 kurals in chapter N (1–133) |
+| `GET /api/kurals/batch?ids=1,2,3` | Batch fetch up to 100 kurals |
+| `GET /api/chapters?book=N` | Chapters in book N (1=Aram, 2=Porul, 3=Inbam) |
+| `GET /api/search?q=query` | Full-text search (max 50 results) |
+
+Full OpenAPI spec: [onekural.com/openapi.yaml](https://onekural.com/openapi.yaml)
+
+```bash
+# Fetch a single kural
+curl https://onekural.com/api/kural/1
+
+# Search for kurals about education
+curl "https://onekural.com/api/search?q=education"
+
+# Get all chapters in Book 2 (Porul)
+curl "https://onekural.com/api/chapters?book=2"
+
+# Batch fetch kurals 1, 100, and 500
+curl "https://onekural.com/api/kurals/batch?ids=1,100,500"
+```
+
+### LLM / Agent Access
+
+- **`llms.txt`:** [onekural.com/llms.txt](https://onekural.com/llms.txt) — concise site description for LLM crawlers
+- **`llms-full.txt`:** [onekural.com/llms-full.txt](https://onekural.com/llms-full.txt) — full API reference with all 133 chapter names
+- Each kural page at `/kural/{id}` includes `schema.org/CreativeWork` JSON-LD with Tamil verse, transliteration, and both language meanings
+
+---
+
 ## Database Schema
 
 - **kurals** — 1,330 verses (static, seeded). Daily kural ID is computed from the date, no DB query needed.

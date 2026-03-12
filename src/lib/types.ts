@@ -1,8 +1,3 @@
-export interface Scholar {
-  name: string;
-  commentary: string;
-}
-
 export interface Kural {
   id: number;
   book: number;
@@ -13,9 +8,6 @@ export interface Kural {
   transliteration: string;
   meaning_english: string;
   meaning_tamil: string;
-  scholars: Scholar[];
-  scholars_en?: string;
-  themes: string[];
   explanation_english?: string | null;
   explanation_tamil?: string | null;
 }
