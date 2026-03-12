@@ -60,6 +60,10 @@ Apply migrations in order from `supabase/migrations/` (001–006 already applied
 
 Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one row per device. No `UNIQUE(user_id)` constraint (intentionally dropped in migration 006 for multi-device support).
 
+**Data updates**: Editing `data/kurals.csv` and committing/pushing triggers a GitHub Actions workflow that automatically re-seeds the Supabase DB. No manual `npm run seed` or direct DB updates needed for kural data changes.
+
+**Stale local data**: If DB changes aren't reflected locally despite restarting the dev server, delete the `.next/` directory — Next.js Data Cache persists there and can serve stale Supabase responses. `rm -rf .next && npm run dev` forces a clean fetch.
+
 ## Key Gotchas
 
 - **Tamil font size**: Use `px`-based clamp in CSS (`clamp(18px, 4.5vw, 28px)`) — rem-based clamp grows with system font scale causing overflow; class is `.font-kural-tamil` in `globals.css`
