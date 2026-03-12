@@ -35,8 +35,6 @@ const kurals = rows.map((r) => ({
   meaning_tamil: r.meaning_tamil || null,
   explanation_english: r.explanation_english || null,
   explanation_tamil: r.explanation_tamil || null,
-  scholars: [],
-  themes: [],
 }));
 
 const outputDir = path.dirname(OUTPUT_PATH);
