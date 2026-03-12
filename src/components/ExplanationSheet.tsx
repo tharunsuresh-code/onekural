@@ -14,12 +14,10 @@ const SHEET_HEIGHT = 1200;
 
 function renderExplanation(text: string) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  const isCitation = (l: string) => /^\*\*/.test(l.trim());
   return lines.map((line, i) => {
-    const hasBold = /\*\*/.test(line);
-    const prevHasBold = i > 0 && /\*\*/.test(lines[i - 1]);
-
-    // bold → bold: tight spacing; anything else: larger gap
-    const marginClass = i === 0 ? "" : hasBold && prevHasBold ? "mt-2" : "mt-6";
+    // citation → citation: tight spacing; anything else: larger gap
+    const marginClass = i === 0 ? "" : isCitation(line) && isCitation(lines[i - 1]) ? "mt-2" : "mt-6";
 
     const parts = line.split(/\*\*(.+?)\*\*/g);
     return (
