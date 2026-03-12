@@ -48,3 +48,4 @@ scripts/output/
 
 # Local planning docs
 /docs/
+lighthouse_report.json
