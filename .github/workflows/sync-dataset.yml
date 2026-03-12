@@ -27,9 +27,6 @@ jobs:
         run: npx tsx scripts/sync-dataset.ts
 
       - name: Export kurals → public/data/kurals.json
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run export-data
 
       - name: Commit updated kurals.json
