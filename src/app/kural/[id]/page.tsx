@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getKural } from "@/lib/kurals";
 import KuralCard from "@/components/KuralCard";
 import { MAX_KURAL_ID } from "@/lib/constants";
+import { BOOK_NAMES } from "@/lib/types";
 
 interface Props {
   params: { id: string };
@@ -46,5 +47,33 @@ export default async function KuralDetailPage({ params }: Props) {
     notFound();
   }
 
-  return <KuralCard initialKural={kural} />;
+  const bookName = BOOK_NAMES[kural.book]?.english ?? "Thirukkural";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    "@id": `https://onekural.com/kural/${id}`,
+    name: `Kural ${id} — ${kural.chapter_name_english}`,
+    author: { "@type": "Person", name: "Thiruvalluvar" },
+    inLanguage: ["ta", "en"],
+    isPartOf: {
+      "@type": "Book",
+      name: "Thirukkural",
+      bookEdition: bookName,
+    },
+    text: kural.kural_tamil,
+    alternateName: kural.transliteration,
+    abstract: kural.meaning_english,
+    description: kural.meaning_tamil,
+    url: `https://onekural.com/kural/${id}`,
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <KuralCard initialKural={kural} />
+    </>
+  );
 }
