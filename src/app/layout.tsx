@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Serif_Tamil, Inter, Crimson_Text } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import BottomNav from "@/components/BottomNav";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
@@ -77,6 +78,7 @@ export default function RootLayout({
           <ServiceWorkerRegistrar />
         </Providers>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
