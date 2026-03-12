@@ -48,6 +48,11 @@ export function useAudio() {
   };
 
   useEffect(() => {
+    // Pre-warm voices on mount — Chrome loads them async and fires voiceschanged
+    // before the user clicks; without this, the first click always fails.
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      getVoices();
+    }
     return () => {
       if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
