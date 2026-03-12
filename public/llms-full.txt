@@ -93,15 +93,8 @@ interface Kural {
   transliteration: string;           // Romanized Tamil
   meaning_english: string;           // English translation/meaning
   meaning_tamil: string;             // Tamil meaning (Solomon Pappaiah)
-  scholars: Scholar[];               // Array of scholarly commentaries
-  themes: string[];                  // Thematic tags
   explanation_english?: string;      // AI-generated detailed explanation (may be null)
   explanation_tamil?: string;        // AI-generated Tamil explanation (may be null)
-}
-
-interface Scholar {
-  name: string;       // Translator/commentator name
-  commentary: string; // Their interpretation
 }
 
 interface Chapter {

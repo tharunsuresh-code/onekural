@@ -66,10 +66,8 @@ paths:
                 transliteration: "Agara mudala ezhutthellaam aadhi\nBhagavan mudatre ulagu."
                 meaning_english: "As the letter A is the first of all letters, so the eternal God is first in the world."
                 meaning_tamil: "எழுத்துக்கள் எல்லாம் அகரத்தை முதலாக கொண்டிருப்பது போல, உலகம் கடவுளை முதலாகக் கொண்டுள்ளது."
-                scholars:
-                  - name: "G.U. Pope"
-                    commentary: "As the letter A is the first of all letters..."
-                themes: ["God", "Virtue"]
+                explanation_english: null
+                explanation_tamil: null
         "400":
           description: Invalid ID
           content:
@@ -222,8 +220,6 @@ components:
         - transliteration
         - meaning_english
         - meaning_tamil
-        - scholars
-        - themes
       properties:
         id:
           type: integer
@@ -266,17 +262,6 @@ components:
           type: string
           description: Tamil meaning (Solomon Pappaiah commentary)
           example: "எழுத்துக்கள் எல்லாம் அகரத்தை முதலாக கொண்டிருப்பது போல..."
-        scholars:
-          type: array
-          description: Array of scholarly commentaries from multiple traditions
-          items:
-            $ref: "#/components/schemas/Scholar"
-        themes:
-          type: array
-          description: Thematic tags for the verse
-          items:
-            type: string
-          example: ["God", "Virtue", "Ethics"]
         explanation_english:
           type: string
           nullable: true
@@ -285,21 +270,6 @@ components:
           type: string
           nullable: true
           description: Detailed Tamil explanation (may be null)
-
-    Scholar:
-      type: object
-      description: A scholarly commentary on the kural
-      required:
-        - name
-        - commentary
-      properties:
-        name:
-          type: string
-          description: Translator or commentator name
-          example: "G.U. Pope"
-        commentary:
-          type: string
-          description: Their interpretation of the verse
 
     Chapter:
       type: object

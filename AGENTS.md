@@ -113,7 +113,7 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 
 ```ts
 Kural { id, book, chapter, kural_tamil, transliteration,
-        meaning_english, meaning_tamil, scholars[], themes[],
+        meaning_english, meaning_tamil,
         explanation_english?, explanation_tamil? }
 Chapter { chapter, chapter_name_tamil, chapter_name_english, book }
 BOOK_NAMES: { 1: Aram, 2: Porul, 3: Inbam }
