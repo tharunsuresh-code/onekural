@@ -1,0 +1,341 @@
+openapi: 3.1.0
+info:
+  title: OneKural API
+  description: |
+    REST API for the Thirukkural — a 2,000-year-old Tamil classic of ethics, governance, and love
+    by the poet-saint Thiruvalluvar. All 1,330 verses are publicly accessible with no authentication.
+
+    **Base URL:** https://onekural.com
+
+    **Static data dump (recommended for bulk access):**
+    `GET https://onekural.com/data/kurals.json` — all 1,330 kurals in one JSON array.
+
+    **Structure:** 3 books → 133 chapters → 10 kurals each
+    - Book 1 — Aram (Virtue): chapters 1–38, kurals 1–380
+    - Book 2 — Porul (Wealth): chapters 39–108, kurals 381–1080
+    - Book 3 — Inbam (Love): chapters 109–133, kurals 1081–1330
+  version: "1.0.0"
+  contact:
+    url: https://onekural.com
+  license:
+    name: MIT
+    url: https://github.com/tharunsuresh-code/onekural/blob/main/LICENSE
+
+servers:
+  - url: https://onekural.com
+    description: Production
+
+tags:
+  - name: kurals
+    description: Individual verse operations
+  - name: chapters
+    description: Chapter operations
+  - name: search
+    description: Full-text search
+
+paths:
+  /api/kural/{id}:
+    get:
+      tags: [kurals]
+      summary: Get a single kural by ID
+      description: Returns a single Thirukkural verse by its numeric ID (1–1330).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Kural ID (1 to 1330)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1330
+            example: 1
+      responses:
+        "200":
+          description: Kural found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kural"
+              example:
+                id: 1
+                book: 1
+                chapter: 1
+                chapter_name_tamil: "கடவுள் வாழ்த்து"
+                chapter_name_english: "The Praise of God"
+                kural_tamil: "அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு."
+                transliteration: "Agara mudala ezhutthellaam aadhi\nBhagavan mudatre ulagu."
+                meaning_english: "As the letter A is the first of all letters, so the eternal God is first in the world."
+                meaning_tamil: "எழுத்துக்கள் எல்லாம் அகரத்தை முதலாக கொண்டிருப்பது போல, உலகம் கடவுளை முதலாகக் கொண்டுள்ளது."
+                scholars:
+                  - name: "G.U. Pope"
+                    commentary: "As the letter A is the first of all letters..."
+                themes: ["God", "Virtue"]
+        "400":
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Kural not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/kurals:
+    get:
+      tags: [kurals]
+      summary: Get all kurals in a chapter
+      description: Returns all 10 kurals belonging to the specified chapter.
+      parameters:
+        - name: chapter
+          in: query
+          required: true
+          description: Chapter number (1 to 133)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 133
+            example: 1
+      responses:
+        "200":
+          description: List of kurals in the chapter
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Kural"
+        "400":
+          description: Invalid chapter number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/kurals/batch:
+    get:
+      tags: [kurals]
+      summary: Batch fetch kurals by IDs
+      description: Returns multiple kurals by their IDs in a single request. Maximum 100 IDs per request.
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: Comma-separated list of kural IDs (max 100)
+          schema:
+            type: string
+            example: "1,2,3,100,500"
+      responses:
+        "200":
+          description: List of matching kurals ordered by ID
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Kural"
+        "400":
+          description: Invalid IDs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/chapters:
+    get:
+      tags: [chapters]
+      summary: Get chapters in a book
+      description: Returns all chapters belonging to the specified book.
+      parameters:
+        - name: book
+          in: query
+          required: false
+          description: Book number (1=Aram, 2=Porul, 3=Inbam). Defaults to 1.
+          schema:
+            type: integer
+            enum: [1, 2, 3]
+            default: 1
+            example: 1
+      responses:
+        "200":
+          description: List of chapters in the book
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chapter"
+        "400":
+          description: Invalid book number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/search:
+    get:
+      tags: [search]
+      summary: Full-text search across kurals
+      description: |
+        Searches across Tamil verse, transliteration, and English/Tamil meanings.
+        Returns up to 50 results. Query must be between 1 and 200 characters.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (1–200 characters)
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+            example: "education"
+      responses:
+        "200":
+          description: List of matching kurals (up to 50)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Kural"
+        "400":
+          description: Invalid query
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    Kural:
+      type: object
+      description: A single Thirukkural verse with translations and commentaries
+      required:
+        - id
+        - book
+        - chapter
+        - chapter_name_tamil
+        - chapter_name_english
+        - kural_tamil
+        - transliteration
+        - meaning_english
+        - meaning_tamil
+        - scholars
+        - themes
+      properties:
+        id:
+          type: integer
+          description: Unique kural identifier (1–1330)
+          minimum: 1
+          maximum: 1330
+          example: 1
+        book:
+          type: integer
+          description: Book number (1=Aram/Virtue, 2=Porul/Wealth, 3=Inbam/Love)
+          enum: [1, 2, 3]
+          example: 1
+        chapter:
+          type: integer
+          description: Chapter number (1–133)
+          minimum: 1
+          maximum: 133
+          example: 1
+        chapter_name_tamil:
+          type: string
+          description: Chapter name in Tamil script
+          example: "கடவுள் வாழ்த்து"
+        chapter_name_english:
+          type: string
+          description: Chapter name in English
+          example: "The Praise of God"
+        kural_tamil:
+          type: string
+          description: The two-line verse in Tamil script
+          example: "அகர முதல எழுத்தெல்லாம் ஆதி\nபகவன் முதற்றே உலகு."
+        transliteration:
+          type: string
+          description: Romanized Tamil (transliteration)
+          example: "Agara mudala ezhutthellaam aadhi\nBhagavan mudatre ulagu."
+        meaning_english:
+          type: string
+          description: English meaning/translation
+          example: "As the letter A is the first of all letters, so the eternal God is first in the world."
+        meaning_tamil:
+          type: string
+          description: Tamil meaning (Solomon Pappaiah commentary)
+          example: "எழுத்துக்கள் எல்லாம் அகரத்தை முதலாக கொண்டிருப்பது போல..."
+        scholars:
+          type: array
+          description: Array of scholarly commentaries from multiple traditions
+          items:
+            $ref: "#/components/schemas/Scholar"
+        themes:
+          type: array
+          description: Thematic tags for the verse
+          items:
+            type: string
+          example: ["God", "Virtue", "Ethics"]
+        explanation_english:
+          type: string
+          nullable: true
+          description: Detailed English explanation (may be null)
+        explanation_tamil:
+          type: string
+          nullable: true
+          description: Detailed Tamil explanation (may be null)
+
+    Scholar:
+      type: object
+      description: A scholarly commentary on the kural
+      required:
+        - name
+        - commentary
+      properties:
+        name:
+          type: string
+          description: Translator or commentator name
+          example: "G.U. Pope"
+        commentary:
+          type: string
+          description: Their interpretation of the verse
+
+    Chapter:
+      type: object
+      description: A chapter grouping 10 kurals on a single theme
+      required:
+        - chapter
+        - chapter_name_tamil
+        - chapter_name_english
+        - book
+      properties:
+        chapter:
+          type: integer
+          description: Chapter number (1–133)
+          minimum: 1
+          maximum: 133
+          example: 1
+        chapter_name_tamil:
+          type: string
+          description: Chapter name in Tamil script
+          example: "கடவுள் வாழ்த்து"
+        chapter_name_english:
+          type: string
+          description: Chapter name in English
+          example: "The Praise of God"
+        book:
+          type: integer
+          description: Book number (1=Aram, 2=Porul, 3=Inbam)
+          enum: [1, 2, 3]
+          example: 1
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid kural ID"
