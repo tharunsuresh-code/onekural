@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "ts-node --project tsconfig.seed.json scripts/seed.ts",
-    "export-data": "ts-node --project tsconfig.seed.json scripts/export-data.ts",
+    "export-data": "npx tsx scripts/export-data.ts",
     "generate-icons": "ts-node --project tsconfig.seed.json scripts/generate-icons.ts",
     "test": "vitest run",
     "test:watch": "vitest"
