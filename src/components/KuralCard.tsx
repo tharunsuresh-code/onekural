@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+
+// useLayoutEffect fires before paint (client only); fall back to useEffect on SSR
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
@@ -55,8 +58,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
 
-  // Home-only: midnight rollover + daily kural correction + home-icon reset
-  useEffect(() => {
+  // Home-only: correct server/client date mismatch before first paint (no flash)
+  useIsomorphicLayoutEffect(() => {
     if (!isHome) return;
     const localDate = new Date().toLocaleDateString("en-CA");
     const localId = getDailyKuralId(localDate);
@@ -71,6 +74,13 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         fetchKural(localId).then((k) => { if (k) setKural(k); });
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Home-only: midnight rollover + home-icon reset
+  useEffect(() => {
+    if (!isHome) return;
+    const localDate = new Date().toLocaleDateString("en-CA");
 
     const handleVisibility = () => {
       if (document.visibilityState !== "visible") return;
