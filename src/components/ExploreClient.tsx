@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Chapter, Kural } from "@/lib/types";
-import { BOOK_NAMES } from "@/lib/types";
+import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences";
 import { MAX_KURAL_ID } from "@/lib/constants";
 import { emitNavStart } from "./NavigationProgress";
@@ -154,9 +154,9 @@ export default function ExploreClient() {
                   className="block bg-white dark:bg-dark-subtle border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-dark/50 dark:text-dark-fg/60">
-                      {BOOK_NAMES[k.book]?.english} ·{" "}
-                      {k.chapter_name_english}
+                    <span className={`text-xs text-dark/50 dark:text-dark-fg/60${boxContent === "tamil" ? " font-tamil" : ""}`}>
+                      {boxContent === "tamil" ? BOOK_NAMES[k.book]?.tamil : BOOK_NAMES[k.book]?.english} ·{" "}
+                      {boxContent === "tamil" ? k.chapter_name_tamil : k.chapter_name_english}
                     </span>
                     <span className="text-xs text-emerald font-medium">
                       #{k.id}
@@ -172,7 +172,7 @@ export default function ExploreClient() {
                     </p>
                   )}
                   <p className="text-xs text-dark/60 dark:text-dark-fg/65 line-clamp-2">
-                    {k.meaning_english}
+                    {boxContent === "tamil" ? getSolomonTamil(k) : k.meaning_english}
                   </p>
                 </Link>
               ))}
@@ -224,12 +224,15 @@ export default function ExploreClient() {
                       className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-dark/2 dark:hover:bg-dark-fg/5 transition-colors"
                     >
                       <div>
-                        <p className="text-sm font-medium text-dark/80 dark:text-dark-fg/85">
-                          {ch.chapter_name_english}
-                        </p>
-                        <p className="text-xs text-dark/40 dark:text-dark-fg/50 font-tamil mt-0.5">
-                          {ch.chapter_name_tamil}
-                        </p>
+                        {boxContent === "tamil" ? (
+                          <p className="text-sm font-medium text-dark/80 dark:text-dark-fg/85 font-tamil">
+                            {ch.chapter_name_tamil}
+                          </p>
+                        ) : (
+                          <p className="text-sm font-medium text-dark/80 dark:text-dark-fg/85">
+                            {ch.chapter_name_english}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-dark/40 dark:text-dark-fg/50">
@@ -276,7 +279,7 @@ export default function ExploreClient() {
                                     </p>
                                   )}
                                   <p className="text-xs text-dark/50 dark:text-dark-fg/60 mt-1 line-clamp-1">
-                                    #{k.id} · {k.meaning_english}
+                                    #{k.id} · {boxContent === "tamil" ? getSolomonTamil(k) : k.meaning_english}
                                   </p>
                                 </Link>
                               ))
