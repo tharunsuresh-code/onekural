@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    optimizePackageImports: ["framer-motion", "@supabase/supabase-js", "@supabase/auth-js"],
+  },
   async headers() {
     return [
       {

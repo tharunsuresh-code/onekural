@@ -7,16 +7,18 @@ const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffec
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import type { Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
 import { getDailyKuralId } from "@/lib/kurals";
 import { usePreferences } from "@/lib/preferences";
-import JournalEditor from "./JournalEditor";
-import ShareCard from "./ShareCard";
-import ExplanationSheet from "./ExplanationSheet";
-import OnboardingHint from "./OnboardingHint";
 import ThemeSwitcher from "./ThemeSwitcher";
+
+const JournalEditor = dynamic(() => import("./JournalEditor"));
+const ShareCard = dynamic(() => import("./ShareCard"));
+const ExplanationSheet = dynamic(() => import("./ExplanationSheet"));
+const OnboardingHint = dynamic(() => import("./OnboardingHint"), { ssr: false });
 import { useAudio } from "@/lib/audio";
 import { MAX_KURAL_ID } from "@/lib/constants";
 
@@ -137,6 +139,16 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     },
     [navigateKural, x]
   );
+
+  // Keyboard arrow navigation (desktop)
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") navigateKural("prev");
+      else if (e.key === "ArrowRight") navigateKural("next");
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [navigateKural]);
 
   const isTamil = boxContent === "tamil";
   const bookName = BOOK_NAMES[kural.book]?.[isTamil ? "tamil" : "english"] ?? "";

@@ -10,6 +10,7 @@ import "./globals.css";
 
 const notoSerifTamil = Noto_Serif_Tamil({
   subsets: ["tamil"],
+  weight: ["400", "700"],
   variable: "--font-noto-tamil",
   display: "swap",
   preload: true,
@@ -17,8 +18,10 @@ const notoSerifTamil = Noto_Serif_Tamil({
 
 const inter = Inter({
   subsets: ["latin"],
+  weight: ["400"],
   variable: "--font-inter",
   display: "swap",
+  adjustFontFallback: true,
 });
 
 const crimsonText = Crimson_Text({
@@ -26,6 +29,7 @@ const crimsonText = Crimson_Text({
   variable: "--font-crimson",
   display: "swap",
   weight: ["400", "600"],
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {
