@@ -10,7 +10,6 @@ npm run dev              # Dev server (localhost:3000)
 npm run build            # Production build
 npm run lint             # ESLint
 npm run seed             # Seed kural data into Supabase (ts-node)
-npm run export-data      # Export all kurals to public/data/kurals.json
 npm run generate-icons   # Regenerate PWA icons → public/icons/
 ```
 
@@ -44,13 +43,12 @@ supabase/
   migrations/            # Applied in order (001–006)
 
 scripts/
-  seed.ts                # Loads kural CSV/JSON into Supabase
-  export-data.ts         # Exports all 1,330 kurals to public/data/kurals.json
-  sync-dataset.ts        # Syncs open-source dataset
+  seed.ts                # Loads kural data from remote JSON into Supabase
+  sync-dataset.ts        # Syncs public/data/kurals.json → Supabase
   generate-icons.ts      # Canvas-based PWA icon generator
 
 public/
-  data/kurals.json       # Static dump of all 1,330 kurals (machine-readable)
+  data/kurals.json       # Source of truth — all 1,330 kurals (edit here to update data)
   openapi.yaml           # OpenAPI 3.1 spec for all public API endpoints
   llms.txt               # LLM-readable site description (llmstxt.org standard)
   llms-full.txt          # Full API reference for LLM agents
@@ -73,7 +71,7 @@ Apply migrations in order from `supabase/migrations/` (001–006 already applied
 
 Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one row per device. No `UNIQUE(user_id)` constraint (intentionally dropped in migration 006 for multi-device support).
 
-**Data updates**: Editing `data/kurals.csv` and committing/pushing triggers a GitHub Actions workflow that automatically re-seeds the Supabase DB. No manual `npm run seed` or direct DB updates needed for kural data changes.
+**Data updates**: Editing `public/data/kurals.json` and committing/pushing to `main` triggers a GitHub Actions workflow that automatically syncs to the Supabase DB. No manual `npm run seed` or direct DB updates needed for kural data changes.
 
 **Stale local data**: If DB changes aren't reflected locally despite restarting the dev server, delete the `.next/` directory — Next.js Data Cache persists there and can serve stale Supabase responses. `rm -rf .next && npm run dev` forces a clean fetch.
 

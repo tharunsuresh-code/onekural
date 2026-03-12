@@ -4,9 +4,9 @@
 
 ## File
 
-`kurals.csv` — one row per kural.
+`kurals.json` — array of 1,330 kural objects. Served publicly at `https://onekural.com/data/kurals.json`.
 
-| Column | Description |
+| Field | Description |
 |--------|-------------|
 | `id` | Kural number (1–1330) |
 | `book` | Book number (1–3: Aram, Porul, Inbam) |
@@ -22,7 +22,7 @@
 
 ## Contributing
 
-To correct any kural data, edit `kurals.csv` and open a pull request. Once merged to `main`, changes automatically sync to the production database via GitHub Actions.
+To correct any kural data, edit `kurals.json` and open a pull request. Once merged to `main`, changes automatically sync to the production database via GitHub Actions.
 
 ## Acknowledgements
 
