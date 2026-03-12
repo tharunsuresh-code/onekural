@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "About — OneKural",
+  title: "About OneKural",
+  description: "OneKural delivers one verse from the Thirukkural each day with English meaning, Tamil commentary, and a personal journal.",
 };
 
 export default function AboutPage() {
