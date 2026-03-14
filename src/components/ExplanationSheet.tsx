@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { Kural } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences";
+import { openSheet, closeSheet } from "@/lib/sheet-depth";
 
 interface ExplanationSheetProps {
   kural: Kural;
@@ -52,6 +53,7 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
     if (typeof window === "undefined") return;
     history.pushState({ oneKuralSheet: true }, "");
     historyPushed.current = true;
+    openSheet();
     const handlePopState = () => {
       historyPushed.current = false;
       animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
@@ -60,6 +62,7 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
     return () => {
       window.removeEventListener("popstate", handlePopState);
       document.body.style.overflow = prevOverflow;
+      closeSheet();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

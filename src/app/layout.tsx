@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import NavigationProgress from "@/components/NavigationProgress";
+import { BackExitHandler } from "@/components/BackExitHandler";
 import "./globals.css";
 
 const notoSerifTamil = Noto_Serif_Tamil({
@@ -104,6 +105,7 @@ export default function RootLayout({
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <Providers>
           <NavigationProgress />
+          <BackExitHandler />
           {children}
           <BottomNav />
           <ServiceWorkerRegistrar />
