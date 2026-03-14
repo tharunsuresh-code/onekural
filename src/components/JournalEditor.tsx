@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { usePreferences } from "@/lib/preferences";
+import { openSheet, closeSheet } from "@/lib/sheet-depth";
 import SignInModal from "./SignInModal";
 import type { Kural } from "@/lib/types";
 
@@ -93,12 +94,16 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
     if (typeof window === "undefined") return;
     history.pushState({ oneKuralSheet: true }, "");
     historyPushed.current = true;
+    openSheet();
     const handlePopState = () => {
       historyPushed.current = false;
       animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
     };
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      closeSheet();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

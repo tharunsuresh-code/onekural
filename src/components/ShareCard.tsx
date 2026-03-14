@@ -5,6 +5,7 @@ import { motion, useMotionValue, animate } from "framer-motion";
 import type { Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences";
+import { openSheet, closeSheet } from "@/lib/sheet-depth";
 
 interface ShareCardProps {
   kural: Kural;
@@ -307,12 +308,16 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
     if (typeof window !== "undefined") {
       history.pushState({ oneKuralSheet: true }, "");
       historyPushed.current = true;
+      openSheet();
       const handlePopState = () => {
         historyPushed.current = false;
         animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
       };
       window.addEventListener("popstate", handlePopState);
-      return () => window.removeEventListener("popstate", handlePopState);
+      return () => {
+        window.removeEventListener("popstate", handlePopState);
+        closeSheet();
+      };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
