@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#F4A528",
+  "theme_color": "#FFFFFF",
   "background_color": "#FAF7F2",
   "categories": ["lifestyle", "education"],
   "icons": [

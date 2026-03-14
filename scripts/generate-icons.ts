@@ -84,6 +84,22 @@ function drawFavicon(size: number): Buffer {
   return canvas.toBuffer("image/png");
 }
 
+function drawBadge(size: number): Buffer {
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext("2d");
+  // transparent background — Android tints it automatically
+  const fontSize = size * 0.75;
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `bold ${fontSize}px 'Noto Serif Tamil', serif`;
+  const metrics = ctx.measureText("அ");
+  const glyphHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+  const textY = size / 2 + metrics.actualBoundingBoxAscent - glyphHeight / 2;
+  ctx.fillText("அ", size / 2, textY);
+  return canvas.toBuffer("image/png");
+}
+
 const iconsDir = path.join(__dirname, "../public/icons");
 if (!fs.existsSync(iconsDir)) {
   fs.mkdirSync(iconsDir, { recursive: true });
@@ -106,6 +122,11 @@ for (const icon of icons) {
 const roundedFaviconBuf = drawIcon(32, false);
 fs.writeFileSync(path.join(__dirname, "../public/icons/favicon-32.png"), roundedFaviconBuf);
 console.log("✓ favicon-32.png");
+
+// Badge icon — monochrome white-on-transparent for Android notification status bar
+const badgeBuf = drawBadge(96);
+fs.writeFileSync(path.join(iconsDir, "badge-96.png"), badgeBuf);
+console.log("✓ badge-96.png");
 
 // Also create favicon.ico in root (Firefox compatibility)
 fs.copyFileSync(
