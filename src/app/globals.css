@@ -37,7 +37,7 @@ html.dark {
   --background: #FFFFFF;
   --foreground: #1A1A1A;
   --accent: #1B5E4F;
-  --accent-secondary: #A83C3C;
+  --accent-secondary: #1B5E4F;
   --bg-base: #FFFFFF;
   --text-base: #1A1A1A;
   --bg-elevated: #F9F8F7;
@@ -48,7 +48,7 @@ html.dark {
   --background: #0F0E0C;
   --foreground: #F5F1ED;
   --accent: #2A7D6F;
-  --accent-secondary: #E67A5C;
+  --accent-secondary: #2A7D6F;
   --bg-base: #0F0E0C;
   --text-base: #F5F1ED;
   --bg-elevated: #1A1916;

@@ -98,7 +98,7 @@ export default function FeedbackPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-deep-red">{error}</p>
+            <p className="text-sm text-emerald">{error}</p>
           )}
 
           <button

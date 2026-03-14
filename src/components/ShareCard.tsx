@@ -22,7 +22,7 @@ const SIZES: Record<AspectRatio, { w: number; h: number; label: string }> = {
 const CREAM = "#FFFFFF";
 const EMERALD = "#1B5E4F";
 const DARK = "#1A1A1A";
-const DEEP_RED = "#A83C3C";
+
 
 
 function wrapText(
@@ -140,10 +140,10 @@ async function generateImage(
 
   let yPos = startY;
 
-  // Decorative dot (mirrors DEEP_RED dot on card)
+  // Decorative dot
   ctx.beginPath();
   ctx.arc(w / 2, yPos + 6, 6, 0, Math.PI * 2);
-  ctx.fillStyle = DEEP_RED;
+  ctx.fillStyle = EMERALD;
   ctx.fill();
   yPos += 12 + 40;
 
