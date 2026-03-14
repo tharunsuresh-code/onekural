@@ -60,6 +60,22 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
   const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
 
+  // Prefetch cache: id → Kural. Populated in background after each navigation.
+  const prefetchCache = useRef<Map<number, Kural>>(new Map());
+
+  // Prefetch prev + next whenever the current kural changes.
+  useEffect(() => {
+    const prefetch = (id: number) => {
+      if (id < 1 || id > MAX_KURAL_ID) return;
+      if (prefetchCache.current.has(id)) return;
+      fetchKural(id).then((k) => { if (k) prefetchCache.current.set(id, k); });
+    };
+    const prevId = kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
+    const nextId = kural.id < MAX_KURAL_ID ? kural.id + 1 : 1;
+    prefetch(prevId);
+    prefetch(nextId);
+  }, [kural.id]);
+
   // Home-only: correct server/client date mismatch before first paint (no flash)
   useIsomorphicLayoutEffect(() => {
     if (!isHome) return;
@@ -118,7 +134,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           : kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
 
       setIsAnimating(true);
-      const nextKural = await fetchKural(nextId);
+      const cached = prefetchCache.current.get(nextId);
+      const nextKural = cached ?? await fetchKural(nextId);
       if (nextKural) setKural(nextKural);
       setIsAnimating(false);
     },
