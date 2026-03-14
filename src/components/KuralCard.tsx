@@ -409,7 +409,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           <button
             onClick={() => toggleFavorite(kural.id)}
             className={`text-sm flex items-center gap-1.5 transition-colors ${
-              faved ? "text-emerald dark:text-emerald-light" : "text-dark/50 dark:text-dark-fg/50"
+              faved ? "text-deep-red dark:text-deep-red/80" : "text-dark/50 dark:text-dark-fg/50"
             }`}
           >
             <span>{faved ? "♥" : "♡"}</span> Favourite

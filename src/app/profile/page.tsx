@@ -99,7 +99,7 @@ export default function ProfilePage() {
             <button
               onClick={signOut}
               aria-label="Sign out"
-              className="absolute top-0 right-0 p-2 text-dark/50 dark:text-dark-fg/60 hover:text-emerald dark:hover:text-emerald-light transition-colors"
+              className="absolute top-0 right-0 p-2 text-dark/50 dark:text-dark-fg/60 hover:text-deep-red dark:hover:text-deep-red/90 transition-colors"
               title="Sign out"
             >
               <svg
