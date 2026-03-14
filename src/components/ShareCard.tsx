@@ -66,7 +66,7 @@ function measureContent(
   h += 12 + 40;
 
   // Chapter badge + gap
-  ctx.font = "28px Inter, sans-serif";
+  ctx.font = boxContent === "tamil" ? "28px 'Noto Serif Tamil', serif" : "28px Inter, sans-serif";
   h += 28 + 48;
 
   // Divider line top + gap (gap measured to top of glyph, textBaseline = "top")
@@ -148,11 +148,14 @@ async function generateImage(
   yPos += 12 + 40;
 
   // Chapter + book badge
-  const bookName = BOOK_NAMES[kural.book]?.english ?? "";
-  ctx.font = "28px Inter, sans-serif";
+  const bookName = boxContent === "tamil"
+    ? (BOOK_NAMES[kural.book]?.tamil ?? "")
+    : (BOOK_NAMES[kural.book]?.english ?? "");
+  const chapterName = boxContent === "tamil" ? kural.chapter_name_tamil : kural.chapter_name_english;
+  ctx.font = boxContent === "tamil" ? "28px 'Noto Serif Tamil', serif" : "28px Inter, sans-serif";
   ctx.fillStyle = DARK + "80";
   ctx.textAlign = "center";
-  ctx.fillText(`${bookName} · ${kural.chapter_name_english}`, w / 2, yPos);
+  ctx.fillText(`${bookName} · ${chapterName}`, w / 2, yPos);
   yPos += 28 + 48;
 
   // Divider line — top (mirrors editorial line on card)
