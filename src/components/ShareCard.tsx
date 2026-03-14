@@ -22,7 +22,7 @@ const SIZES: Record<AspectRatio, { w: number; h: number; label: string }> = {
 const CREAM = "#FFFFFF";
 const EMERALD = "#1B5E4F";
 const DARK = "#1A1A1A";
-const DEEP_RED = "#A83C3C";
+
 
 
 function wrapText(
@@ -66,7 +66,7 @@ function measureContent(
   h += 12 + 40;
 
   // Chapter badge + gap
-  ctx.font = "28px Inter, sans-serif";
+  ctx.font = boxContent === "tamil" ? "28px 'Noto Serif Tamil', serif" : "28px Inter, sans-serif";
   h += 28 + 48;
 
   // Divider line top + gap (gap measured to top of glyph, textBaseline = "top")
@@ -140,19 +140,22 @@ async function generateImage(
 
   let yPos = startY;
 
-  // Decorative dot (mirrors DEEP_RED dot on card)
+  // Decorative dot
   ctx.beginPath();
   ctx.arc(w / 2, yPos + 6, 6, 0, Math.PI * 2);
-  ctx.fillStyle = DEEP_RED;
+  ctx.fillStyle = EMERALD;
   ctx.fill();
   yPos += 12 + 40;
 
   // Chapter + book badge
-  const bookName = BOOK_NAMES[kural.book]?.english ?? "";
-  ctx.font = "28px Inter, sans-serif";
+  const bookName = boxContent === "tamil"
+    ? (BOOK_NAMES[kural.book]?.tamil ?? "")
+    : (BOOK_NAMES[kural.book]?.english ?? "");
+  const chapterName = boxContent === "tamil" ? kural.chapter_name_tamil : kural.chapter_name_english;
+  ctx.font = boxContent === "tamil" ? "28px 'Noto Serif Tamil', serif" : "28px Inter, sans-serif";
   ctx.fillStyle = DARK + "80";
   ctx.textAlign = "center";
-  ctx.fillText(`${bookName} · ${kural.chapter_name_english}`, w / 2, yPos);
+  ctx.fillText(`${bookName} · ${chapterName}`, w / 2, yPos);
   yPos += 28 + 48;
 
   // Divider line — top (mirrors editorial line on card)

@@ -223,7 +223,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           className={`flex items-center justify-between mb-3 transition-opacity duration-300 ${prefsReady ? "opacity-100" : "opacity-0"}`}
         >
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-deep-red inline-block" />
+            <span className="w-2 h-2 rounded-full bg-emerald inline-block" />
             <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
               {bookName} · {isTamil ? kural.chapter_name_tamil : kural.chapter_name_english}
             </span>
