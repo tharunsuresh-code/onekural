@@ -104,7 +104,12 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       if (document.visibilityState !== "visible") return;
       const nowLocal = new Date().toLocaleDateString("en-CA");
       const loadedDate = sessionStorage.getItem("kural-date");
-      if (loadedDate && loadedDate !== nowLocal) window.location.reload();
+      if (!loadedDate || loadedDate === nowLocal) return;
+      // Date rolled over — update in-place without a full page reload
+      sessionStorage.setItem("kural-date", nowLocal);
+      const todayId = getDailyKuralId(nowLocal);
+      setLocalDailyKuralId(todayId);
+      fetchKural(todayId).then((k) => { if (k) setKural(k); });
     };
     sessionStorage.setItem("kural-date", localDate);
     document.addEventListener("visibilitychange", handleVisibility);
