@@ -4,7 +4,6 @@ const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
 const APP_SHELL = [
-  "/",
   "/explore",
   "/journal",
   "/profile",
