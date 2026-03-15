@@ -19,19 +19,25 @@ export function BackExitHandler() {
   const [showToast, setShowToast] = useState(false);
   const exitPending = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Always reflects the latest pathname without needing to re-register the handler.
+  const pathnameRef = useRef(pathname);
 
+  // Keep pathnameRef in sync with the current route.
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  // Register the popstate handler ONCE for the component lifetime.
+  // Using a persistent handler (instead of re-registering per pathname) ensures
+  // there is never a window where the handler is absent — which previously allowed
+  // Next.js to intercept back-presses and cause a spurious page scrollbar + layout shift.
   useEffect(() => {
     if (!isStandalone()) return;
-    if (!ROOT_PATHS.includes(pathname)) return;
-
-    // Reset exit state whenever we land on a new root path
-    exitPending.current = false;
-    setShowToast(false);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-
-    history.pushState({ oneKuralRoot: true }, "");
 
     const handlePopState = (e: PopStateEvent) => {
+      // Non-root paths are legitimate navigations — let Next.js handle them normally.
+      if (!ROOT_PATHS.includes(pathnameRef.current)) return;
+
       if (isSheetOpen()) {
         // Sheet is open — let the sheet's own popstate handler (bubble phase) deal with it.
         // Do NOT call stopImmediatePropagation here so the sheet listener still fires.
@@ -70,6 +76,20 @@ export function BackExitHandler() {
       window.removeEventListener("popstate", handlePopState, true);
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Push a sentinel history entry each time we land on a root path.
+  // This gives the Android back button something to "hit" before leaving the app.
+  // Also resets the double-back state when navigating between root paths.
+  useEffect(() => {
+    if (!isStandalone()) return;
+    if (!ROOT_PATHS.includes(pathname)) return;
+
+    exitPending.current = false;
+    setShowToast(false);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+
+    history.pushState({ oneKuralRoot: true }, "");
   }, [pathname]);
 
   if (!showToast) return null;

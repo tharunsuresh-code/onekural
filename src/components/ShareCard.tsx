@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, useMotionValue, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences";
@@ -292,6 +292,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
   const blobRef = useRef<Blob | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetY = useMotionValue(SHEET_HEIGHT);
+  const backdropOpacity = useTransform(sheetY, [0, SHEET_HEIGHT * 0.4], [1, 0]);
   const historyPushed = useRef(false);
 
   useEffect(() => {
@@ -394,8 +395,7 @@ export default function ShareCard({ kural, onClose }: ShareCardProps) {
     <>
       {/* Backdrop */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        style={{ opacity: backdropOpacity }}
         className="fixed inset-0 bg-dark/40 dark:bg-dark/60 z-[60]"
         onClick={dismiss}
       />
