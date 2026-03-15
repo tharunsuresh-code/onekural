@@ -46,6 +46,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
 
   const [kural, setKural] = useState<Kural>(initialKural);
   const [localDailyKuralId, setLocalDailyKuralId] = useState(dailyKuralId ?? 0);
+  const [dateStr, setDateStr] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -82,6 +83,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     const localDate = new Date().toLocaleDateString("en-CA");
     const localId = getDailyKuralId(localDate);
     setLocalDailyKuralId(localId);
+    setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
     if (localId !== initialKural.id) {
       // Use server-prefetched adjacent kurals to correct instantly (no network fetch).
       // Falls back to fetching if the date is somehow not covered.
@@ -109,6 +111,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       sessionStorage.setItem("kural-date", nowLocal);
       const todayId = getDailyKuralId(nowLocal);
       setLocalDailyKuralId(todayId);
+      setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
       fetchKural(todayId).then((k) => { if (k) setKural(k); });
     };
     sessionStorage.setItem("kural-date", localDate);
@@ -174,11 +177,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
 
   const isTamil = boxContent === "tamil";
   const bookName = BOOK_NAMES[kural.book]?.[isTamil ? "tamil" : "english"] ?? "";
-  const dateStr = new Date().toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
   const faved = isFavorite(kural.id);
   const prevId = kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
   const nextId = kural.id < MAX_KURAL_ID ? kural.id + 1 : 1;
@@ -203,7 +201,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                 <p className={`text-[10px] uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>
                   Today&apos;s Kural
                 </p>
-                <p className={`text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5 ${kural.id === localDailyKuralId ? "" : "invisible"}`} suppressHydrationWarning>{dateStr}</p>
+                <p className={`text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>{dateStr}</p>
               </div>
             </>
           ) : (
