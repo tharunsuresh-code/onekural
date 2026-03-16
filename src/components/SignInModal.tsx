@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
+import { openSheet, closeSheet } from "@/lib/sheet-depth";
 
 interface SignInModalProps {
   open: boolean;
@@ -15,6 +16,51 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
   const [emailSent, setEmailSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const historyPushed = useRef(false);
+
+  const handleClose = () => {
+    setEmail("");
+    setEmailSent(false);
+    setError(null);
+    onClose();
+  };
+
+  // Register with sheet-depth system so Android back button closes the modal
+  // instead of triggering the "press back again to exit" toast.
+  useEffect(() => {
+    if (!open) return;
+    if (typeof window === "undefined") return;
+
+    history.pushState({ oneKuralSheet: true }, "");
+    historyPushed.current = true;
+
+    const onPopstate = () => {
+      historyPushed.current = false;
+      handleClose();
+    };
+
+    openSheet(onPopstate);
+    // Bubble-phase fallback for non-root pages where BackExitHandler returns early.
+    window.addEventListener("popstate", onPopstate);
+
+    return () => {
+      window.removeEventListener("popstate", onPopstate);
+      closeSheet();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function dismiss() {
+    if (historyPushed.current) {
+      // Let history.back() fire popstate → BackExitHandler → dismissTopSheet →
+      // onPopstate → handleClose. This keeps closeSheet() called last (in cleanup)
+      // so isSheetOpen() stays true until the close is fully processed.
+      historyPushed.current = false;
+      history.back();
+      return;
+    }
+    handleClose();
+  }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,13 +78,6 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
     }
   };
 
-  const handleClose = () => {
-    setEmail("");
-    setEmailSent(false);
-    setError(null);
-    onClose();
-  };
-
   return (
     <AnimatePresence>
       {open && (
@@ -50,7 +89,7 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-dark/40 z-[60]"
-            onClick={handleClose}
+            onClick={dismiss}
           />
 
           {/* Modal */}
