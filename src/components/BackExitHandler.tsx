@@ -102,6 +102,20 @@ export function BackExitHandler() {
     setShowToast(false);
     if (toastTimer.current) clearTimeout(toastTimer.current);
 
+    // After an OAuth sign-in redirect the URL may contain a hash fragment
+    // (#access_token=...) or a PKCE code (?code=...). Supabase's implicit flow
+    // calls `window.location.hash = ''` to clean the URL, which adds a new
+    // history entry and can race with Next.js's router to produce a spurious
+    // popstate — showing this toast without any user interaction.
+    // Pre-empt that by replacing the current entry with the clean pathname now,
+    // so Supabase's cleanup becomes a no-op (hash already empty / code already gone).
+    if (
+      window.location.hash.includes("access_token=") ||
+      window.location.search.includes("code=")
+    ) {
+      history.replaceState(null, "", window.location.pathname);
+    }
+
     history.pushState({ oneKuralRoot: true }, "");
   }, [pathname]);
 
