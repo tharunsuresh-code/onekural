@@ -94,14 +94,15 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
     if (typeof window === "undefined") return;
     history.pushState({ oneKuralSheet: true }, "");
     historyPushed.current = true;
-    openSheet();
-    const handlePopState = () => {
+    const dismissCallback = () => {
       historyPushed.current = false;
       animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
     };
-    window.addEventListener("popstate", handlePopState);
+    openSheet(dismissCallback);
+    // Bubble-phase fallback: handles back press when sheet is on a non-root page
+    window.addEventListener("popstate", dismissCallback);
     return () => {
-      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("popstate", dismissCallback);
       closeSheet();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
