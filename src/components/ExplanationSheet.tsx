@@ -53,14 +53,16 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
     if (typeof window === "undefined") return;
     history.pushState({ oneKuralSheet: true }, "");
     historyPushed.current = true;
-    openSheet();
-    const handlePopState = () => {
+    const dismissCallback = () => {
       historyPushed.current = false;
       animate(sheetY, SHEET_HEIGHT, { type: "spring", stiffness: 380, damping: 38 }).then(onClose);
     };
-    window.addEventListener("popstate", handlePopState);
+    openSheet(dismissCallback);
+    // Bubble-phase fallback: handles back press when sheet is on a non-root page
+    // (BackExitHandler returns early for non-root paths and doesn't call dismissTopSheet).
+    window.addEventListener("popstate", dismissCallback);
     return () => {
-      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("popstate", dismissCallback);
       document.body.style.overflow = prevOverflow;
       closeSheet();
     };

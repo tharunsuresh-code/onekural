@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { isSheetOpen } from "@/lib/sheet-depth";
+import { isSheetOpen, dismissTopSheet } from "@/lib/sheet-depth";
 
 const ROOT_PATHS = ["/", "/explore", "/journal", "/profile"];
 
@@ -19,12 +19,15 @@ export function BackExitHandler() {
   const [showToast, setShowToast] = useState(false);
   const exitPending = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Always reflects the latest pathname without needing to re-register the handler.
-  const pathnameRef = useRef(pathname);
+  // Tracks whether we are currently on a root path. Updated both by the
+  // pathname effect (forward navigations) and eagerly inside the popstate
+  // handler (so rapid double-back-press sees the correct value before React
+  // has had a chance to re-render).
+  const atRootRef = useRef(ROOT_PATHS.includes(pathname));
 
-  // Keep pathnameRef in sync with the current route.
+  // Keep atRootRef in sync when navigating forward (no popstate fires).
   useEffect(() => {
-    pathnameRef.current = pathname;
+    atRootRef.current = ROOT_PATHS.includes(pathname);
   }, [pathname]);
 
   // Register the popstate handler ONCE for the component lifetime.
@@ -35,14 +38,24 @@ export function BackExitHandler() {
     if (!isStandalone()) return;
 
     const handlePopState = (e: PopStateEvent) => {
-      // Non-root paths are legitimate navigations — let Next.js handle them normally.
-      if (!ROOT_PATHS.includes(pathnameRef.current)) return;
-
       if (isSheetOpen()) {
-        // Sheet is open — let the sheet's own popstate handler (bubble phase) deal with it.
-        // Do NOT call stopImmediatePropagation here so the sheet listener still fires.
+        // Prevent Next.js from re-rendering the home page when dismissing a sheet.
+        // The sheet's dismiss callback (registered via openSheet) handles the animation.
+        // Note: for sheets on non-root pages, BackExitHandler returns early at the
+        // atRootRef check below, so the sheet's own bubble-phase listener handles it.
+        e.stopImmediatePropagation();
+        dismissTopSheet();
         return;
       }
+
+      // Eagerly update atRootRef using location.pathname (browser updates it before
+      // the event fires) so that a rapid second back-press sees the correct value
+      // even if React hasn't re-rendered yet.
+      const wasAtRoot = atRootRef.current;
+      atRootRef.current = ROOT_PATHS.includes(location.pathname);
+
+      // Non-root paths are legitimate navigations — let Next.js handle them normally.
+      if (!wasAtRoot) return;
 
       // Prevent Next.js router from intercepting this back press.
       // Without this, Next.js briefly re-renders the page causing a flash,
