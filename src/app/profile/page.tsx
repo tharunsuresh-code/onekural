@@ -11,6 +11,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pushAvailable, setPushAvailable] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const available =
@@ -33,41 +34,50 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 
   async function toggle() {
     setLoading(true);
+    setError(null);
     if (subscribed) {
       const ok = await unsubscribeFromPush();
       if (ok) setSubscribed(false);
+      else setError("Failed to disable — try again");
     } else {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
+        setError("Notification permission denied — enable it in browser settings");
         setLoading(false);
         return;
       }
       const ok = await subscribeToPush(userId);
       if (ok) setSubscribed(true);
+      else setError("Failed to enable — try again");
     }
     setLoading(false);
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3.5 border border-dark/10 dark:border-dark-fg/20 rounded-xl">
-      <div>
-        <p className="text-sm text-dark/80 dark:text-dark-fg/85">Daily Reminder</p>
-        <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5">Morning kural notification</p>
+    <div className="border border-dark/10 dark:border-dark-fg/20 rounded-xl">
+      <div className="flex items-center justify-between px-4 py-3.5">
+        <div>
+          <p className="text-sm text-dark/80 dark:text-dark-fg/85">Daily Reminder</p>
+          <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5">Morning kural notification</p>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={loading}
+          aria-label={subscribed ? "Disable daily reminder" : "Enable daily reminder"}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+            subscribed ? "bg-emerald" : "bg-dark/20 dark:bg-dark-fg/25"
+          } ${loading ? "opacity-50" : ""}`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              subscribed ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
       </div>
-      <button
-        onClick={toggle}
-        disabled={loading}
-        aria-label={subscribed ? "Disable daily reminder" : "Enable daily reminder"}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-          subscribed ? "bg-emerald" : "bg-dark/20 dark:bg-dark-fg/25"
-        } ${loading ? "opacity-50" : ""}`}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-            subscribed ? "translate-x-6" : "translate-x-1"
-          }`}
-        />
-      </button>
+      {error && (
+        <p className="px-4 pb-3 text-xs text-deep-red dark:text-deep-red/90">{error}</p>
+      )}
     </div>
   );
 }
