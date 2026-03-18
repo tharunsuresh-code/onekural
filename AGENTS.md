@@ -106,7 +106,7 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 ## PWA / Push Notifications
 
 - Service worker: `public/sw.js` — network-first nav, cache-first static, kural API cached offline
-- Cron: `vercel.json` fires `POST /api/push/send` at 00:30 UTC (06:00 IST)
+- Cron: [cron-job.org](https://cron-job.org) triggers `GET /api/push/send` every 30 minutes (external free service — GitHub Actions was removed due to unreliable scheduling that skipped runs)
 - VAPID keys in `.env.local` as above
 
 ## Data Model (core types)
