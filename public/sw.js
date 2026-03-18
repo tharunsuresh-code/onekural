@@ -162,6 +162,8 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.png",
       badge: "/icons/badge-96.png",
       data: { url: data.url || "/" },
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
     })
   );
 });
