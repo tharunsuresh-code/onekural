@@ -19,6 +19,9 @@ export function BackExitHandler() {
   const [showToast, setShowToast] = useState(false);
   const exitPending = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set when an OAuth redirect is detected; absorbs the one spurious popstate
+  // that fires when Supabase cleans the hash with window.location.hash = ''.
+  const oauthCleanupPending = useRef(false);
   // Tracks whether we are currently on a root path. Updated both by the
   // pathname effect (forward navigations) and eagerly inside the popstate
   // handler (so rapid double-back-press sees the correct value before React
@@ -38,6 +41,15 @@ export function BackExitHandler() {
     if (!isStandalone()) return;
 
     const handlePopState = (e: PopStateEvent) => {
+      // Absorb the popstate fired by Supabase's OAuth hash cleanup
+      // (window.location.hash = '' adds a history entry and fires popstate).
+      if (oauthCleanupPending.current) {
+        oauthCleanupPending.current = false;
+        e.stopImmediatePropagation();
+        history.pushState({ oneKuralRoot: true }, "");
+        return;
+      }
+
       if (isSheetOpen()) {
         // Prevent Next.js from re-rendering the home page when dismissing a sheet.
         // The sheet's dismiss callback (registered via openSheet) handles the animation.
@@ -107,11 +119,18 @@ export function BackExitHandler() {
     // (empty relative URL) strips the hash by resolving to the base URL.
     // Instead, pass window.location.href explicitly so the hash is preserved
     // in window.location until Supabase's initialize() reads it.
-    // Supabase cleans the URL itself via history.replaceState (no popstate fired),
-    // so no spurious "press back" toast is produced.
+    // Supabase cleans the hash with window.location.hash = '' which fires a
+    // popstate — oauthCleanupPending absorbs that event to suppress the toast.
     const oauthInUrl =
       window.location.hash.includes("access_token=") ||
       window.location.search.includes("code=");
+
+    if (oauthInUrl) {
+      oauthCleanupPending.current = true;
+      // Safety: clear after 3 s in case Supabase switches to replaceState
+      // (no popstate fires) so the flag doesn't block a real back-press.
+      setTimeout(() => { oauthCleanupPending.current = false; }, 3000);
+    }
 
     history.pushState({ oneKuralRoot: true }, "", oauthInUrl ? window.location.href : "");
   }, [pathname]);
