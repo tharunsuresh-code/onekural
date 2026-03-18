@@ -28,7 +28,7 @@ A mobile-first Progressive Web App (PWA) for the Tamil diaspora. Every day, OneK
 | Hosting | Vercel |
 | Animations | Framer Motion |
 | Push | Web Push API + VAPID |
-| Cron | GitHub Actions (every 30 min) |
+| Cron | cron-job.org (every 30 min) |
 
 ## Getting Started
 
@@ -185,11 +185,11 @@ All tables use Row Level Security. Users can only read/write their own data.
 
 Notifications are sent daily at **4 AM in each subscriber's local timezone**. The endpoint `/api/push/send` filters subscriptions by timezone before sending.
 
-The GitHub Actions workflow (`.github/workflows/push-notifications.yml`) calls this endpoint every 30 minutes, which covers all timezone offsets including half-hour ones like IST.
+[cron-job.org](https://cron-job.org) calls this endpoint every 30 minutes, covering all timezone offsets including half-hour ones like IST. GitHub Actions was previously used for this but was removed due to unreliable scheduling (runs were silently skipped, resulting in ~hourly instead of 30-minute intervals).
 
 To set up:
-1. Add `CRON_SECRET` to both your Vercel environment and your GitHub repository secrets.
-2. Add `APP_URL` (e.g. `https://onekural.com`) as a GitHub Actions variable.
+1. Add `CRON_SECRET` to your Vercel environment variables.
+2. Create a job on [cron-job.org](https://cron-job.org) targeting `GET https://onekural.com/api/push/send` with the `Authorization: Bearer <CRON_SECRET>` header, scheduled every 30 minutes.
 
 ## Deployment
 
@@ -199,4 +199,4 @@ Deploy to Vercel with one click or via the CLI:
 npx vercel
 ```
 
-Required environment variables must be set in your Vercel project settings. The GitHub Actions cron replaces Vercel's built-in cron (which is limited to once per day on the free tier).
+Required environment variables must be set in your Vercel project settings. Push notification scheduling is handled by cron-job.org rather than Vercel's built-in cron (limited to once per day on the free tier) or GitHub Actions (unreliable scheduling).
