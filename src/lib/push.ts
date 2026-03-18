@@ -53,6 +53,13 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
 
   try {
     const reg = await navigator.serviceWorker.ready;
+
+    // Clear any existing (potentially stale) subscription before re-subscribing.
+    // If the push service has invalidated the endpoint (410 Gone), the browser
+    // still caches it and subscribe() would return the same dead endpoint.
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) await existing.unsubscribe();
+
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
