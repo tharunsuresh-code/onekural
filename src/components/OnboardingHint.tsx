@@ -14,35 +14,43 @@ function MobileHints() {
 
       {/* Left / Right swipe */}
       <div className="flex items-center justify-center gap-14">
+        {/* Swipe right = previous kural */}
         <div className="flex flex-col items-center gap-3">
           <motion.div
-            animate={{ x: [-10, 0, -10] }}
+            animate={{ x: [-12, 12, -12] }}
             transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
             className="text-white/80"
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
+            {/* Touch dot + rightward arrow — icon moves in the swipe direction */}
+            <svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="6" cy="12" r="4" strokeWidth="1.5" />
+              <path d="M12 12h20" />
+              <path d="M27 7l5 5-5 5" />
             </svg>
           </motion.div>
           <span className="text-xs text-white/60 text-center leading-relaxed">
-            Swipe right<br />previous kural
+            Swipe right<br />← Previous kural
           </span>
         </div>
 
         <div className="w-px h-10 bg-white/15 rounded-full" />
 
+        {/* Swipe left = next kural */}
         <div className="flex flex-col items-center gap-3">
           <motion.div
-            animate={{ x: [10, 0, 10] }}
+            animate={{ x: [12, -12, 12] }}
             transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
             className="text-white/80"
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
+            {/* Leftward arrow + touch dot — icon moves in the swipe direction */}
+            <svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="34" cy="12" r="4" strokeWidth="1.5" />
+              <path d="M28 12H8" />
+              <path d="M13 7L8 12l5 5" />
             </svg>
           </motion.div>
           <span className="text-xs text-white/60 text-center leading-relaxed">
-            Swipe left<br />next kural
+            Swipe left<br />Next kural →
           </span>
         </div>
       </div>
