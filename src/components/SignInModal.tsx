@@ -88,7 +88,7 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-dark/40 z-[60]"
+            className="fixed inset-0 bg-dark/40 dark:bg-dark/60 z-[60]"
             onClick={dismiss}
           />
 
@@ -98,22 +98,22 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-cream rounded-t-2xl px-6 pt-8 pb-10 max-w-content mx-auto"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-cream dark:bg-dark-subtle rounded-t-2xl px-6 pt-8 pb-10 max-w-content mx-auto"
           >
             {/* Handle */}
-            <div className="w-10 h-1 bg-dark/15 rounded-full mx-auto mb-6" />
+            <div className="w-10 h-1 bg-dark/15 dark:bg-dark-fg/20 rounded-full mx-auto mb-6" />
 
-            <h2 className="text-lg font-semibold text-dark text-center mb-1">
+            <h2 className="text-lg font-semibold text-dark dark:text-dark-fg text-center mb-1">
               Sign in to OneKural
             </h2>
-            <p className="text-sm text-dark/50 text-center mb-8">
+            <p className="text-sm text-dark/50 dark:text-dark-fg/50 text-center mb-8">
               Save favourites, journal reflections, and sync across devices
             </p>
 
             {/* Google button */}
             <button
               onClick={signInWithGoogle}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-dark/15 rounded-xl px-4 py-3 text-sm font-medium text-dark hover:bg-dark/5 transition-colors mb-4"
+              className="w-full flex items-center justify-center gap-3 bg-white dark:bg-dark-subtle border border-dark/15 dark:border-dark-fg/15 rounded-xl px-4 py-3 text-sm font-medium text-dark dark:text-dark-fg hover:bg-dark/5 dark:hover:bg-dark-fg/10 transition-colors mb-4"
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path
@@ -138,18 +138,18 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
 
             {/* Divider */}
             <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-dark/10" />
-              <span className="text-xs text-dark/40">or</span>
-              <div className="flex-1 h-px bg-dark/10" />
+              <div className="flex-1 h-px bg-dark/10 dark:bg-dark-fg/10" />
+              <span className="text-xs text-dark/40 dark:text-dark-fg/40">or</span>
+              <div className="flex-1 h-px bg-dark/10 dark:bg-dark-fg/10" />
             </div>
 
             {/* Email magic link */}
             {emailSent ? (
               <div className="text-center py-4">
-                <p className="text-sm text-dark/70 mb-1">
+                <p className="text-sm text-dark/70 dark:text-dark-fg/70 mb-1">
                   Check your email for a sign-in link
                 </p>
-                <p className="text-xs text-dark/40">{email}</p>
+                <p className="text-xs text-dark/40 dark:text-dark-fg/40">{email}</p>
               </div>
             ) : (
               <form onSubmit={handleEmailSubmit}>
@@ -158,7 +158,7 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-dark/15 rounded-xl px-4 py-3 text-sm text-dark placeholder:text-dark/30 focus:outline-none focus:border-emerald transition-colors mb-3"
+                  className="w-full bg-white dark:bg-dark border border-dark/15 dark:border-dark-fg/15 rounded-xl px-4 py-3 text-sm text-dark dark:text-dark-fg placeholder:text-dark/30 dark:placeholder:text-dark-fg/30 focus:outline-none focus:border-emerald transition-colors mb-3"
                   required
                 />
                 {error && (
