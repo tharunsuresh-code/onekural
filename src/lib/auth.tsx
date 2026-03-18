@@ -20,6 +20,25 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+// Read the cached Supabase session from localStorage synchronously so the
+// initial render already knows the auth state — prevents a spinner flash.
+function readCachedSession(): { user: User | null; session: Session | null } {
+  if (typeof window === "undefined") return { user: null, session: null };
+  try {
+    const projectRef = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
+    const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
+    if (!raw) return { user: null, session: null };
+    const parsed = JSON.parse(raw) as Session & { expires_at?: number };
+    // Treat an expired session as absent — getSession() will refresh it async
+    if (parsed.expires_at && Date.now() / 1000 > parsed.expires_at) {
+      return { user: null, session: null };
+    }
+    return { user: parsed.user ?? null, session: parsed };
+  } catch {
+    return { user: null, session: null };
+  }
+}
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
@@ -34,12 +53,15 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [{ user: initUser, session: initSession }] = useState(readCachedSession);
+  const [user, setUser] = useState<User | null>(initUser);
+  const [session, setSession] = useState<Session | null>(initSession);
+  // If we already have a cached session we can skip the loading spinner;
+  // getSession() below will still run async to refresh the token if needed.
+  const [loading, setLoading] = useState(initUser === null);
 
   useEffect(() => {
-    // Get initial session — refreshes the access token if it has expired
+    // Validate / refresh the token — updates state if the cached value was stale
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
