@@ -89,13 +89,13 @@ html, body {
   }
   /* Editorial decorative line */
   .divider-editorial {
-    height: 1px;
+    height: 0.5px;
     background: linear-gradient(90deg, transparent, var(--accent) 25%, var(--accent) 75%, transparent);
-    opacity: 0.35;
+    opacity: 0.5;
   }
 
   html.dark .divider-editorial {
-    opacity: 0.3;
+    opacity: 0.4;
   }
 
   /* Premium shadow depth */
