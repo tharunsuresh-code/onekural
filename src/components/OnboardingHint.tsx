@@ -29,7 +29,7 @@ function MobileHints() {
             </svg>
           </motion.div>
           <span className="text-xs text-white/60 text-center leading-relaxed">
-            Swipe right<br />← Previous kural
+            Swipe right<br />Previous kural
           </span>
         </div>
 
@@ -50,7 +50,7 @@ function MobileHints() {
             </svg>
           </motion.div>
           <span className="text-xs text-white/60 text-center leading-relaxed">
-            Swipe left<br />Next kural →
+            Swipe left<br />Next kural
           </span>
         </div>
       </div>
