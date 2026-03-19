@@ -259,10 +259,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         >
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
           <div className="my-auto py-2">
-            {/* Editorial decorative line — top (static: outside keyed div so the
-                0.5px line is never subject to mid-animation opacity on Firefox 1x) */}
-            <div className="divider-editorial mx-auto mb-8 w-12" />
-
             <AnimatePresence mode="wait">
             <motion.div
               key={kural.id}
@@ -271,6 +267,9 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
             >
+              {/* Editorial decorative line — top */}
+              <div className="divider-editorial mx-auto mb-8 w-12" />
+
               {/* Kural text */}
               <div className="text-center mb-8 px-2">
                 {boxContent === "tamil" ? (
@@ -284,8 +283,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                 )}
               </div>
 
-              {/* Editorial decorative line — bottom (inside keyed div: must sit
-                  between kural text and insight, so layout position requires it here) */}
+              {/* Editorial decorative line — bottom */}
               <div className="divider-editorial mx-auto mb-8 w-12" />
 
               {/* Insight */}
