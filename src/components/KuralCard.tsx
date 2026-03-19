@@ -259,8 +259,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         >
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
           <div className="my-auto py-2">
-            {/* Editorial decorative line — top (static: outside keyed div to prevent
-                Firefox sub-pixel flicker during opacity crossfade on 1x displays) */}
+            {/* Editorial decorative line — top (static: outside keyed div so the
+                0.5px line is never subject to mid-animation opacity on Firefox 1x) */}
             <div className="divider-editorial mx-auto mb-8 w-12" />
 
             <AnimatePresence mode="wait">
@@ -284,6 +284,10 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                 )}
               </div>
 
+              {/* Editorial decorative line — bottom (inside keyed div: must sit
+                  between kural text and insight, so layout position requires it here) */}
+              <div className="divider-editorial mx-auto mb-8 w-12" />
+
               {/* Insight */}
               <div className="bg-emerald/8 dark:bg-emerald/10 backdrop-blur-sm rounded-lg px-6 py-5 shadow-sm dark:shadow-none border border-emerald/10 dark:border-emerald/20 text-center">
                 <p className={`text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-3 font-medium ${boxContent === "tamil" ? "font-tamil text-sm" : ""}`}>
@@ -295,9 +299,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
               </div>
             </motion.div>
             </AnimatePresence>
-
-            {/* Editorial decorative line — bottom (static: outside keyed div, same reason) */}
-            <div className="divider-editorial mx-auto mt-8 w-12" />
           </div>
         </motion.div>
 
