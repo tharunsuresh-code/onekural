@@ -5,7 +5,6 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react
 // useLayoutEffect fires before paint (client only); fall back to useEffect on SSR
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { Kural } from "@/lib/types";
@@ -29,6 +28,21 @@ interface KuralCardProps {
   adjacentKurals?: Record<string, Kural>;
 }
 
+// Framer Motion state loaded lazily after first paint
+interface FMState {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  motion: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  x: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  opacity: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rotate: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  animate: any;
+  unsubscribe: () => void;
+}
+
 async function fetchKural(id: number): Promise<Kural | null> {
   if (id < 1 || id > MAX_KURAL_ID) return null;
   try {
@@ -48,6 +62,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const [localDailyKuralId, setLocalDailyKuralId] = useState(dailyKuralId ?? 0);
   const [dateStr, setDateStr] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
+  const [fadingOut, setFadingOut] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -57,9 +72,26 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const audioUnavailableTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { boxContent, setBoxContent, prefsReady } = usePreferences();
 
-  const x = useMotionValue(0);
-  const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
-  const rotate = useTransform(x, [-200, 0, 200], [-5, 0, 5]);
+  // Lazy-loaded Framer Motion state
+  const fmRef = useRef<FMState | null>(null);
+  const [fmReady, setFmReady] = useState(false);
+
+  // Load FM after first paint — swap plain div → motion.div for drag
+  useEffect(() => {
+    import("framer-motion").then((mod) => {
+      const x = mod.motionValue(0);
+      const opacity = mod.motionValue(1);
+      const rotate = mod.motionValue(0);
+      const unsubscribe = x.on("change", (val: number) => {
+        const ratio = Math.min(Math.abs(val) / 200, 1);
+        opacity.set(1 - ratio * 0.5);
+        rotate.set((val / 200) * 5);
+      });
+      fmRef.current = { motion: mod.motion, x, opacity, rotate, animate: mod.animate, unsubscribe };
+      setFmReady(true);
+    });
+    return () => { fmRef.current?.unsubscribe(); };
+  }, []);
 
   // Prefetch cache: id → Kural. Populated in background after each navigation.
   const prefetchCache = useRef<Map<number, Kural>>(new Map());
@@ -142,9 +174,17 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           : kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
 
       setIsAnimating(true);
+      setFadingOut(true);
+
       const cached = prefetchCache.current.get(nextId);
-      const nextKural = cached ?? await fetchKural(nextId);
+      const fetchPromise = cached ? Promise.resolve(cached) : fetchKural(nextId);
+      const [nextKural] = await Promise.all([
+        fetchPromise,
+        new Promise<void>((r) => setTimeout(r, 200)),
+      ]);
+
       if (nextKural) setKural(nextKural);
+      setFadingOut(false);
       setIsAnimating(false);
     },
     [kural.id, isAnimating]
@@ -152,17 +192,16 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
 
   const handleDragEnd = useCallback(
     (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
-      const threshold = 50;
-      const velocityThreshold = 300;
-
-      if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
+      const fm = fmRef.current;
+      if (!fm) return;
+      if (info.offset.x < -50 || info.velocity.x < -300) {
         navigateKural("next");
-      } else if (info.offset.x > threshold || info.velocity.x > velocityThreshold) {
+      } else if (info.offset.x > 50 || info.velocity.x > 300) {
         navigateKural("prev");
       }
-      animate(x, 0, { type: "spring", stiffness: 300, damping: 30 });
+      fm.animate(fm.x, 0, { type: "spring", stiffness: 300, damping: 30 });
     },
-    [navigateKural, x]
+    [navigateKural]
   );
 
   // Keyboard arrow navigation (desktop)
@@ -181,16 +220,23 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const prevId = kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
   const nextId = kural.id < MAX_KURAL_ID ? kural.id + 1 : 1;
 
+  // Swap div → motion.div once FM is loaded
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const DragDiv = (fmReady ? fmRef.current!.motion.div : "div") as any;
+  const dragProps = fmReady && fmRef.current ? {
+    drag: "x",
+    dragConstraints: { left: 0, right: 0 },
+    dragElastic: { left: 0.15, right: 0.15 },
+    dragSnapToOrigin: true,
+    onDragEnd: handleDragEnd,
+    style: { x: fmRef.current.x, opacity: fmRef.current.opacity, rotate: fmRef.current.rotate },
+  } : {};
+
   return (
     <>
       <main className="relative flex flex-col h-dvh max-w-content mx-auto px-6 pt-14 pb-nav select-none">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="relative flex justify-center mb-6"
-        >
+        <div className="relative flex justify-center mb-6">
           {isHome ? (
             <>
               <ThemeSwitcher />
@@ -201,7 +247,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                 <p className={`text-xs uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>
                   Today&apos;s Kural
                 </p>
-                <p className={`text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>{dateStr}</p>
+                <p className={`text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5 ${(kural.id === localDailyKuralId && dateStr) ? "" : "invisible"}`}>{dateStr || "\u00A0"}</p>
               </div>
             </>
           ) : (
@@ -219,12 +265,10 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
               </button>
             </>
           )}
-        </motion.div>
+        </div>
 
         {/* Chapter badge + lang switch — fixed above scroll area, never moves */}
-        <div
-          className={`flex items-center justify-between mb-3 transition-opacity duration-300 ${prefsReady ? "opacity-100" : "opacity-0"}`}
-        >
+        <div className={`flex items-center justify-between mb-3 ${prefsReady ? "" : "invisible"}`}>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald inline-block" />
             <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
@@ -240,33 +284,18 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           </button>
         </div>
 
-        {/* Non-scrolling wrapper — skeleton is absolute here so it always covers
-            the visible viewport area, even when the card content is scrolled. */}
+        {/* Non-scrolling wrapper */}
         <div className="relative flex-1 min-h-0">
 
-        {/* Swipeable card
-            — no justify-center: use my-auto on inner wrapper instead so that
-              centering works when content is short, but content is scrollable
-              (not clipped) when font size is large. */}
-        <motion.div
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={{ left: 0.15, right: 0.15 }}
-          dragSnapToOrigin
-          onDragEnd={handleDragEnd}
-          style={{ x, opacity, rotate }}
+        {/* Swipeable card — plain div until FM loads, then motion.div with drag */}
+        <DragDiv
           className="h-full overflow-y-auto flex flex-col"
+          {...dragProps}
         >
           {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
           <div className="my-auto py-2">
-            <AnimatePresence mode="wait">
-            <motion.div
-              key={kural.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-            >
+            {/* CSS crossfade: fade out old content, update kural, fade in new */}
+            <div style={{ opacity: fadingOut ? 0 : 1, transition: "opacity 0.2s ease" }} className={prefsReady ? "" : "invisible"}>
               {/* Editorial decorative line — top */}
               <div className="divider-editorial mx-auto mb-8 w-12" />
 
@@ -295,48 +324,47 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                   {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
                 </p>
               </div>
-            </motion.div>
-            </AnimatePresence>
+            </div>
           </div>
-        </motion.div>
+        </DragDiv>
 
-          {/* Slow-network skeleton — absolute on the non-scrolling wrapper so it
-              always covers the visible area regardless of scroll position */}
-          <AnimatePresence>
-            {isAnimating && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, delay: 0.5 }}
-                className="absolute inset-0 z-10 flex flex-col pointer-events-none bg-[var(--bg-base)] overflow-hidden"
-                aria-hidden
-              >
-                <div className="my-auto space-y-8">
-                  {/* Top divider */}
-                  <div className="skeleton-shimmer h-px w-12 mx-auto" />
+          {/* Slow-network skeleton — CSS opacity with 500ms delay so it only appears
+              when the fetch is slow; fades out immediately when done */}
+          <div
+            style={{
+              opacity: isAnimating ? 1 : 0,
+              transitionProperty: "opacity",
+              transitionDuration: "0.25s",
+              transitionTimingFunction: "ease",
+              transitionDelay: isAnimating ? "0.5s" : "0s",
+              pointerEvents: "none",
+            }}
+            className="absolute inset-0 z-10 flex flex-col bg-[var(--bg-base)] overflow-hidden"
+            aria-hidden
+          >
+            <div className="my-auto space-y-8">
+              {/* Top divider */}
+              <div className="skeleton-shimmer h-px w-12 mx-auto" />
 
-                  {/* Kural text lines */}
-                  <div className="flex flex-col items-center gap-3 px-2">
-                    <div className="skeleton-shimmer h-7 w-4/5 rounded" />
-                    <div className="skeleton-shimmer h-7 w-3/4 rounded" />
-                    <div className="skeleton-shimmer h-7 w-2/3 rounded" />
-                  </div>
+              {/* Kural text lines */}
+              <div className="flex flex-col items-center gap-3 px-2">
+                <div className="skeleton-shimmer h-7 w-4/5 rounded" />
+                <div className="skeleton-shimmer h-7 w-3/4 rounded" />
+                <div className="skeleton-shimmer h-7 w-2/3 rounded" />
+              </div>
 
-                  {/* Bottom divider */}
-                  <div className="skeleton-shimmer h-px w-12 mx-auto" />
+              {/* Bottom divider */}
+              <div className="skeleton-shimmer h-px w-12 mx-auto" />
 
-                  {/* Insight box */}
-                  <div className="rounded-lg px-6 py-5 border border-emerald/10 dark:border-emerald/20 space-y-3">
-                    <div className="skeleton-shimmer h-3 w-14 mx-auto rounded" />
-                    <div className="skeleton-shimmer h-4 w-full rounded" />
-                    <div className="skeleton-shimmer h-4 w-5/6 mx-auto rounded" />
-                    <div className="skeleton-shimmer h-4 w-4/6 mx-auto rounded" />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              {/* Insight box */}
+              <div className="rounded-lg px-6 py-5 border border-emerald/10 dark:border-emerald/20 space-y-3">
+                <div className="skeleton-shimmer h-3 w-14 mx-auto rounded" />
+                <div className="skeleton-shimmer h-4 w-full rounded" />
+                <div className="skeleton-shimmer h-4 w-5/6 mx-auto rounded" />
+                <div className="skeleton-shimmer h-4 w-4/6 mx-auto rounded" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Tap for Explanation — fixed above nav row, never moves */}
@@ -373,12 +401,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         </div>
 
         {/* Action row */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="flex items-center justify-between pt-4 border-t border-dark/10 dark:border-dark-fg/10"
-        >
+        <div className="flex items-center justify-between pt-4 border-t border-dark/10 dark:border-dark-fg/10">
           <div className="relative">
             <button
               onClick={async () => {
@@ -396,18 +419,11 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
             >
               <span>{isPlaying ? "■" : "♪"}</span> {isPlaying ? "Stop" : "Listen"}
             </button>
-            <AnimatePresence>
-              {audioUnavailable && (
-                <motion.p
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 text-center text-[11px] leading-tight bg-dark/90 dark:bg-dark-fg/90 text-dark-fg dark:text-dark rounded-lg px-3 py-2 pointer-events-none"
-                >
-                  Tamil voice not available on this device
-                </motion.p>
-              )}
-            </AnimatePresence>
+            {audioUnavailable && (
+              <p className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 text-center text-[11px] leading-tight bg-dark/90 dark:bg-dark-fg/90 text-dark-fg dark:text-dark rounded-lg px-3 py-2 pointer-events-none animate-fade-in">
+                Tamil voice not available on this device
+              </p>
+            )}
           </div>
           <button
             onClick={() => toggleFavorite(kural.id)}
@@ -429,7 +445,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           >
             <span>↑</span> Share
           </button>
-        </motion.div>
+        </div>
 
         {isHome && <Link href="/privacy" className="sr-only">Privacy Policy</Link>}
       </main>

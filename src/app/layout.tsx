@@ -101,6 +101,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ta" className={`${notoSerifTamil.variable} ${inter.variable} ${crimsonText.variable} light`}>
+      <head>
+        {/* Blocking script: apply saved theme (or system default) before first paint to avoid flash */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme')||'system';var e=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(e);}catch(e){}` }} />
+      </head>
       <body className="font-sans antialiased bg-cream dark:bg-dark-bg text-dark dark:text-dark-fg">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <Providers>

@@ -12,7 +12,16 @@ const LABELS: Record<string, string> = {
 export default function ThemeSwitcher() {
   const { theme, toggleTheme, isClient } = useTheme();
 
-  if (!isClient) return null;
+  // Show placeholder monitor icon on SSR (matches "system" default theme)
+  if (!isClient) return (
+    <div className="absolute left-0 top-0 p-2 rounded-lg w-10 h-10 flex items-center justify-center text-dark/40 dark:text-dark-fg/40" aria-hidden>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    </div>
+  );
 
   return (
     <motion.button
