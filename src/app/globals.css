@@ -87,9 +87,12 @@ html, body {
     line-height: 1.8;
     letter-spacing: -0.3px;
   }
-  /* Editorial decorative line */
+  /* Editorial decorative line.
+     height: 1px (not 0.5px): Firefox cannot reliably render sub-pixel elements
+     when parent opacity is mid-animation, so one line randomly disappears on
+     desktop during kural crossfades. 1px renders consistently on all displays. */
   .divider-editorial {
-    height: 0.5px;
+    height: 1px;
     background: linear-gradient(90deg, transparent, var(--accent) 25%, var(--accent) 75%, transparent);
     opacity: 0.5;
   }
