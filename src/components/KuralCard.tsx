@@ -198,7 +198,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
                 <h1 className="text-xl font-bold tracking-wide">
                   <span className="text-emerald">One</span><span className="text-dark dark:text-dark-fg">Kural</span>
                 </h1>
-                <p className={`text-[10px] uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>
+                <p className={`text-xs uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>
                   Today&apos;s Kural
                 </p>
                 <p className={`text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>{dateStr}</p>

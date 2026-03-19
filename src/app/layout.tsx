@@ -21,14 +21,14 @@ const inter = Inter({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-inter",
-  display: "swap",
+  display: "optional",
   adjustFontFallback: true,
 });
 
 const crimsonText = Crimson_Text({
   subsets: ["latin"],
   variable: "--font-crimson",
-  display: "swap",
+  display: "optional",
   weight: ["400", "600"],
   adjustFontFallback: true,
 });
