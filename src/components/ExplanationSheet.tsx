@@ -140,7 +140,7 @@ export default function ExplanationSheet({ kural, onClose }: ExplanationSheetPro
           }}
         >
           {content ? (
-            <div className={`text-sm leading-relaxed text-dark/75 dark:text-dark-fg/80 ${
+            <div className={`text-base leading-relaxed text-dark/75 dark:text-dark-fg/80 ${
               lang === "tamil" ? "font-tamil" : "font-serif"
             }`}>
               {renderExplanation(content)}
