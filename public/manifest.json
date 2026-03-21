@@ -10,6 +10,50 @@
   "theme_color": "#FFFFFF",
   "background_color": "#FAF7F2",
   "categories": ["lifestyle", "education"],
+  "screenshots": [
+    {
+      "src": "/screenshots/Home_Daily.png",
+      "sizes": "864x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Daily Kural"
+    },
+    {
+      "src": "/screenshots/English_Explanation.png",
+      "sizes": "864x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "English Explanation"
+    },
+    {
+      "src": "/screenshots/Tamil_Explanation.png",
+      "sizes": "864x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tamil Explanation"
+    },
+    {
+      "src": "/screenshots/Explore.png",
+      "sizes": "864x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Explore by Chapter"
+    },
+    {
+      "src": "/screenshots/Journal.png",
+      "sizes": "864x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Journal your Thoughts"
+    },
+    {
+      "src": "/screenshots/Profile.png",
+      "sizes": "864x1919",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Profile & Settings"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
