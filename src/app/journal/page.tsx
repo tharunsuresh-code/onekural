@@ -79,15 +79,16 @@ export default function JournalPage() {
 
   if (authLoading || loading) {
     return (
-      <main className="max-w-content mx-auto px-6 pt-10 pb-24 flex items-center justify-center min-h-[60dvh]">
+      <div className="h-dvh overflow-y-auto flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
-      </main>
+      </div>
     );
   }
 
   return (
     <>
-      <main className="max-w-content mx-auto px-6 pt-10 pb-24">
+      <div className="h-dvh overflow-y-auto">
+      <main className="max-w-content mx-auto px-6 pt-10 pb-nav">
         <h1 className="text-xl font-semibold text-dark dark:text-dark-fg mb-6">Your Journal</h1>
 
         {/* Soft sign-in nudge for guests */}
@@ -143,6 +144,7 @@ export default function JournalPage() {
           </div>
         )}
       </main>
+      </div>
 
       <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
 
