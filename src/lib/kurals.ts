@@ -96,6 +96,16 @@ export async function getKuralsByChapter(chapter: number): Promise<Kural[]> {
   return data as Kural[];
 }
 
+export async function getKuralsByIds(ids: number[]): Promise<Kural[]> {
+  const { data, error } = await supabase
+    .from("kurals")
+    .select("*")
+    .in("id", ids)
+    .order("id", { ascending: true });
+  if (error) throw error;
+  return data as Kural[];
+}
+
 export async function searchKurals(query: string): Promise<Kural[]> {
   const q = query.trim();
   if (!q) return [];

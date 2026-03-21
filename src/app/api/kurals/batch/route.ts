@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MAX_KURAL_ID } from "@/lib/constants";
-import { supabase } from "@/lib/supabase";
+import { getKuralsByIds } from "@/lib/kurals";
 
 export async function GET(request: NextRequest) {
   const idsParam = request.nextUrl.searchParams.get("ids") ?? "";
@@ -20,15 +20,10 @@ export async function GET(request: NextRequest) {
   // Cap at 100 to prevent abuse
   const safeIds = ids.slice(0, 100);
 
-  const { data, error } = await supabase
-    .from("kurals")
-    .select("*")
-    .in("id", safeIds)
-    .order("id", { ascending: true });
-
-  if (error) {
+  try {
+    const data = await getKuralsByIds(safeIds);
+    return NextResponse.json(data);
+  } catch {
     return NextResponse.json({ error: "Failed to fetch kurals" }, { status: 500 });
   }
-
-  return NextResponse.json(data);
 }

@@ -11,7 +11,6 @@ const config: Config = {
     extend: {
       colors: {
         emerald: "#1B5E4F",
-        "emerald-light": "#2A7D6F",
         "deep-red": "#A83C3C",
         cream: "#FFFFFF",
         dark: "#1A1A1A",
