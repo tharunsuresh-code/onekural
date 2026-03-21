@@ -6,16 +6,6 @@
   to { opacity: 1; }
 }
 
-@keyframes fade-in-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 @keyframes shimmer {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
@@ -74,13 +64,7 @@ html, body {
 }
 
 @layer utilities {
-  .animate-fade-in-down {
-    animation: fade-in-down 0.4s ease both;
-  }
-  .animate-fade-in-up {
-    animation: fade-in-up 0.4s 0.3s ease both;
-  }
-  .animate-fade-in {
+.animate-fade-in {
     animation: fadeIn 0.2s ease both;
   }
   .text-balance {
@@ -119,14 +103,5 @@ html, body {
 
   html.dark .divider-editorial {
     opacity: 0.4;
-  }
-
-  /* Premium shadow depth */
-  .shadow-amber {
-    box-shadow: 0 2px 8px rgba(244, 165, 41, 0.06);
-  }
-
-  html.dark .shadow-amber {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 }
