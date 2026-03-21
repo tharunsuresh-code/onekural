@@ -93,14 +93,15 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="max-w-content mx-auto px-6 pt-10 pb-24 flex items-center justify-center min-h-[60dvh]">
+      <div className="h-dvh overflow-y-auto flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="max-w-content mx-auto px-6 pt-10 pb-24">
+    <div className="h-dvh overflow-y-auto">
+    <main className="max-w-content mx-auto px-6 pt-10 pb-nav">
       {/* Avatar + user info / sign in */}
       <div className="flex flex-col items-center mb-10">
         {user ? (
@@ -222,5 +223,6 @@ export default function ProfilePage() {
 
       <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
     </main>
+    </div>
   );
 }

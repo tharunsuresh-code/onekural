@@ -96,7 +96,8 @@ export default function ExploreClient() {
   const showSearch = searchQuery.trim().length > 0;
 
   return (
-    <main className="max-w-content mx-auto px-6 pt-10 pb-24">
+    <div className="h-dvh overflow-y-auto">
+    <main className="max-w-content mx-auto px-6 pt-10 pb-nav">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-dark dark:text-dark-fg">Explore</h1>
         <button
@@ -296,5 +297,6 @@ export default function ExploreClient() {
         </>
       )}
     </main>
+    </div>
   );
 }

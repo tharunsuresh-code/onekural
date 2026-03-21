@@ -67,6 +67,7 @@ html.dark {
 
 html, body {
   overscroll-behavior: none;
+  overflow: hidden;
   background: var(--bg-base);
   color: var(--text-base);
   transition: background-color 0.3s ease, color 0.3s ease;
