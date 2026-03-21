@@ -149,6 +149,24 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     sessionStorage.setItem("kural-date", localDate);
     document.addEventListener("visibilitychange", handleVisibility);
 
+    // Schedule a refresh at the next local midnight so the kural updates
+    // automatically if the user leaves the app open past midnight.
+    const refreshAtMidnight = (): ReturnType<typeof setTimeout> => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      return setTimeout(() => {
+        const nowLocal = new Date().toLocaleDateString("en-CA");
+        sessionStorage.setItem("kural-date", nowLocal);
+        const todayId = getDailyKuralId(nowLocal);
+        setLocalDailyKuralId(todayId);
+        setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
+        fetchKural(todayId).then((k) => { if (k) setKural(k); });
+        midnightTimer = refreshAtMidnight(); // reschedule for the next midnight
+      }, nextMidnight.getTime() - now.getTime());
+    };
+    let midnightTimer = refreshAtMidnight();
+
     const handleGoHome = () => {
       const todayId = getDailyKuralId(new Date().toLocaleDateString("en-CA"));
       fetchKural(todayId).then((k) => { if (k) setKural(k); });
@@ -161,6 +179,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("onekural:go-home", handleGoHome);
+      clearTimeout(midnightTimer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
