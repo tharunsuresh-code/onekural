@@ -33,7 +33,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const html = document.documentElement;
     html.classList.remove("light", "dark");
-    html.classList.add(getEffective(initial));
+    const effective = getEffective(initial);
+    html.classList.add(effective);
+    document.querySelectorAll('meta[name="theme-color"]').forEach((el) => {
+      (el as HTMLMetaElement).content = effective === "dark" ? "#0F0E0C" : "#FFFFFF";
+    });
   }, []);
 
   useEffect(() => {
@@ -41,8 +45,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const html = document.documentElement;
     html.classList.remove("light", "dark");
-    html.classList.add(getEffective(theme));
+    const effective = getEffective(theme);
+    html.classList.add(effective);
     localStorage.setItem("theme", theme);
+    document.querySelectorAll('meta[name="theme-color"]').forEach((el) => {
+      (el as HTMLMetaElement).content = effective === "dark" ? "#0F0E0C" : "#FFFFFF";
+    });
 
     // When in system mode, update the DOM class if the OS preference changes
     if (theme === "system") {
