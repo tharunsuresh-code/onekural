@@ -134,6 +134,19 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     if (!isHome) return;
     const localDate = new Date().toLocaleDateString("en-CA");
 
+    // Fade-out → swap kural → fade-in (mirrors the navigateKural animation)
+    const switchToTodaysKural = (nowLocal: string) => {
+      const todayId = getDailyKuralId(nowLocal);
+      setFadingOut(true);
+      setTimeout(async () => {
+        const k = await fetchKural(todayId);
+        setLocalDailyKuralId(todayId);
+        setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
+        if (k) setKural(k);
+        setFadingOut(false);
+      }, 200);
+    };
+
     const handleVisibility = () => {
       if (document.visibilityState !== "visible") return;
       const nowLocal = new Date().toLocaleDateString("en-CA");
@@ -141,13 +154,25 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       if (!loadedDate || loadedDate === nowLocal) return;
       // Date rolled over — update in-place without a full page reload
       sessionStorage.setItem("kural-date", nowLocal);
-      const todayId = getDailyKuralId(nowLocal);
-      setLocalDailyKuralId(todayId);
-      setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
-      fetchKural(todayId).then((k) => { if (k) setKural(k); });
+      switchToTodaysKural(nowLocal);
     };
     sessionStorage.setItem("kural-date", localDate);
     document.addEventListener("visibilitychange", handleVisibility);
+
+    // Schedule a refresh at the next local midnight so the kural updates
+    // automatically if the user leaves the app open past midnight.
+    const refreshAtMidnight = (): ReturnType<typeof setTimeout> => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      return setTimeout(() => {
+        const nowLocal = new Date().toLocaleDateString("en-CA");
+        sessionStorage.setItem("kural-date", nowLocal);
+        switchToTodaysKural(nowLocal);
+        midnightTimer = refreshAtMidnight(); // reschedule for the next midnight
+      }, nextMidnight.getTime() - now.getTime());
+    };
+    let midnightTimer = refreshAtMidnight();
 
     const handleGoHome = () => {
       const todayId = getDailyKuralId(new Date().toLocaleDateString("en-CA"));
@@ -161,6 +186,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("onekural:go-home", handleGoHome);
+      clearTimeout(midnightTimer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
