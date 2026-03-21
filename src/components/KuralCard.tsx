@@ -220,9 +220,9 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
       const fm = fmRef.current;
       if (!fm) return;
-      if (info.offset.x < -50 || info.velocity.x < -300) {
+      if (info.offset.x < -80 || info.velocity.x < -500) {
         navigateKural("next");
-      } else if (info.offset.x > 50 || info.velocity.x > 300) {
+      } else if (info.offset.x > 80 || info.velocity.x > 500) {
         navigateKural("prev");
       }
       fm.animate(fm.x, 0, { type: "spring", stiffness: 300, damping: 30 });
@@ -251,6 +251,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const DragDiv = (fmReady ? fmRef.current!.motion.div : "div") as any;
   const dragProps = fmReady && fmRef.current ? {
     drag: "x",
+    dragDirectionLock: true,
     dragConstraints: { left: 0, right: 0 },
     dragElastic: { left: 0.15, right: 0.15 },
     dragSnapToOrigin: true,
