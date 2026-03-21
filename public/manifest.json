@@ -1,8 +1,10 @@
 {
+  "id": "/",
   "name": "OneKural",
   "short_name": "OneKural",
   "description": "One kural a day. Read, reflect, and journal your thoughts on the timeless wisdom of Thiruvalluvar.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#FFFFFF",

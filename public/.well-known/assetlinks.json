@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.onekural.app",
+      "sha256_cert_fingerprints": [
+        "F9:CA:7E:F9:3A:B7:F2:7C:AC:8B:08:3E:DD:D7:16:B3:57:64:EF:91:6E:0D:3D:83:14:12:6B:CE:34:60:E4:F3"
+      ]
+    }
+  }
+]
