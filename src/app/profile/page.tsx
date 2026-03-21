@@ -33,12 +33,16 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   if (!pushAvailable) return null;
 
   async function toggle() {
+    if (loading) return;
     setLoading(true);
     setError(null);
     if (subscribed) {
+      setSubscribed(false); // optimistic
       const ok = await unsubscribeFromPush();
-      if (ok) setSubscribed(false);
-      else setError("Failed to disable — try again");
+      if (!ok) {
+        setSubscribed(true); // revert
+        setError("Failed to disable — try again");
+      }
     } else {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
@@ -46,9 +50,12 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         setLoading(false);
         return;
       }
+      setSubscribed(true); // optimistic (after permission granted)
       const ok = await subscribeToPush(userId);
-      if (ok) setSubscribed(true);
-      else setError("Failed to enable — try again");
+      if (!ok) {
+        setSubscribed(false); // revert
+        setError("Failed to enable — try again");
+      }
     }
     setLoading(false);
   }
@@ -66,7 +73,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
           aria-label={subscribed ? "Disable daily reminder" : "Enable daily reminder"}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
             subscribed ? "bg-emerald" : "bg-dark/20 dark:bg-dark-fg/25"
-          } ${loading ? "opacity-50" : ""}`}
+          }`}
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
