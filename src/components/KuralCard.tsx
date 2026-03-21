@@ -134,6 +134,19 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     if (!isHome) return;
     const localDate = new Date().toLocaleDateString("en-CA");
 
+    // Fade-out → swap kural → fade-in (mirrors the navigateKural animation)
+    const switchToTodaysKural = (nowLocal: string) => {
+      const todayId = getDailyKuralId(nowLocal);
+      setFadingOut(true);
+      setTimeout(async () => {
+        const k = await fetchKural(todayId);
+        setLocalDailyKuralId(todayId);
+        setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
+        if (k) setKural(k);
+        setFadingOut(false);
+      }, 200);
+    };
+
     const handleVisibility = () => {
       if (document.visibilityState !== "visible") return;
       const nowLocal = new Date().toLocaleDateString("en-CA");
@@ -141,10 +154,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       if (!loadedDate || loadedDate === nowLocal) return;
       // Date rolled over — update in-place without a full page reload
       sessionStorage.setItem("kural-date", nowLocal);
-      const todayId = getDailyKuralId(nowLocal);
-      setLocalDailyKuralId(todayId);
-      setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
-      fetchKural(todayId).then((k) => { if (k) setKural(k); });
+      switchToTodaysKural(nowLocal);
     };
     sessionStorage.setItem("kural-date", localDate);
     document.addEventListener("visibilitychange", handleVisibility);
@@ -158,10 +168,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       return setTimeout(() => {
         const nowLocal = new Date().toLocaleDateString("en-CA");
         sessionStorage.setItem("kural-date", nowLocal);
-        const todayId = getDailyKuralId(nowLocal);
-        setLocalDailyKuralId(todayId);
-        setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
-        fetchKural(todayId).then((k) => { if (k) setKural(k); });
+        switchToTodaysKural(nowLocal);
         midnightTimer = refreshAtMidnight(); // reschedule for the next midnight
       }, nextMidnight.getTime() - now.getTime());
     };
