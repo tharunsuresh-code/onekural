@@ -61,11 +61,12 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       }
       setSubscribed(true); // optimistic
       const ok = await subscribeToPush(userId);
+      const permission = Notification.permission; // re-read after async (TS narrows stale value)
       if (!ok) {
         setSubscribed(false); // revert
-        if (Notification.permission === "denied") {
+        if (permission === "denied") {
           setError(notifDeniedError());
-        } else if (Notification.permission === "default") {
+        } else if (permission === "default") {
           // User dismissed the prompt (e.g. tapped outside on Android) — can try again
           setError("Tap to try again");
         } else {
