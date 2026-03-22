@@ -32,6 +32,15 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 
   if (!pushAvailable) return null;
 
+  function notifDeniedError(): string {
+    const standalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
+    const android = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+    if (standalone && android) {
+      return "Notifications blocked — go to Settings → Apps → OneKural → Notifications";
+    }
+    return "Notification permission denied — enable it in browser settings";
+  }
+
   async function toggle() {
     if (loading) return;
     setLoading(true);
@@ -46,7 +55,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     } else {
       // If already explicitly denied, no popup will appear — just show error
       if (Notification.permission === "denied") {
-        setError("Notification permission denied — enable it in browser settings");
+        setError(notifDeniedError());
         setLoading(false);
         return;
       }
@@ -54,8 +63,11 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       const ok = await subscribeToPush(userId);
       if (!ok) {
         setSubscribed(false); // revert
-        if (Notification.permission !== "granted") {
-          setError("Notification permission denied — enable it in browser settings");
+        if (Notification.permission === "denied") {
+          setError(notifDeniedError());
+        } else if (Notification.permission === "default") {
+          // User dismissed the prompt (e.g. tapped outside on Android) — can try again
+          setError("Tap to try again");
         } else {
           setError("Failed to enable — try again");
         }
