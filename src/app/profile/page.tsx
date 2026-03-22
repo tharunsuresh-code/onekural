@@ -44,17 +44,21 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         setError("Failed to disable — try again");
       }
     } else {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
+      // If already explicitly denied, no popup will appear — just show error
+      if (Notification.permission === "denied") {
         setError("Notification permission denied — enable it in browser settings");
         setLoading(false);
         return;
       }
-      setSubscribed(true); // optimistic (after permission granted)
+      setSubscribed(true); // optimistic
       const ok = await subscribeToPush(userId);
       if (!ok) {
         setSubscribed(false); // revert
-        setError("Failed to enable — try again");
+        if (Notification.permission !== "granted") {
+          setError("Notification permission denied — enable it in browser settings");
+        } else {
+          setError("Failed to enable — try again");
+        }
       }
     }
     setLoading(false);
