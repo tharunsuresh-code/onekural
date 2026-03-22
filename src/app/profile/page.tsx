@@ -61,7 +61,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       }
       setSubscribed(true); // optimistic
       const ok = await subscribeToPush(userId);
-      const permission = Notification.permission; // re-read after async (TS narrows stale value)
+      const permission = Notification.permission as NotificationPermission; // cast: TS narrows stale value past early-return
       if (!ok) {
         setSubscribed(false); // revert
         if (permission === "denied") {
