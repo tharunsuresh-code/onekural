@@ -33,7 +33,7 @@ function MobileHints() {
           </span>
         </div>
 
-        <div className="w-px h-10 bg-white/15 rounded-full" />
+        <div className="w-px self-stretch bg-white/15" />
 
         {/* Swipe left = next kural */}
         <div className="flex flex-col items-center gap-3">
@@ -99,7 +99,7 @@ function DesktopHints() {
           </span>
         </div>
 
-        <div className="w-px h-10 bg-white/15 rounded-full" />
+        <div className="w-px self-stretch bg-white/15" />
 
         <div className="flex flex-col items-center gap-3">
           <motion.div

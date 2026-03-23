@@ -397,7 +397,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         {/* Tap for Explanation — fixed above nav row, never moves */}
         <button
           onClick={() => setShowExplanation(true)}
-          className="w-full flex flex-col items-center gap-1.5 py-2 hover:opacity-60 active:opacity-40 transition-opacity"
+          className="w-full flex flex-col items-center gap-1.5 py-2 [@media(hover:hover)]:hover:opacity-60 active:opacity-40 transition-opacity"
         >
           <span className="text-xs uppercase tracking-widest text-dark/40 dark:text-dark-fg/40 font-medium">
             Tap for Explanation
