@@ -83,7 +83,13 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
     saveDeviceIdToIDB(getDeviceId());
     return true;
   } catch (err) {
-    console.error("[Push] Subscribe error:", err);
+    if (err instanceof DOMException && err.name === "NotAllowedError") {
+      // Notification permission not granted — the UI permission check should
+      // have caught this, but guard here as a fallback.
+      console.warn("[Push] Subscribe blocked — notification permission not granted");
+    } else {
+      console.error("[Push] Subscribe error:", err);
+    }
     return false;
   }
 }
