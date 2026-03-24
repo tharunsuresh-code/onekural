@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export default function DeleteAccountPage() {
   const [email, setEmail] = useState("");
@@ -18,7 +18,6 @@ export default function DeleteAccountPage() {
     setError("");
 
     try {
-      const supabase = createClient();
       const { error: dbError } = await supabase.from("feedback").insert({
         name: "Account Deletion Request",
         message: `Please delete my account and all associated data. Email: ${email.trim()}`,
