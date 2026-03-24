@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.onekural.app",
       "sha256_cert_fingerprints": [
-        "F9:CA:7E:F9:3A:B7:F2:7C:AC:8B:08:3E:DD:D7:16:B3:57:64:EF:91:6E:0D:3D:83:14:12:6B:CE:34:60:E4:F3"
+        "F9:CA:7E:F9:3A:B7:F2:7C:AC:8B:08:3E:DD:D7:16:B3:57:64:EF:91:6E:0D:3D:83:14:12:6B:CE:34:60:E4:F3",
+        "4E:87:E8:62:7B:B5:C3:80:8D:C8:08:39:79:28:96:8F:56:A4:25:89:29:66:6A:9C:E1:25:A1:05:A8:7D:CD:1C"
       ]
     }
   }
