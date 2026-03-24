@@ -12,6 +12,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true);
   const [pushAvailable, setPushAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deniedAttempts, setDeniedAttempts] = useState(0);
 
   useEffect(() => {
     const available =
@@ -22,7 +23,12 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 
     if (available) {
       isPushSubscribed().then((s) => {
-        setSubscribed(s);
+        // Cross-check: a cached PushManager subscription may exist from a different
+        // context (e.g. Chrome browser shared storage on a fresh TWA install) even
+        // though notification permission is not currently granted. Treat as not
+        // subscribed in that case so the toggle starts OFF.
+        const effectivelySubscribed = s && typeof Notification !== "undefined" && Notification.permission === "granted";
+        setSubscribed(effectivelySubscribed);
         setLoading(false);
       });
     } else {
@@ -31,12 +37,20 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   }, []);
 
   useEffect(() => {
-    function onVisibility() {
-      if (document.visibilityState === "visible" && error && typeof Notification !== "undefined") {
-        if (Notification.permission !== "denied") {
-          setError(null);
-        }
+    async function onVisibility() {
+      if (document.visibilityState !== "visible") return;
+      if (typeof Notification === "undefined") return;
+
+      // Re-evaluate permission + subscription state when app regains focus.
+      // The user may have changed notification settings in another app.
+      const perm = Notification.permission;
+
+      if (error && perm !== "denied") {
+        setError(null);
       }
+
+      const nowSubscribed = await isPushSubscribed();
+      setSubscribed(nowSubscribed && perm === "granted");
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
@@ -44,13 +58,37 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 
   if (!pushAvailable) return null;
 
-  function notifDeniedError(): string {
+  // Returns the Permissions API state if available — more reliable than
+  // Notification.permission for detecting Chrome site-settings-level blocks,
+  // where blocking via settings may leave Notification.permission as "default"
+  // rather than "denied".
+  async function getPermissionState(): Promise<PermissionState> {
+    if (typeof Notification === "undefined") return "denied";
+    try {
+      const status = await navigator.permissions.query({ name: "notifications" as PermissionName });
+      return status.state;
+    } catch {
+      const p = Notification.permission;
+      if (p === "granted") return "granted";
+      if (p === "denied") return "denied";
+      return "prompt";
+    }
+  }
+
+  function notifDeniedError(attempts: number): string {
     const standalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
     const android = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
     if (standalone && android) {
+      if (attempts >= 2) {
+        // User already tried Android Settings but Chrome's site-level denial persists.
+        // Guide to Chrome's own site settings to reset the permission.
+        return "Still blocked? Open Chrome → tap ⋮ → Settings → Site settings → Notifications → allow onekural.com";
+      }
       return "Notifications blocked — go to Settings → Apps → OneKural → Notifications, then tap again";
     }
-    return "Notification permission denied — enable it in browser settings";
+    // Chrome / browser (non-standalone): site-settings-level block — point to the
+    // lock icon which gives direct access to per-site permission controls.
+    return "Notifications blocked — tap the 🔒 in your browser's address bar and allow notifications for this site";
   }
 
   async function toggle() {
@@ -65,12 +103,25 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         setError("Failed to disable — try again");
       }
     } else {
-      // If currently denied, try requestPermission() anyway — in Android TWA,
-      // re-enabling at OS level allows this call to succeed or show the dialog again.
-      if (Notification.permission === "denied") {
-        const retried = await Notification.requestPermission();
+      // Use the Permissions API to detect denied state — it correctly reports
+      // "denied" even in Chrome when the site was blocked via site settings
+      // (which may leave Notification.permission as "default").
+      const permState = await getPermissionState();
+      const isDenied = permState === "denied" || Notification.permission === "denied";
+
+      if (isDenied) {
+        // Try requestPermission() — on Android TWA, if the user re-enabled at
+        // OS level, Chrome may allow the dialog to appear again.
+        let retried: NotificationPermission = "denied";
+        try {
+          retried = await Notification.requestPermission();
+        } catch {
+          // Some browsers throw instead of resolving when permission is denied.
+        }
         if (retried !== "granted") {
-          setError(notifDeniedError());
+          const nextAttempts = deniedAttempts + 1;
+          setDeniedAttempts(nextAttempts);
+          setError(notifDeniedError(nextAttempts));
           setLoading(false);
           return;
         }
@@ -82,7 +133,9 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       if (!ok) {
         setSubscribed(false); // revert
         if (permission === "denied") {
-          setError(notifDeniedError());
+          const nextAttempts = deniedAttempts + 1;
+          setDeniedAttempts(nextAttempts);
+          setError(notifDeniedError(nextAttempts));
         } else if (permission === "default") {
           // User dismissed the prompt (e.g. tapped outside on Android) — can try again
           setError("Tap to try again");
