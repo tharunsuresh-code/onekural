@@ -22,25 +22,19 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     setPushAvailable(available);
 
     if (available) {
-      isPushSubscribed().then(async (s) => {
-        const perm = typeof Notification !== "undefined" ? Notification.permission : "denied";
-        if (s && perm !== "granted") {
-          // Subscription exists but permission isn't granted — this can happen
-          // on a fresh TWA install where Chrome shares origin storage with the
-          // browser, carrying over a subscription from a previous Chrome session.
-          //
-          // This stale subscription causes Chrome to show its notification
-          // permission bar at startup (before the page is interactive), and the
-          // DOM activity from React hydration/animations immediately dismisses
-          // it before the user can respond.
-          //
-          // Clean it up now: removes the PushManager entry and the server record
-          // so Chrome has nothing to prompt about on subsequent launches.
-          await unsubscribeFromPush();
-          setSubscribed(false);
-        } else {
-          setSubscribed(s && perm === "granted");
-        }
+      isPushSubscribed().then((s) => {
+        // Cross-check: a cached PushManager subscription may exist from a different
+        // context (e.g. Chrome browser shared storage on a fresh TWA install) even
+        // though notification permission is not currently granted. Treat as not
+        // subscribed in that case so the toggle starts OFF.
+        //
+        // Note: do NOT auto-unsubscribe here. Chrome browser and TWA share the
+        // same origin storage but Android's POST_NOTIFICATIONS runtime permission
+        // is separate — permission may appear as "default" in a fresh TWA context
+        // even while Chrome browser still has it "granted". Deleting the subscription
+        // here would silently break Chrome browser notifications.
+        const effectivelySubscribed = s && typeof Notification !== "undefined" && Notification.permission === "granted";
+        setSubscribed(effectivelySubscribed);
         setLoading(false);
       });
     } else {
