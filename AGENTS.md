@@ -13,6 +13,10 @@ npm run seed             # Seed kural data into Supabase (ts-node)
 npm run generate-icons   # Regenerate PWA icons → public/icons/
 ```
 
+## Pre-Commit Rule
+
+**Always run `npm run build` and confirm it passes before committing any code changes.** Do not commit if the build has type errors or compilation failures.
+
 ## Architecture
 
 ```
