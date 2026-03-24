@@ -153,6 +153,18 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     setLoading(false);
   }
 
+  // Show a nudge when the toggle is OFF, no error is displayed yet, and the
+  // permission is still in the "default" (undecided) state. This covers the
+  // common TWA case where Chrome's startup permission bar was dismissed before
+  // the user could act on it — tapping the toggle re-triggers the dialog at a
+  // stable point in the app lifecycle when the user is ready.
+  const permissionUndecided =
+    !subscribed &&
+    !loading &&
+    !error &&
+    typeof Notification !== "undefined" &&
+    Notification.permission === "default";
+
   return (
     <div className="border border-dark/10 dark:border-dark-fg/20 rounded-xl">
       <div className="flex items-center justify-between px-4 py-3.5">
@@ -175,6 +187,11 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
           />
         </button>
       </div>
+      {permissionUndecided && (
+        <p className="px-4 pb-3 text-xs text-dark/50 dark:text-dark-fg/50">
+          Tap the toggle to set up your daily reminder
+        </p>
+      )}
       {error && (
         <p className="px-4 pb-3 text-xs text-deep-red dark:text-deep-red/90">{error}</p>
       )}

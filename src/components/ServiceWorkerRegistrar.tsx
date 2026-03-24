@@ -23,10 +23,22 @@ export default function ServiceWorkerRegistrar() {
     // permission bar (triggered by an existing push subscription), and the
     // DOM activity from hydration/animations dismisses that bar before the
     // user can act on it.
+    // Wait for the load event, then an additional idle-callback pass so that
+    // React hydration, Framer Motion animations, and font rendering have all
+    // settled before the SW registers. Any Chrome permission bar triggered by
+    // the existing push subscription should then appear against a stable page.
+    function scheduleRegister() {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(doRegister, { timeout: 4000 });
+      } else {
+        setTimeout(doRegister, 2000);
+      }
+    }
+
     if (document.readyState === "complete") {
-      doRegister();
+      scheduleRegister();
     } else {
-      window.addEventListener("load", doRegister, { once: true });
+      window.addEventListener("load", scheduleRegister, { once: true });
     }
   }, []);
 
