@@ -30,13 +30,25 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     }
   }, []);
 
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState === "visible" && error && typeof Notification !== "undefined") {
+        if (Notification.permission !== "denied") {
+          setError(null);
+        }
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [error]);
+
   if (!pushAvailable) return null;
 
   function notifDeniedError(): string {
     const standalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
     const android = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
     if (standalone && android) {
-      return "Notifications blocked — go to Settings → Apps → OneKural → Notifications";
+      return "Notifications blocked — go to Settings → Apps → OneKural → Notifications, then tap again";
     }
     return "Notification permission denied — enable it in browser settings";
   }
@@ -53,11 +65,16 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         setError("Failed to disable — try again");
       }
     } else {
-      // If already explicitly denied, no popup will appear — just show error
+      // If currently denied, try requestPermission() anyway — in Android TWA,
+      // re-enabling at OS level allows this call to succeed or show the dialog again.
       if (Notification.permission === "denied") {
-        setError(notifDeniedError());
-        setLoading(false);
-        return;
+        const retried = await Notification.requestPermission();
+        if (retried !== "granted") {
+          setError(notifDeniedError());
+          setLoading(false);
+          return;
+        }
+        // Permission restored — fall through to subscribe
       }
       setSubscribed(true); // optimistic
       const ok = await subscribeToPush(userId);
