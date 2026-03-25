@@ -51,6 +51,16 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
     return false;
   }
 
+  // Explicitly request notification permission before subscribing.
+  // In Android TWA, Notification.requestPermission() is intercepted by the
+  // delegation layer and triggers the native OS dialog via
+  // NotificationPermissionRequestActivity — bridging OS and web permissions.
+  // pushManager.subscribe() triggers only a Chrome web dialog (no OS delegation).
+  if (Notification.permission !== "granted") {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return false;
+  }
+
   try {
     const reg = await navigator.serviceWorker.ready;
 
@@ -123,6 +133,8 @@ export async function unsubscribeFromPush(): Promise<boolean> {
 /** Check if this device is currently subscribed. Backfills IDB for existing subscribers. */
 export async function isPushSubscribed(): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+  // If permission was revoked in Chrome or OS settings, treat as unsubscribed.
+  if (typeof Notification !== "undefined" && Notification.permission !== "granted") return false;
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
