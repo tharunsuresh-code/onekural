@@ -7,6 +7,8 @@ import { useAuth } from "@/lib/auth";
 import SignInModal from "@/components/SignInModal";
 import { subscribeToPush, unsubscribeFromPush, isPushSubscribed } from "@/lib/push";
 
+const NOTIF_OPT_OUT_KEY = "onekural-notif-opted-out";
+
 function DailyReminderToggle({ userId }: { userId?: string }) {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -22,19 +24,26 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     setPushAvailable(available);
 
     if (available) {
-      isPushSubscribed().then((s) => {
+      isPushSubscribed().then(async (s) => {
         // Cross-check: a cached PushManager subscription may exist from a different
         // context (e.g. Chrome browser shared storage on a fresh TWA install) even
         // though notification permission is not currently granted. Treat as not
         // subscribed in that case so the toggle starts OFF.
-        //
-        // Note: do NOT auto-unsubscribe here. Chrome browser and TWA share the
-        // same origin storage but Android's POST_NOTIFICATIONS runtime permission
-        // is separate — permission may appear as "default" in a fresh TWA context
-        // even while Chrome browser still has it "granted". Deleting the subscription
-        // here would silently break Chrome browser notifications.
-        const effectivelySubscribed = s && typeof Notification !== "undefined" && Notification.permission === "granted";
-        setSubscribed(effectivelySubscribed);
+        const permGranted = typeof Notification !== "undefined" && Notification.permission === "granted";
+        const effectivelySubscribed = s && permGranted;
+
+        if (effectivelySubscribed) {
+          setSubscribed(true);
+        } else if (
+          !s &&
+          permGranted &&
+          localStorage.getItem(NOTIF_OPT_OUT_KEY) !== "true"
+        ) {
+          // OS permission already granted (e.g. user just accepted the native dialog)
+          // but no push subscription yet — auto-subscribe.
+          const ok = await subscribeToPush(userId);
+          setSubscribed(ok);
+        }
         setLoading(false);
       });
     } else {
@@ -56,11 +65,27 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       }
 
       const nowSubscribed = await isPushSubscribed();
-      setSubscribed(nowSubscribed && perm === "granted");
+      const effectivelySubscribed = nowSubscribed && perm === "granted";
+      setSubscribed(effectivelySubscribed);
+
+      // If permission just became granted and not yet subscribed, auto-resubscribe
+      // (covers returning from OS Settings after re-enabling).
+      if (!nowSubscribed && perm === "granted" && localStorage.getItem(NOTIF_OPT_OUT_KEY) !== "true") {
+        setLoading(true);
+        const ok = await subscribeToPush(userId);
+        setSubscribed(ok);
+        if (!ok) setError("Failed to enable — try again");
+        setLoading(false);
+      }
+
+      // Show error if permission was revoked while subscribed
+      if (!effectivelySubscribed && perm === "denied" && subscribed) {
+        setError(notifDeniedError(deniedAttempts));
+      }
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [error]);
+  }, [error, userId, subscribed, deniedAttempts]);
 
   if (!pushAvailable) return null;
 
@@ -86,14 +111,10 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     const android = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
     if (standalone && android) {
       if (attempts >= 2) {
-        // User already tried Android Settings but Chrome's site-level denial persists.
-        // Guide to Chrome's own site settings to reset the permission.
         return "Still blocked? Open Chrome → tap ⋮ → Settings → Site settings → Notifications → allow onekural.com";
       }
       return "Notifications blocked — go to Settings → Apps → OneKural → Notifications, then tap again";
     }
-    // Chrome / browser (non-standalone): site-settings-level block — point to the
-    // lock icon which gives direct access to per-site permission controls.
     return "Notifications blocked — tap the 🔒 in your browser's address bar and allow notifications for this site";
   }
 
@@ -107,8 +128,11 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       if (!ok) {
         setSubscribed(true); // revert
         setError("Failed to disable — try again");
+      } else {
+        localStorage.setItem(NOTIF_OPT_OUT_KEY, "true");
       }
     } else {
+      localStorage.removeItem(NOTIF_OPT_OUT_KEY);
       // Use the Permissions API to detect denied state — it correctly reports
       // "denied" even in Chrome when the site was blocked via site settings
       // (which may leave Notification.permission as "default").
@@ -135,7 +159,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       }
       setSubscribed(true); // optimistic
       const ok = await subscribeToPush(userId);
-      const permission = Notification.permission as NotificationPermission; // cast: TS narrows stale value past early-return
+      const permission = Notification.permission as NotificationPermission;
       if (!ok) {
         setSubscribed(false); // revert
         if (permission === "denied") {
@@ -143,7 +167,6 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
           setDeniedAttempts(nextAttempts);
           setError(notifDeniedError(nextAttempts));
         } else if (permission === "default") {
-          // User dismissed the prompt (e.g. tapped outside on Android) — can try again
           setError("Tap to try again");
         } else {
           setError("Failed to enable — try again");
@@ -318,7 +341,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-center gap-3 mt-6 text-xs text-dark/35 dark:text-dark-fg/40">
         <Link href="/privacy" className="hover:text-emerald transition-colors">Privacy Policy</Link>
         <span>·</span>
-        <Link href="/terms" className="hover:text-emerald transition-colors">Terms of Service</Link>
+        <Link href="/terms" className="hover:text-emercel transition-colors">Terms of Service</Link>
       </div>
 
       <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
