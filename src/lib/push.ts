@@ -52,10 +52,8 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
   }
 
   // Explicitly request notification permission before subscribing.
-  // In Android TWA, Notification.requestPermission() is intercepted by the
-  // delegation layer and triggers the native OS dialog via
-  // NotificationPermissionRequestActivity — bridging OS and web permissions.
-  // pushManager.subscribe() triggers only a Chrome web dialog (no OS delegation).
+  // pushManager.subscribe() alone does not trigger a permission dialog in all browsers;
+  // calling requestPermission() first ensures the prompt appears correctly.
   if (Notification.permission !== "granted") {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return false;

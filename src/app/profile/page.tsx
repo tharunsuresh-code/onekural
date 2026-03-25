@@ -14,7 +14,6 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true);
   const [pushAvailable, setPushAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deniedAttempts, setDeniedAttempts] = useState(0);
 
   useEffect(() => {
     const available =
@@ -80,12 +79,12 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 
       // Show error if permission was revoked while subscribed
       if (!effectivelySubscribed && perm === "denied" && subscribed) {
-        setError(notifDeniedError(deniedAttempts));
+        setError(notifDeniedError());
       }
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [error, userId, subscribed, deniedAttempts]);
+  }, [error, userId, subscribed]);
 
   if (!pushAvailable) return null;
 
@@ -106,14 +105,11 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     }
   }
 
-  function notifDeniedError(attempts: number): string {
+  function notifDeniedError(): string {
     const standalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
     const android = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
     if (standalone && android) {
-      if (attempts >= 2) {
-        return "Still blocked? Open Chrome → tap ⋮ → Settings → Site settings → Notifications → allow onekural.com";
-      }
-      return "Notifications blocked — go to Settings → Apps → OneKural → Notifications, then tap again";
+      return "Notifications blocked — open Chrome → tap ⋮ → Settings → Site settings → Notifications → allow onekural.com";
     }
     return "Notifications blocked — tap the 🔒 in your browser's address bar and allow notifications for this site";
   }
@@ -149,9 +145,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
           // Some browsers throw instead of resolving when permission is denied.
         }
         if (retried !== "granted") {
-          const nextAttempts = deniedAttempts + 1;
-          setDeniedAttempts(nextAttempts);
-          setError(notifDeniedError(nextAttempts));
+          setError(notifDeniedError());
           setLoading(false);
           return;
         }
@@ -163,9 +157,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       if (!ok) {
         setSubscribed(false); // revert
         if (permission === "denied") {
-          const nextAttempts = deniedAttempts + 1;
-          setDeniedAttempts(nextAttempts);
-          setError(notifDeniedError(nextAttempts));
+          setError(notifDeniedError());
         } else if (permission === "default") {
           setError("Tap to try again");
         } else {
