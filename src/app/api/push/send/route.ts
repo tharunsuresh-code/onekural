@@ -47,14 +47,8 @@ export async function POST(request: NextRequest) {
   // Filter to subscriptions where it is currently 4 AM in their local timezone.
   // Cron runs hourly, so this fires once per hour and picks up whichever timezones
   // are at the 4 o'clock hour right now (covers half-hour offsets like IST within ±30 min).
-  const toNotify = (subs ?? []).filter((row) => {
-    const tz = row.timezone || "Asia/Kolkata";
-    try {
-      return true; // TEMP: bypass hour filter for testing
-    } catch {
-      return false;
-    }
-  });
+  // TEMP: bypass hour filter for testing
+  const toNotify = (subs ?? []);
 
   // Group by local date — subscriptions in different timezones may get different kurals
   const dateGroups = new Map<string, typeof toNotify>();
