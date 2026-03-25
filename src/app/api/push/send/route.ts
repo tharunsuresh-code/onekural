@@ -50,16 +50,6 @@ export async function POST(request: NextRequest) {
   const toNotify = (subs ?? []).filter((row) => {
     const tz = row.timezone || "Asia/Kolkata";
     try {
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: tz,
-        hour: "numeric",
-        minute: "numeric",
-        hour12: false,
-      }).formatToParts(now);
-      const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "-1");
-      const minute = parseInt(parts.find((p) => p.type === "minute")?.value ?? "60");
-      // Only fire in the first half of the 4 AM hour to avoid duplicate notifications
-      // when the cron runs twice within the same hour (e.g. 4:00 and 4:30).
       return true; // TEMP: bypass hour filter for testing
     } catch {
       return false;
