@@ -54,6 +54,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     async function onVisibility() {
       if (document.visibilityState !== "visible") return;
       if (typeof Notification === "undefined") return;
+      if (loading) return; // Don't race with an in-progress toggle
 
       // Re-evaluate permission + subscription state when app regains focus.
       // The user may have changed notification settings in another app.
@@ -84,7 +85,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [error, userId, subscribed]);
+  }, [error, userId, subscribed, loading]);
 
   if (!pushAvailable) return null;
 
