@@ -138,27 +138,24 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       }
     } else {
       localStorage.removeItem(NOTIF_OPT_OUT_KEY);
-      // Use the Permissions API to detect denied state — it correctly reports
-      // "denied" even in Chrome when the site was blocked via site settings
-      // (which may leave Notification.permission as "default").
-      const permState = await getPermissionState();
-      const isDenied = permState === "denied" || Notification.permission === "denied";
-
-      if (isDenied) {
-        // Try requestPermission() — on Android TWA, if the user re-enabled at
-        // OS level, Chrome may allow the dialog to appear again.
-        let retried: NotificationPermission = "denied";
+      // Request permission once if not already granted. The Permissions API may
+      // report "denied" for first-time sites (Chrome's default-block policy)
+      // even when Notification.permission is "default" — so skip the pre-check
+      // and always attempt requestPermission(), then read the result.
+      if (Notification.permission !== "granted") {
+        let granted = false;
         try {
-          retried = await Notification.requestPermission();
+          granted = (await Notification.requestPermission()) === "granted";
         } catch {
-          // Some browsers throw instead of resolving when permission is denied.
+          // Some browsers throw instead of resolving when blocked.
         }
-        if (retried !== "granted") {
-          setError(notifDeniedError());
+        if (!granted) {
+          const state = await getPermissionState();
+          setError(state === "denied" ? notifDeniedError() : "Tap to try again");
+          operationInProgress.current = false;
           setLoading(false);
           return;
         }
-        // Permission restored — fall through to subscribe
       }
       setSubscribed(true); // optimistic
       const ok = await subscribeToPush(userId);

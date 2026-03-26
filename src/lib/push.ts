@@ -51,12 +51,11 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
     return false;
   }
 
-  // Explicitly request notification permission before subscribing.
-  // pushManager.subscribe() alone does not trigger a permission dialog in all browsers;
-  // calling requestPermission() first ensures the prompt appears correctly.
+  // Callers must ensure Notification.permission === "granted" before calling this.
+  // Requesting permission is the caller's responsibility (e.g. toggle() in profile/page.tsx).
   if (Notification.permission !== "granted") {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") return false;
+    console.warn("[Push] subscribeToPush called without notification permission granted");
+    return false;
   }
 
   try {
