@@ -126,6 +126,40 @@ public/
   manifest.json           # PWA manifest
 ```
 
+## Android TWA
+
+The Play Store app is a Trusted Web Activity wrapping onekural.com. Source lives in `android/` (Bubblewrap-generated).
+
+```
+android/
+  twa-manifest.json          # Bubblewrap config (host, colors, version, notification delegation)
+  app/build.gradle           # Android build config, version codes
+  app/src/main/
+    java/com/onekural/app/   # LauncherActivity, DelegationService, Application
+    AndroidManifest.xml
+    res/                     # Icons, splash screens, drawables
+```
+
+**Building:** Requires Android SDK + Bubblewrap CLI. Run `bubblewrap build` from `android/`.
+
+**Versioning:** Before each Play Store release, bump `appVersionName` + `appVersionCode` in both `android/twa-manifest.json` and `android/app/build.gradle`.
+
+**Signing keystore:** `android/android.keystore` is gitignored. Keep it backed up separately — losing it means losing the ability to update the Play Store listing.
+
+### Push Notification Trade-off (Chrome vs App branding)
+
+Notifications use Chrome's site-level Web Push permission. This means:
+
+- Notifications appear branded as **"Chrome"**, not "OneKural", in the Android notification shade
+- The user sees Chrome's "Allow notifications?" bar (one tap) — no separate Android OS dialog
+- **Trade-off accepted**: Native app-branded notifications would require a full FCM/Firebase integration, which is significantly more complex
+
+**What was explored and abandoned**: Requesting `POST_NOTIFICATIONS` at the Android OS level via `LauncherActivity` with the intent of auto-subscribing after the user taps Allow. This failed because the OS dialog tap does not propagate as a JavaScript user activation into the Chrome WebView, so `Notification.requestPermission()` cannot be silently resolved post-grant. Chrome also caches its delegation state at startup (before the 3-second delayed dialog fires), so `Notification.permission` stays `"default"` mid-session. The `PermissionStatus.change` event approach was also tried but `pushManager.subscribe()` still requires Chrome's site-level permission to have been confirmed via a user-activated `requestPermission()` call — which never happens automatically. Net result: auto-subscribe only worked on devices where Chrome already had prior site-level permission (useless for fresh installs).
+
+**Current UX**: User taps Daily Reminder toggle → Chrome shows one permission bar → taps Allow → subscribed. One user action, fully reliable.
+
+---
+
 ## Data & API
 
 All 1,330 kurals are publicly accessible — no API key required.
@@ -183,7 +217,7 @@ All tables use Row Level Security. Users can only read/write their own data.
 
 ## Push Notifications
 
-Notifications are sent daily at **4 AM in each subscriber's local timezone**. The endpoint `/api/push/send` filters subscriptions by timezone before sending.
+Notifications are sent daily at **4 AM in each subscriber's local timezone**. On Android, they appear under the **Chrome** notification channel (not "OneKural") — see the Android TWA section above for context. The endpoint `/api/push/send` filters subscriptions by timezone before sending.
 
 [cron-job.org](https://cron-job.org) calls this endpoint every 30 minutes, covering all timezone offsets including half-hour ones like IST. GitHub Actions was previously used for this but was removed due to unreliable scheduling (runs were silently skipped, resulting in ~hourly instead of 30-minute intervals).
 

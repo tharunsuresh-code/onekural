@@ -113,6 +113,16 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 - Cron: [cron-job.org](https://cron-job.org) triggers `GET /api/push/send` every 30 minutes (external free service — GitHub Actions was removed due to unreliable scheduling that skipped runs)
 - VAPID keys in `.env.local` as above
 
+### Android TWA Notification Model (important trade-off)
+
+Notifications are handled via **Chrome site-level permission** (the browser's own "Allow notifications?" bar), NOT the Android OS-level `POST_NOTIFICATIONS` dialog.
+
+**Trade-off**: Notifications arrive branded as **"Chrome"**, not "OneKural". This is a known limitation of the Chrome-level delegation model — to get app-branded notifications you'd need to implement a native FCM channel, which is significantly more complex.
+
+**What was tried and abandoned**: Requesting `POST_NOTIFICATIONS` at OS level via `LauncherActivity` and auto-subscribing via `PermissionStatus.change`. The OS dialog tap does not propagate as a JavaScript user activation into the Chrome WebView, so `Notification.requestPermission()` cannot be silently resolved after the OS grant. Chrome also requires at least one `requestPermission()` call with user activation to set its site-level permission before `pushManager.subscribe()` will succeed. Result: auto-subscribe only worked if Chrome already had prior site-level permission — useless for fresh installs.
+
+**Current flow**: User taps the Daily Reminder toggle → Chrome shows one permission bar → user taps Allow → subscribed. Clean, reliable, one user action.
+
 ## Data Model (core types)
 
 ```ts
@@ -146,6 +156,18 @@ Static data: `https://onekural.com/data/kurals.json` (all 1,330 kurals)
 - Tamil font: Noto Serif Tamil — preloaded, class `font-tamil`
 - Max content width: 680px, single column
 - Bottom tab bar: Home · Explore · Journal · Profile
+
+## Android TWA
+
+Source lives in `android/` (Bubblewrap-generated). Key files:
+- `android/twa-manifest.json` — host, colors, version, notification delegation config
+- `android/app/build.gradle` — version codes, SDK targets
+- `android/app/src/main/java/com/onekural/app/` — LauncherActivity, DelegationService, Application
+- `android/app/src/main/AndroidManifest.xml`
+
+**Building**: Requires Android SDK + Bubblewrap CLI. Run `bubblewrap build` from `android/` after installing dependencies. The signing keystore (`android.keystore`) is gitignored — keep it backed up separately.
+
+**Versioning**: Bump both `appVersionName` and `appVersionCode` in `android/twa-manifest.json` AND `android/app/build.gradle` before each Play Store release.
 
 ## Phase Status
 
