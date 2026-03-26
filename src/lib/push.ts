@@ -51,19 +51,9 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
     return false;
   }
 
-  // Callers must ensure permission is granted before calling this.
-  // In Chrome TWA, the Permissions API state may be "granted" (via OS delegation)
-  // before Notification.permission has been synchronously updated — check both.
-  let permGranted = Notification.permission === "granted";
-  if (!permGranted && navigator.permissions) {
-    try {
-      const s = await navigator.permissions.query({ name: "notifications" as PermissionName });
-      permGranted = s.state === "granted";
-    } catch {
-      // Permissions API unavailable
-    }
-  }
-  if (!permGranted) {
+  // Callers must ensure Notification.permission === "granted" before calling this.
+  // Requesting permission is the caller's responsibility (e.g. toggle() in profile/page.tsx).
+  if (Notification.permission !== "granted") {
     console.warn("[Push] subscribeToPush called without notification permission granted");
     return false;
   }

@@ -81,7 +81,8 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         setLoading(true);
         const ok = await subscribeToPush(userId);
         setSubscribed(ok);
-        if (!ok) setError("Failed to enable — try again");
+        if (ok) setError(null);
+        else setError("Failed to enable — try again");
         setLoading(false);
       }
 
@@ -93,70 +94,6 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [error, userId, subscribed, loading]);
-
-  // Watch for OS-level permission grant via the Permissions API change event.
-  // In Chrome TWA, when LauncherActivity's POST_NOTIFICATIONS dialog is accepted,
-  // Chrome re-checks its delegation state and fires PermissionStatus "change".
-  // This fires without a user gesture, unlike requestPermission(), so it reliably
-  // auto-subscribes after the OS popup without any manual toggle tap.
-  useEffect(() => {
-    if (!pushAvailable) return;
-    if (typeof navigator === "undefined" || !navigator.permissions) return;
-
-    let permStatus: PermissionStatus | null = null;
-    let cancelled = false;
-
-    async function handlePermChange() {
-      if (cancelled || permStatus?.state !== "granted") return;
-      if (operationInProgress.current) return;
-      if (localStorage.getItem(NOTIF_OPT_OUT_KEY) === "true") return;
-
-      operationInProgress.current = true;
-      setLoading(true);
-
-      // Chrome requires requestPermission() to have been called at least once to
-      // set its site-level push permission, even when the OS-level grant is already
-      // confirmed via TWA delegation. Attempt it here — the PermissionStatus change
-      // event may carry transient activation from the OS dialog tap, allowing Chrome
-      // to resolve immediately with "granted" (no visible UI). If it throws, we
-      // proceed anyway since subscribeToPush() checks the Permissions API as fallback.
-      if (Notification.permission !== "granted") {
-        try {
-          await Notification.requestPermission();
-        } catch {
-          // No user activation — proceed, subscribeToPush uses Permissions API fallback
-        }
-      }
-
-      if (cancelled) { operationInProgress.current = false; setLoading(false); return; }
-      const alreadySubscribed = await isPushSubscribed();
-      if (cancelled) { operationInProgress.current = false; setLoading(false); return; }
-      if (alreadySubscribed) { setSubscribed(true); operationInProgress.current = false; setLoading(false); return; }
-
-      const ok = await subscribeToPush(userId);
-      if (!cancelled) {
-        setSubscribed(ok);
-        if (!ok) setError("Failed to enable — try again");
-        setLoading(false);
-        lastToggleMs.current = Date.now();
-      }
-      operationInProgress.current = false;
-    }
-
-    navigator.permissions
-      .query({ name: "notifications" as PermissionName })
-      .then((s) => {
-        if (cancelled) return;
-        permStatus = s;
-        s.addEventListener("change", handlePermChange);
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-      permStatus?.removeEventListener("change", handlePermChange);
-    };
-  }, [pushAvailable, userId]);
 
   if (!pushAvailable) return null;
 
