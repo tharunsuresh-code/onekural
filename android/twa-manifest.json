@@ -1,0 +1,52 @@
+{
+  "packageId": "com.onekural.app",
+  "host": "onekural.com",
+  "name": "OneKural",
+  "launcherName": "OneKural",
+  "display": "standalone",
+  "themeColor": "#1B5E4F",
+  "themeColorDark": "#0F0E0C",
+  "navigationColor": "#1B5E4F",
+  "navigationColorDark": "#0F0E0C",
+  "navigationDividerColor": "#1B5E4F",
+  "navigationDividerColorDark": "#0F0E0C",
+  "backgroundColor": "#FAF7F2",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://onekural.com/icons/icon-512.png",
+  "maskableIconUrl": "https://onekural.com/icons/icon-512-maskable.png",
+  "monochromeIconUrl": "",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "onekural"
+  },
+  "appVersionName": "1.0.5",
+  "appVersionCode": 10,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://onekural.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://onekural.com/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": [],
+  "appVersion": "1.0.1"
+}

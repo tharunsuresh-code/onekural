@@ -50,3 +50,13 @@ scripts/output/
 /docs/
 lighthouse_report.json
 onekural.com-20260318T222804.html
+
+# Android
+android/android.keystore
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/*.aab
+android/*.apk
+android/manifest-checksum.txt
