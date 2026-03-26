@@ -71,32 +71,6 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         setError(null);
       }
 
-      // If Notification.permission is still "default" in this session but POST_NOTIFICATIONS
-      // was just granted at OS level (via LauncherActivity), Chrome TWA resolves
-      // requestPermission() immediately with "granted" — no visible UI — using the
-      // transient user activation from the OS dialog tap. In Chrome browser (non-TWA)
-      // this throws or returns non-granted and is silently ignored.
-      if (perm === "default" && localStorage.getItem(NOTIF_OPT_OUT_KEY) !== "true") {
-        operationInProgress.current = true;
-        let silentGranted = false;
-        try {
-          silentGranted = (await Notification.requestPermission()) === "granted";
-        } catch {
-          // requestPermission() blocked — no user gesture in this context
-        }
-        if (silentGranted) {
-          setLoading(true);
-          const ok = await subscribeToPush(userId);
-          setSubscribed(ok);
-          if (!ok) setError("Failed to enable — try again");
-          setLoading(false);
-          lastToggleMs.current = Date.now();
-          operationInProgress.current = false;
-          return;
-        }
-        operationInProgress.current = false;
-      }
-
       const nowSubscribed = await isPushSubscribed();
       const effectivelySubscribed = nowSubscribed && perm === "granted";
       setSubscribed(effectivelySubscribed);
@@ -119,6 +93,52 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [error, userId, subscribed, loading]);
+
+  // Watch for OS-level permission grant via the Permissions API change event.
+  // In Chrome TWA, when LauncherActivity's POST_NOTIFICATIONS dialog is accepted,
+  // Chrome re-checks its delegation state and fires PermissionStatus "change".
+  // This fires without a user gesture, unlike requestPermission(), so it reliably
+  // auto-subscribes after the OS popup without any manual toggle tap.
+  useEffect(() => {
+    if (!pushAvailable) return;
+    if (typeof navigator === "undefined" || !navigator.permissions) return;
+
+    let permStatus: PermissionStatus | null = null;
+    let cancelled = false;
+
+    async function handlePermChange() {
+      if (cancelled || permStatus?.state !== "granted") return;
+      if (operationInProgress.current) return;
+      if (localStorage.getItem(NOTIF_OPT_OUT_KEY) === "true") return;
+      const alreadySubscribed = await isPushSubscribed();
+      if (cancelled) return;
+      if (alreadySubscribed) { setSubscribed(true); return; }
+      operationInProgress.current = true;
+      setLoading(true);
+      const ok = await subscribeToPush(userId);
+      if (!cancelled) {
+        setSubscribed(ok);
+        if (!ok) setError("Failed to enable — try again");
+        setLoading(false);
+        lastToggleMs.current = Date.now();
+      }
+      operationInProgress.current = false;
+    }
+
+    navigator.permissions
+      .query({ name: "notifications" as PermissionName })
+      .then((s) => {
+        if (cancelled) return;
+        permStatus = s;
+        s.addEventListener("change", handlePermChange);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      permStatus?.removeEventListener("change", handlePermChange);
+    };
+  }, [pushAvailable, userId]);
 
   if (!pushAvailable) return null;
 
