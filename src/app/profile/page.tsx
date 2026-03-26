@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth";
@@ -14,6 +14,9 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true);
   const [pushAvailable, setPushAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Ref so visibilitychange handler sees the current value synchronously,
+  // without waiting for React to re-render and replace the closure.
+  const operationInProgress = useRef(false);
 
   useEffect(() => {
     const available =
@@ -54,7 +57,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     async function onVisibility() {
       if (document.visibilityState !== "visible") return;
       if (typeof Notification === "undefined") return;
-      if (loading) return; // Don't race with an in-progress toggle
+      if (operationInProgress.current) return; // Don't race with an in-progress toggle
 
       // Re-evaluate permission + subscription state when app regains focus.
       // The user may have changed notification settings in another app.
@@ -117,6 +120,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
 
   async function toggle() {
     if (loading) return;
+    operationInProgress.current = true;
     setLoading(true);
     setError(null);
     if (subscribed) {
@@ -166,6 +170,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         }
       }
     }
+    operationInProgress.current = false;
     setLoading(false);
   }
 
