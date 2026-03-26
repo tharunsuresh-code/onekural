@@ -17,6 +17,9 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   // Ref so visibilitychange handler sees the current value synchronously,
   // without waiting for React to re-render and replace the closure.
   const operationInProgress = useRef(false);
+  // Timestamp of last completed toggle — visibilitychange is suppressed for 3s
+  // after a toggle to prevent PushManager race conditions and error-clearing.
+  const lastToggleMs = useRef(0);
 
   useEffect(() => {
     const available =
@@ -58,6 +61,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       if (document.visibilityState !== "visible") return;
       if (typeof Notification === "undefined") return;
       if (operationInProgress.current) return; // Don't race with an in-progress toggle
+      if (Date.now() - lastToggleMs.current < 3000) return; // Cooldown after toggle completes
 
       // Re-evaluate permission + subscription state when app regains focus.
       // The user may have changed notification settings in another app.
@@ -170,6 +174,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
         }
       }
     }
+    lastToggleMs.current = Date.now();
     operationInProgress.current = false;
     setLoading(false);
   }
