@@ -110,11 +110,29 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
       if (cancelled || permStatus?.state !== "granted") return;
       if (operationInProgress.current) return;
       if (localStorage.getItem(NOTIF_OPT_OUT_KEY) === "true") return;
-      const alreadySubscribed = await isPushSubscribed();
-      if (cancelled) return;
-      if (alreadySubscribed) { setSubscribed(true); return; }
+
       operationInProgress.current = true;
       setLoading(true);
+
+      // Chrome requires requestPermission() to have been called at least once to
+      // set its site-level push permission, even when the OS-level grant is already
+      // confirmed via TWA delegation. Attempt it here — the PermissionStatus change
+      // event may carry transient activation from the OS dialog tap, allowing Chrome
+      // to resolve immediately with "granted" (no visible UI). If it throws, we
+      // proceed anyway since subscribeToPush() checks the Permissions API as fallback.
+      if (Notification.permission !== "granted") {
+        try {
+          await Notification.requestPermission();
+        } catch {
+          // No user activation — proceed, subscribeToPush uses Permissions API fallback
+        }
+      }
+
+      if (cancelled) { operationInProgress.current = false; setLoading(false); return; }
+      const alreadySubscribed = await isPushSubscribed();
+      if (cancelled) { operationInProgress.current = false; setLoading(false); return; }
+      if (alreadySubscribed) { setSubscribed(true); operationInProgress.current = false; setLoading(false); return; }
+
       const ok = await subscribeToPush(userId);
       if (!cancelled) {
         setSubscribed(ok);
