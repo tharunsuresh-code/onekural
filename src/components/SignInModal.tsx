@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { openSheet, closeSheet } from "@/lib/sheet-depth";
 
@@ -17,6 +17,15 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const historyPushed = useRef(false);
+  const sheetY = useMotionValue(0);
+
+  function handleDragEnd(_: unknown, info: { offset: { y: number }; velocity: { y: number } }) {
+    if (info.offset.y > 60 || info.velocity.y > 400) {
+      dismiss();
+    } else {
+      animate(sheetY, 0, { type: "spring", stiffness: 500, damping: 45 });
+    }
+  }
 
   const handleClose = () => {
     setEmail("");
@@ -98,10 +107,22 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-cream dark:bg-dark-subtle rounded-t-2xl px-6 pt-8 pb-10 max-w-content mx-auto"
+            style={{ y: sheetY }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={{ top: 0.05, bottom: 0 }}
+            onDragEnd={handleDragEnd}
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-cream dark:bg-dark-subtle rounded-t-2xl max-w-content mx-auto"
           >
-            {/* Handle */}
-            <div className="w-10 h-1 bg-dark/15 dark:bg-dark-fg/20 rounded-full mx-auto mb-6" />
+            {/* Handle — drag down or tap to close */}
+            <button
+              onClick={dismiss}
+              aria-label="Close"
+              className="flex-shrink-0 pt-3 pb-1 flex justify-center w-full"
+            >
+              <div className="w-10 h-1 bg-dark/15 dark:bg-dark-fg/20 rounded-full" />
+            </button>
+            <div className="px-6 pt-4 pb-10">
 
             <h2 className="text-lg font-semibold text-dark dark:text-dark-fg text-center mb-1">
               Sign in to OneKural
@@ -173,6 +194,7 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
                 </button>
               </form>
             )}
+            </div>
           </motion.div>
         </>
       )}
