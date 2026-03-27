@@ -59,4 +59,5 @@ android/.gradle/
 android/local.properties
 android/*.aab
 android/*.apk
+android/*.idsig
 android/manifest-checksum.txt
