@@ -35,6 +35,8 @@ export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingKural, setEditingKural] = useState<Kural | null>(null);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 5;
 
   const loadEntries = useCallback(async () => {
     if (user) {
@@ -45,6 +47,7 @@ export default function JournalPage() {
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
       setEntries((data ?? []).filter((e) => e.reflection?.trim().length > 0));
+      setPage(0);
     } else {
       // Guest: load from localStorage
       const local = getLocalJournals();
@@ -115,33 +118,56 @@ export default function JournalPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {entries.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => handleEntryClick(entry.kural_id)}
-                className="w-full text-left border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-emerald font-medium">
-                    Kural #{entry.kural_id}
-                  </span>
-                  {user && (
-                    <span className="text-xs text-dark/40 dark:text-dark-fg/50">
-                      {new Date(entry.updated_at).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+          <>
+            <div className="space-y-3">
+              {entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((entry) => (
+                <button
+                  key={entry.id}
+                  onClick={() => handleEntryClick(entry.kural_id)}
+                  className="w-full text-left border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-emerald font-medium">
+                      Kural #{entry.kural_id}
                     </span>
-                  )}
-                </div>
-                <p className="text-sm text-dark/70 dark:text-dark-fg/75 leading-relaxed line-clamp-3">
-                  {entry.reflection}
-                </p>
-              </button>
-            ))}
-          </div>
+                    {user && (
+                      <span className="text-xs text-dark/40 dark:text-dark-fg/50">
+                        {new Date(entry.updated_at).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-dark/70 dark:text-dark-fg/75 leading-relaxed line-clamp-3">
+                    {entry.reflection}
+                  </p>
+                </button>
+              ))}
+            </div>
+            {entries.length > PAGE_SIZE && (
+              <div className="flex items-center justify-between mt-6 text-sm">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="px-3 py-1.5 rounded-lg border border-dark/10 dark:border-dark-fg/20 text-dark/50 dark:text-dark-fg/60 disabled:opacity-30 hover:border-emerald/30 transition-colors"
+                >
+                  ← Prev
+                </button>
+                <span className="text-xs text-dark/40 dark:text-dark-fg/50">
+                  {page + 1} / {Math.ceil(entries.length / PAGE_SIZE)}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(Math.ceil(entries.length / PAGE_SIZE) - 1, p + 1))}
+                  disabled={page >= Math.ceil(entries.length / PAGE_SIZE) - 1}
+                  className="px-3 py-1.5 rounded-lg border border-dark/10 dark:border-dark-fg/20 text-dark/50 dark:text-dark-fg/60 disabled:opacity-30 hover:border-emerald/30 transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
       </div>

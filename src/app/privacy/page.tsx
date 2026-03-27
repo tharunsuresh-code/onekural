@@ -6,20 +6,20 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="max-w-content mx-auto px-6 pt-10 pb-24">
+    <main className="h-dvh overflow-y-auto max-w-content mx-auto px-6 pt-10 pb-nav">
       <Link
         href="/"
-        className="inline-flex items-center text-sm text-dark/50 mb-6 hover:text-emerald transition-colors"
+        className="inline-flex items-center text-sm text-dark/50 dark:text-dark-fg/60 mb-6 hover:text-emerald transition-colors"
       >
         ← Back
       </Link>
 
-      <h1 className="text-2xl font-semibold text-dark mb-2">Privacy Policy</h1>
-      <p className="text-xs text-dark/40 mb-8">Last updated: March 2026</p>
+      <h1 className="text-2xl font-semibold text-dark dark:text-dark-fg mb-2">Privacy Policy</h1>
+      <p className="text-xs text-dark/40 dark:text-dark-fg/40 mb-8">Last updated: March 2026</p>
 
-      <div className="space-y-8 text-sm text-dark/80 leading-relaxed">
+      <div className="space-y-8 text-sm text-dark/80 dark:text-dark-fg/75 leading-relaxed">
         <section>
-          <h2 className="text-base font-semibold text-dark mb-2">Overview</h2>
+          <h2 className="text-base font-semibold text-dark dark:text-dark-fg mb-2">Overview</h2>
           <p>
             OneKural (&ldquo;we&rdquo;, &ldquo;our&rdquo;, &ldquo;the app&rdquo;) is a daily
             Thirukkural reading app. We are committed to protecting your privacy.
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-dark mb-2">Information We Collect</h2>
+          <h2 className="text-base font-semibold text-dark dark:text-dark-fg mb-2">Information We Collect</h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>
               <strong>Account information:</strong> If you sign in with Google,
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-dark mb-2">How We Use Your Information</h2>
+          <h2 className="text-base font-semibold text-dark dark:text-dark-fg mb-2">How We Use Your Information</h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>To sync your journal and favourites across devices when signed in.</li>
             <li>To send a single daily Thirukkural push notification if you opt in.</li>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-dark mb-2">Third-Party Services</h2>
+          <h2 className="text-base font-semibold text-dark dark:text-dark-fg mb-2">Third-Party Services</h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>
               <strong>Supabase</strong> — our database and authentication
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-dark mb-2">Data Retention</h2>
+          <h2 className="text-base font-semibold text-dark dark:text-dark-fg mb-2">Data Retention</h2>
           <p>
             Your account data is retained as long as your account exists. You
             may delete your journal entries at any time within the app. To
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-dark mb-2">Changes to This Policy</h2>
+          <h2 className="text-base font-semibold text-dark dark:text-dark-fg mb-2">Changes to This Policy</h2>
           <p>
             We may update this policy from time to time. The &ldquo;last
             updated&rdquo; date at the top will reflect any changes.
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-dark mb-2">Contact</h2>
+          <h2 className="text-base font-semibold text-dark dark:text-dark-fg mb-2">Contact</h2>
           <p>
             For privacy questions or data deletion requests, email us at{" "}
             <a
