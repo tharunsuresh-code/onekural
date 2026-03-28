@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 import { getDailyKural } from "@/lib/kurals";
+import { BOOK_NAMES } from "@/lib/types";
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
@@ -119,7 +120,10 @@ export async function POST(request: NextRequest) {
       groups.webpush.map(async (row) => {
         const langPref = row.user_id ? (langPrefMap.get(row.user_id) ?? "tamil") : "tamil";
         const body = langPref === "transliteration" ? kural.transliteration : kural.kural_tamil;
-        const payload = JSON.stringify({ title: "OneKural — Daily Thirukkural", body, url: "/" });
+        const title = langPref === "transliteration"
+          ? `${BOOK_NAMES[kural.book].english} · ${kural.chapter_name_english}`
+          : `${BOOK_NAMES[kural.book].tamil} · ${kural.chapter_name_tamil}`;
+        const payload = JSON.stringify({ title, body, url: "/" });
         try {
           await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload);
           sent++;
@@ -144,10 +148,13 @@ export async function POST(request: NextRequest) {
         groups.fcm.map(async (row) => {
           const langPref = row.user_id ? (langPrefMap.get(row.user_id) ?? "tamil") : "tamil";
           const body = langPref === "transliteration" ? kural.transliteration : kural.kural_tamil;
+          const title = langPref === "transliteration"
+            ? `${BOOK_NAMES[kural.book].english} · ${kural.chapter_name_english}`
+            : `${BOOK_NAMES[kural.book].tamil} · ${kural.chapter_name_tamil}`;
           try {
             await fcm.send({
               token: row.fcm_token as string,
-              notification: { title: "OneKural — Daily Thirukkural", body },
+              notification: { title, body },
               android: {
                 priority: "normal",
                 notification: {
