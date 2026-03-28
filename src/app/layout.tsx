@@ -86,10 +86,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FFFFFF" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F0E0C" },
-  ],
+  // themeColor is intentionally omitted — managed by a single <meta> tag in <head>
+  // below so the blocking script can set it synchronously before first paint,
+  // preventing the white-flash the TWA manifest fallback (#FFFFFF) would otherwise
+  // cause for dark-mode users during navigation.
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -103,8 +103,13 @@ export default function RootLayout({
   return (
     <html lang="ta" className={`${notoSerifTamil.variable} ${inter.variable} ${crimsonText.variable} light`}>
       <head>
-        {/* Blocking script: apply saved theme (or system default) before first paint to avoid flash */}
-        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme')||'system';var e=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(e);}catch(e){}` }} />
+        {/* Single theme-color tag — set before the blocking script so the script can
+            update it synchronously, giving Chrome the correct status-bar colour
+            before any paint (avoids the white-flash TWA manifest fallback). */}
+        <meta name="theme-color" content="#FFFFFF" />
+        {/* Blocking script: apply saved theme (or system default) before first paint to avoid flash.
+            Also updates the theme-color meta tag above so the status bar matches immediately. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme')||'system';var e=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(e);var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=e==='dark'?'#0F0E0C':'#FFFFFF';}catch(e){}` }} />
       </head>
       <body className="font-sans antialiased bg-cream dark:bg-dark-bg text-dark dark:text-dark-fg">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />

@@ -27,11 +27,11 @@ def twaManifest = [
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'OneKural', // The application name.
     launcherName: 'OneKural', // The name shown on the Android Launcher.
-    themeColor: '#1B5E4F', // The color used for the status bar.
+    themeColor: '#FFFFFF', // Light-mode status bar — matches the web page meta[name=theme-color].
     themeColorDark: '#0F0E0C', // The color used for the dark status bar.
-    navigationColor: '#1B5E4F', // The color used for the navigation bar.
+    navigationColor: '#FFFFFF', // Light-mode nav bar — matches page background to avoid emerald flash.
     navigationColorDark: '#0F0E0C', // The color used for the dark navbar.
-    navigationDividerColor: '#1B5E4F', // The navbar divider color.
+    navigationDividerColor: '#FFFFFF', // The navbar divider color.
     navigationDividerColorDark: '#0F0E0C', // The dark navbar divider color.
     backgroundColor: '#FAF7F2', // The color used for the splash screen background.
     enableNotifications: false, // Delegation disabled — Chrome handles site-level permission.

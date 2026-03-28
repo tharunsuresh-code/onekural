@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isSheetOpen, dismissTopSheet } from "@/lib/sheet-depth";
 
@@ -16,13 +16,24 @@ function isStandalone() {
 
 export function BackExitHandler() {
   const pathname = usePathname();
+  const [showToast, setShowToast] = useState(false);
+  const exitPending = useRef(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Set when an OAuth redirect is detected; absorbs the one spurious popstate
   // that fires when Supabase cleans the hash with window.location.hash = ''.
   const oauthCleanupPending = useRef(false);
   // Tracks whether we are currently on a root path. Updated both by the
   // pathname effect (forward navigations) and eagerly inside the popstate
-  // handler (so rapid back-press sees the correct value before React re-renders).
+  // handler (so rapid double-back-press sees the correct value before React
+  // has had a chance to re-render).
   const atRootRef = useRef(ROOT_PATHS.includes(pathname));
+  // Prevents re-entering exit logic while history.go(-N) is draining the stack.
+  // Without stopImmediatePropagation during drain, Next.js's bubble-phase listener
+  // would update its router state, re-fire useEffect([pathname]), and push a fresh
+  // sentinel — resetting canGoBack() to true so the TWA never closes.
+  // This was also the root cause of the "jarring page slide / blinking sections"
+  // bug: the drain loop caused rapid history traversal, briefly rendering each page.
+  const exitingRef = useRef(false);
 
   // Keep atRootRef in sync when navigating forward (no popstate fires).
   useEffect(() => {
@@ -37,6 +48,16 @@ export function BackExitHandler() {
     if (!isStandalone()) return;
 
     const handlePopState = (e: PopStateEvent) => {
+      // While history.go(-N) is draining history toward exit, stop the event
+      // but do nothing else. Without stopImmediatePropagation here, Next.js's
+      // bubble-phase listener would update its router state, causing usePathname()
+      // to change, which re-fires useEffect([pathname]) and pushes a fresh sentinel
+      // — resetting canGoBack() to true and looping forever (causing page blinking).
+      if (exitingRef.current) {
+        e.stopImmediatePropagation();
+        return;
+      }
+
       // Absorb the popstate fired by Supabase's OAuth hash cleanup
       // (window.location.hash = '' adds a history entry and fires popstate).
       if (oauthCleanupPending.current) {
@@ -57,7 +78,7 @@ export function BackExitHandler() {
       }
 
       // Eagerly update atRootRef using location.pathname (browser updates it before
-      // the event fires) so that a rapid back-press sees the correct value
+      // the event fires) so that a rapid second back-press sees the correct value
       // even if React hasn't re-rendered yet.
       const wasAtRoot = atRootRef.current;
       atRootRef.current = ROOT_PATHS.includes(location.pathname);
@@ -70,22 +91,51 @@ export function BackExitHandler() {
       // layout shift on the nav row, and a spurious page scrollbar.
       e.stopImmediatePropagation();
 
-      // Single back press at root — exit immediately.
-      // history.go(-(history.length)) drains all entries; Android OS closes the app
-      // once the session history is exhausted.
-      history.go(-(history.length));
+      if (exitPending.current) {
+        // Second back press within 2 s — exit the app.
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        exitPending.current = false;
+        setShowToast(false);
+        // Drain all sentinel entries to position 0 (canGoBack() = false).
+        // exitingRef ensures the drain's popstate is stopped so Next.js cannot
+        // update its router state, push a fresh sentinel, and reset canGoBack() = true.
+        exitingRef.current = true;
+        history.go(-(history.length));
+        return;
+      }
+
+      // First back press — show toast and re-push sentinel so the app stays open.
+      history.pushState({ oneKuralRoot: true }, "");
+      exitPending.current = true;
+      setShowToast(true);
+      toastTimer.current = setTimeout(() => {
+        exitPending.current = false;
+        setShowToast(false);
+      }, 2000);
     };
 
     // Capture phase ensures our handler fires before Next.js's bubble-phase listener.
     window.addEventListener("popstate", handlePopState, true);
-    return () => window.removeEventListener("popstate", handlePopState, true);
+    return () => {
+      window.removeEventListener("popstate", handlePopState, true);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Push a sentinel history entry each time we land on a root path.
   // This gives the Android back button something to "hit" before leaving the app.
+  // Also resets the double-back state when navigating between root paths.
   useEffect(() => {
     if (!isStandalone()) return;
     if (!ROOT_PATHS.includes(pathname)) return;
+    // Belt-and-suspenders: if exit drain is in progress, stopImmediatePropagation
+    // in handlePopState should already prevent Next.js from updating usePathname(),
+    // so this effect shouldn't fire. Guard here too for timing edge cases.
+    if (exitingRef.current) return;
+
+    exitPending.current = false;
+    setShowToast(false);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
 
     // When an OAuth redirect lands, the URL hash contains the access token
     // that Supabase's detectSessionInUrl must read. Calling pushState with ""
@@ -108,5 +158,11 @@ export function BackExitHandler() {
     history.pushState({ oneKuralRoot: true }, "", oauthInUrl ? window.location.href : "");
   }, [pathname]);
 
-  return null;
+  if (!showToast) return null;
+
+  return (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[200] px-5 py-2.5 rounded-full bg-dark/90 dark:bg-dark-fg/90 text-dark-fg dark:text-dark text-sm font-medium pointer-events-none whitespace-nowrap">
+      Press back again to exit
+    </div>
+  );
 }
