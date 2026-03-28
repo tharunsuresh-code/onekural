@@ -27,7 +27,8 @@ A mobile-first Progressive Web App (PWA) for the Tamil diaspora. Every day, OneK
 | Auth & DB | Supabase (Postgres + Google OAuth) |
 | Hosting | Vercel |
 | Animations | Framer Motion |
-| Push | Web Push API + VAPID |
+| Push (web) | Web Push API + VAPID |
+| Push (Android) | Firebase Cloud Messaging (FCM) |
 | Cron | cron-job.org (every 30 min) |
 
 ## Getting Started
@@ -58,6 +59,9 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=<vapid-public-key>
 VAPID_PRIVATE_KEY=<vapid-private-key>
 VAPID_MAILTO=mailto:you@example.com
+
+# FCM / Firebase (Android TWA push notifications)
+FIREBASE_SERVICE_ACCOUNT=<service-account-json-as-single-line>
 
 # Cron auth (optional but recommended)
 CRON_SECRET=<random-secret>
@@ -107,9 +111,11 @@ src/
     journal/              # User's journal entries
     profile/              # Account & notification settings
     api/
-      push/subscribe/     # Save push subscription
-      push/unsubscribe/   # Remove push subscription
-      push/send/          # Send daily notifications (cron target)
+      push/subscribe/     # Save Web Push subscription
+      push/unsubscribe/   # Remove Web Push subscription
+      push/send/          # Send daily notifications (cron target — Web Push + FCM)
+      push/fcm-subscribe/ # Register FCM token (Android TWA)
+      push/link-fcm-user/ # Link FCM device to authenticated user
   components/
     KuralCard             # Daily kural on home page
     KuralDetailCard       # Kural detail (explore/kural pages)
@@ -146,17 +152,20 @@ android/
 
 **Signing keystore:** `android/android.keystore` is gitignored. Keep it backed up separately — losing it means losing the ability to update the Play Store listing.
 
-### Push Notification Trade-off (Chrome vs App branding)
+### Android Push Notifications (FCM)
 
-Notifications use Chrome's site-level Web Push permission. This means:
+The Android TWA uses **Firebase Cloud Messaging (FCM)** for native, app-branded push notifications.
 
-- Notifications appear branded as **"Chrome"**, not "OneKural", in the Android notification shade
-- The user sees Chrome's "Allow notifications?" bar (one tap) — no separate Android OS dialog
-- **Trade-off accepted**: Native app-branded notifications would require a full FCM/Firebase integration, which is significantly more complex
+- Notifications appear branded as **"OneKural"** in the Android notification shade
+- Android 13+ asks for `POST_NOTIFICATIONS` permission via the OS dialog (up to 2 times)
+- `LauncherActivity` registers an FCM token via `FcmTokenRegistrar` and passes the device ID + notification permission state to the web layer via URL params (`?fcmDeviceId=…&notifGranted=true|false`)
+- `auth.tsx` reads these params on load, stores the FCM device ID in localStorage, and links it to the authenticated user by calling `/api/push/link-fcm-user`
+- `/api/push/send` has a dual send path: Web Push for browser subscribers and FCM for Android app subscribers
 
-**What was explored and abandoned**: Requesting `POST_NOTIFICATIONS` at the Android OS level via `LauncherActivity` with the intent of auto-subscribing after the user taps Allow. This failed because the OS dialog tap does not propagate as a JavaScript user activation into the Chrome WebView, so `Notification.requestPermission()` cannot be silently resolved post-grant. Chrome also caches its delegation state at startup (before the 3-second delayed dialog fires), so `Notification.permission` stays `"default"` mid-session. The `PermissionStatus.change` event approach was also tried but `pushManager.subscribe()` still requires Chrome's site-level permission to have been confirmed via a user-activated `requestPermission()` call — which never happens automatically. Net result: auto-subscribe only worked on devices where Chrome already had prior site-level permission (useless for fresh installs).
-
-**Current UX**: User taps Daily Reminder toggle → Chrome shows one permission bar → taps Allow → subscribed. One user action, fully reliable.
+The profile page Daily Reminder section shows a three-state status badge:
+- **Enabled** (green) — OS permission granted
+- **Disabled** (red) + settings path — permission denied after at least one prompt
+- No badge — permission not yet asked (fresh install)
 
 ---
 
@@ -211,13 +220,14 @@ curl "https://onekural.com/api/kurals/batch?ids=1,100,500"
 - **kurals** — 1,330 verses (static, seeded). Daily kural ID is computed from the date, no DB query needed.
 - **journals** — per-user reflections, one per kural.
 - **favorites** — per-user saved kurals.
-- **push_subscriptions** — Web Push subscription objects, one per user.
+- **push_subscriptions** — Web Push subscription objects (browser), one per device.
+- **fcm_subscriptions** — FCM tokens for Android TWA users, keyed by device ID.
 
 All tables use Row Level Security. Users can only read/write their own data.
 
 ## Push Notifications
 
-Notifications are sent daily at **4 AM in each subscriber's local timezone**. On Android, they appear under the **Chrome** notification channel (not "OneKural") — see the Android TWA section above for context. The endpoint `/api/push/send` filters subscriptions by timezone before sending.
+Notifications are sent daily at **4 AM in each subscriber's local timezone**. The endpoint `/api/push/send` has a dual send path: Web Push for browser subscribers and FCM for Android app subscribers. Android notifications are branded as **"OneKural"** via the native FCM channel.
 
 [cron-job.org](https://cron-job.org) calls this endpoint every 30 minutes, covering all timezone offsets including half-hour ones like IST. GitHub Actions was previously used for this but was removed due to unreliable scheduling (runs were silently skipped, resulting in ~hourly instead of 30-minute intervals).
 

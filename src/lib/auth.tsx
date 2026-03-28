@@ -60,6 +60,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // getSession() below will still run async to refresh the token if needed.
   const [loading, setLoading] = useState(initUser === null);
 
+  // Read ?fcmDeviceId=<uuid> injected by LauncherActivity.getLaunchingUrl() and
+  // store it so we can link it to the user once the auth session is available.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fcmDeviceId = params.get("fcmDeviceId");
+    if (fcmDeviceId) {
+      localStorage.setItem("onekural-fcm-device-id", fcmDeviceId);
+      // Persist TWA flag — presence of fcmDeviceId means we launched from the Android app.
+      // Used by DailyReminderToggle to hide Web Push (FCM handles notifications instead).
+      localStorage.setItem("onekural-is-twa", "true");
+    }
+    // Persist OS notification permission state passed by LauncherActivity.
+    // Used by DailyReminderToggle to show accurate enabled/disabled status in TWA.
+    // If the param is absent (e.g. permission not yet asked), clear any stale value
+    // so the web falls back to the neutral null state rather than showing "Disabled".
+    const notifGranted = params.get("notifGranted");
+    if (notifGranted !== null) {
+      localStorage.setItem("onekural-notif-granted", notifGranted);
+    } else {
+      localStorage.removeItem("onekural-notif-granted");
+    }
+  }, []);
+
+  // When a session becomes available, link the FCM device to the user once.
+  useEffect(() => {
+    if (!session) return;
+    const fcmDeviceId = localStorage.getItem("onekural-fcm-device-id");
+    if (!fcmDeviceId) return;
+    fetch("/api/push/link-fcm-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ fcmDeviceId }),
+    }).then((res) => {
+      if (res.ok) localStorage.removeItem("onekural-fcm-device-id");
+    });
+  }, [session]);
+
   useEffect(() => {
     // Validate / refresh the token — updates state if the cached value was stale
     supabase.auth.getSession().then(({ data: { session } }) => {

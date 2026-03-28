@@ -22,6 +22,14 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   const lastToggleMs = useRef(0);
 
   useEffect(() => {
+    // TWA (Android app) uses FCM natively — Web Push is not needed and would
+    // cause duplicate notifications. Detected via persistent flag set in auth.tsx
+    // when LauncherActivity appends ?fcmDeviceId= to the launch URL.
+    if (localStorage.getItem("onekural-is-twa") === "true") {
+      setLoading(false);
+      return;
+    }
+
     const available =
       typeof window !== "undefined" &&
       "serviceWorker" in navigator &&
@@ -60,6 +68,9 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     async function onVisibility() {
       if (document.visibilityState !== "visible") return;
       if (typeof Notification === "undefined") return;
+
+      if (localStorage.getItem("onekural-is-twa") === "true") return;
+
       if (operationInProgress.current) return; // Don't race with an in-progress toggle
       if (Date.now() - lastToggleMs.current < 3000) return; // Cooldown after toggle completes
 
@@ -94,6 +105,36 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [error, userId, subscribed, loading]);
+
+  // TWA path: FCM handles notifications natively — no Web Push toggle needed
+  if (typeof window !== "undefined" &&
+      localStorage.getItem("onekural-is-twa") === "true") {
+    const rawNotifGranted = localStorage.getItem("onekural-notif-granted"); // null | "true" | "false"
+    return (
+      <div className="border border-dark/10 dark:border-dark-fg/20 rounded-xl">
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <div>
+            <p className="text-sm text-dark/80 dark:text-dark-fg/85">Daily Reminder</p>
+            <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5">Managed by app notifications</p>
+          </div>
+          {rawNotifGranted === "true" && (
+            <span className="text-xs font-medium text-emerald">Enabled</span>
+          )}
+          {rawNotifGranted === "false" && (
+            <span className="text-xs font-medium text-deep-red dark:text-deep-red/90">Disabled</span>
+          )}
+        </div>
+        {rawNotifGranted === "false" && (
+          <p className="px-4 pb-3 text-xs text-dark/40 dark:text-dark-fg/50">
+            To enable: <span className="font-medium">Settings</span> →{" "}
+            <span className="font-medium">Apps</span> →{" "}
+            <span className="font-medium">OneKural</span> →{" "}
+            <span className="font-medium">Notifications</span>
+          </p>
+        )}
+      </div>
+    );
+  }
 
   if (!pushAvailable) return null;
 

@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 import { getDailyKural } from "@/lib/kurals";
+import { getApps, initializeApp, cert } from "firebase-admin/app";
+import { getMessaging } from "firebase-admin/messaging";
+
+function getFirebaseMessaging() {
+  if (getApps().length === 0) {
+    initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!)) });
+  }
+  return getMessaging();
+}
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY!;
@@ -36,7 +45,7 @@ export async function POST(request: NextRequest) {
 
   const { data: subs, error } = await supabaseAdmin
     .from("push_subscriptions")
-    .select("id, subscription, timezone, user_id");
+    .select("id, subscription, timezone, user_id, fcm_token, subscription_type");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -66,13 +75,21 @@ export async function POST(request: NextRequest) {
     }
   });
 
-  // Group by local date — subscriptions in different timezones may get different kurals
-  const dateGroups = new Map<string, typeof toNotify>();
+  // Group by local date — subscriptions in different timezones may get different kurals.
+  // Each group tracks webpush and fcm rows separately for dispatch routing.
+  type SubRow = (typeof toNotify)[0];
+  const dateGroups = new Map<string, { webpush: SubRow[]; fcm: SubRow[] }>();
   for (const row of toNotify) {
     const tz = row.timezone || "Asia/Kolkata";
     const localDate = now.toLocaleDateString("en-CA", { timeZone: tz });
-    if (!dateGroups.has(localDate)) dateGroups.set(localDate, []);
-    dateGroups.get(localDate)!.push(row);
+    if (!dateGroups.has(localDate)) dateGroups.set(localDate, { webpush: [], fcm: [] });
+    const group = dateGroups.get(localDate)!;
+    const type = row.subscription_type ?? "webpush";
+    if (type === "fcm" && row.fcm_token != null) {
+      group.fcm.push(row);
+    } else if (type === "webpush" && row.subscription != null) {
+      group.webpush.push(row);
+    }
   }
 
   // Batch-fetch language preferences from user metadata for all logged-in subscribers
@@ -86,55 +103,87 @@ export async function POST(request: NextRequest) {
     })
   );
 
-  const expiredIds: string[] = [];
+  const expiredWebPushIds: string[] = [];
+  const expiredFcmIds: string[] = [];
   let sent = 0;
   const errors: Array<{ subscriptionId: string; error: string }> = [];
 
-  for (const [date, rows] of Array.from(dateGroups.entries())) {
+  // Only init Firebase if the env var is configured
+  const fcm = process.env.FIREBASE_SERVICE_ACCOUNT ? getFirebaseMessaging() : null;
+
+  for (const [date, groups] of Array.from(dateGroups.entries())) {
     const kural = await getDailyKural(date);
 
+    // --- Web Push (browser users) ---
     await Promise.allSettled(
-      rows.map(async (row: (typeof toNotify)[0]) => {
+      groups.webpush.map(async (row) => {
         const langPref = row.user_id ? (langPrefMap.get(row.user_id) ?? "tamil") : "tamil";
         const body = langPref === "transliteration" ? kural.transliteration : kural.kural_tamil;
-        const payload = JSON.stringify({
-          title: "OneKural — Daily Thirukkural",
-          body,
-          url: "/",
-        });
+        const payload = JSON.stringify({ title: "OneKural — Daily Thirukkural", body, url: "/" });
         try {
           await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload);
           sent++;
         } catch (err: unknown) {
-          // 410 Gone / 404 = subscription expired
           if (err && typeof err === "object" && "statusCode" in err) {
             const e = err as { statusCode: number };
             if (e.statusCode === 410 || e.statusCode === 404) {
-              expiredIds.push(row.id);
+              expiredWebPushIds.push(row.id);
             } else {
-              errors.push({
-                subscriptionId: row.id,
-                error: `HTTP ${e.statusCode}`,
-              });
+              errors.push({ subscriptionId: row.id, error: `HTTP ${e.statusCode}` });
             }
           } else if (err instanceof Error) {
-            errors.push({
-              subscriptionId: row.id,
-              error: err.message,
-            });
+            errors.push({ subscriptionId: row.id, error: err.message });
           }
         }
       })
     );
+
+    // --- FCM (Android app users) ---
+    if (fcm) {
+      await Promise.allSettled(
+        groups.fcm.map(async (row) => {
+          const langPref = row.user_id ? (langPrefMap.get(row.user_id) ?? "tamil") : "tamil";
+          const body = langPref === "transliteration" ? kural.transliteration : kural.kural_tamil;
+          try {
+            await fcm.send({
+              token: row.fcm_token as string,
+              notification: { title: "OneKural — Daily Thirukkural", body },
+              android: {
+                priority: "normal",
+                notification: {
+                  channelId: "daily_kural",
+                  icon: "ic_notification",
+                  color: "#1B5E4F",
+                },
+              },
+            });
+            sent++;
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (
+              msg.includes("registration-token-not-registered") ||
+              msg.includes("invalid-registration-token")
+            ) {
+              expiredFcmIds.push(row.id);
+            } else {
+              errors.push({ subscriptionId: row.id, error: msg });
+            }
+          }
+        })
+      );
+    }
   }
 
   // Clean up expired subscriptions
-  if (expiredIds.length > 0) {
-    await supabaseAdmin
-      .from("push_subscriptions")
-      .delete()
-      .in("id", expiredIds);
+  const allExpired = [...expiredWebPushIds, ...expiredFcmIds];
+  if (allExpired.length > 0) {
+    await supabaseAdmin.from("push_subscriptions").delete().in("id", allExpired);
   }
 
-  return NextResponse.json({ sent, expired: expiredIds.length, errors });
+  return NextResponse.json({
+    sent,
+    expired: allExpired.length,
+    expiredBreakdown: { webpush: expiredWebPushIds.length, fcm: expiredFcmIds.length },
+    errors,
+  });
 }

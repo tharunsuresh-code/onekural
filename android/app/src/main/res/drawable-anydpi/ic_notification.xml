@@ -1,0 +1,15 @@
+<!-- White monochrome notification icon for Android 5+ (API 21+).
+     FCM uses this as the small icon in the status bar.
+     Must be solid white on transparent — colour is ignored by the system.
+     TODO: Replace pathData with the OneKural logo outline using Android Studio
+           Vector Asset wizard (File → New → Vector Asset → import SVG). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Placeholder: simple circle. Replace with actual logo outline. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z" />
+</vector>

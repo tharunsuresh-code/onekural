@@ -22,12 +22,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.onekural.app">
 
-
-    
-
-    
-
-    
+    <!-- Required for Android 13+ (API 33) to show push notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Required for FcmTokenRegistrar.registerToken() HTTP call -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name="Application"
@@ -141,6 +139,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Handles taps on FCM notifications — opens the TWA instead of Chrome -->
+            <intent-filter>
+                <action android:name="OPEN_MAIN_ACTIVITY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT" />
@@ -172,6 +176,25 @@
         </provider>
 
 
-        
+        <!-- FCM: native push notifications with OneKural branding -->
+        <service
+            android:name=".FcmService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Default icon/colour/channel for FCM notifications delivered in background -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorPrimary" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="daily_kural" />
+
     </application>
 </manifest>

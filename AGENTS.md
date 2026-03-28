@@ -39,6 +39,8 @@ src/
       kural/[id]/        # GET /api/kural/[id]
       openapi/           # GET /api/openapi (OpenAPI spec as JSON)
       push/send|subscribe|unsubscribe/
+      push/fcm-subscribe/  # Register FCM token (Android TWA)
+      push/link-fcm-user/  # Link FCM device to authenticated user
   components/            # Client components
   lib/                   # supabase.ts, auth.tsx, theme.tsx, types.ts, etc.
 
@@ -67,13 +69,14 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
 SUPABASE_SERVICE_ROLE_KEY=         # Used in API routes
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=      # Generate: npx web-push generate-vapid-keys
 VAPID_PRIVATE_KEY=
+FIREBASE_SERVICE_ACCOUNT=         # Firebase service account JSON (single line) for FCM
 ```
 
 ## Supabase Setup
 
-Apply migrations in order from `supabase/migrations/` (001–006 already applied).
+Apply migrations in order from `supabase/migrations/` (001–005 already applied).
 
-Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one row per device. No `UNIQUE(user_id)` constraint (intentionally dropped in migration 006 for multi-device support).
+Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one row per device. No `UNIQUE(user_id)` constraint (intentionally dropped for multi-device support). FCM tokens stored in `fcm_subscriptions` table (migration 005).
 
 **Data updates**: Editing `public/data/kurals.json` and committing/pushing to `main` triggers a GitHub Actions workflow that automatically syncs to the Supabase DB. No manual `npm run seed` or direct DB updates needed for kural data changes.
 
@@ -111,17 +114,23 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 
 - Service worker: `public/sw.js` — network-first nav, cache-first static, kural API cached offline
 - Cron: [cron-job.org](https://cron-job.org) triggers `GET /api/push/send` every 30 minutes (external free service — GitHub Actions was removed due to unreliable scheduling that skipped runs)
+- **DO NOT add Vercel cron jobs** (`"crons"` in `vercel.json`) for push notifications — cron-job.org is the scheduler. `vercel.json` stays empty `{}`.
 - VAPID keys in `.env.local` as above
 
-### Android TWA Notification Model (important trade-off)
+### Android TWA Notification Model (FCM)
 
-Notifications are handled via **Chrome site-level permission** (the browser's own "Allow notifications?" bar), NOT the Android OS-level `POST_NOTIFICATIONS` dialog.
+The Android TWA uses **Firebase Cloud Messaging (FCM)** for native push notifications branded as "OneKural".
 
-**Trade-off**: Notifications arrive branded as **"Chrome"**, not "OneKural". This is a known limitation of the Chrome-level delegation model — to get app-branded notifications you'd need to implement a native FCM channel, which is significantly more complex.
+**Architecture**:
+- `FcmService` (extends `FirebaseMessagingService`) handles incoming messages and `onNewToken`
+- `FcmTokenRegistrar` creates a stable `device_id` UUID (persisted in SharedPreferences) and calls `/api/push/fcm-subscribe` to register the FCM token
+- `LauncherActivity.getLaunchingUrl()` appends `?fcmDeviceId=<uuid>` and `?notifGranted=true|false` (omitted when permission never asked)
+- `auth.tsx` reads these params on load, stores the device ID, and calls `/api/push/link-fcm-user` once a session is available to link device → user
+- `/api/push/send` sends FCM via Firebase Admin SDK to all `fcm_subscriptions` rows with a `user_id`
 
-**What was tried and abandoned**: Requesting `POST_NOTIFICATIONS` at OS level via `LauncherActivity` and auto-subscribing via `PermissionStatus.change`. The OS dialog tap does not propagate as a JavaScript user activation into the Chrome WebView, so `Notification.requestPermission()` cannot be silently resolved after the OS grant. Chrome also requires at least one `requestPermission()` call with user activation to set its site-level permission before `pushManager.subscribe()` will succeed. Result: auto-subscribe only worked if Chrome already had prior site-level permission — useless for fresh installs.
+**Permission flow**: Android 13+ shows the OS `POST_NOTIFICATIONS` dialog (up to 2 times). `LauncherActivity` passes the permission state to the web layer via URL param so the profile page can display accurate Enabled / Disabled / neutral status without Web Push involvement.
 
-**Current flow**: User taps the Daily Reminder toggle → Chrome shows one permission bar → user taps Allow → subscribed. Clean, reliable, one user action.
+**Web Push in TWA**: The Web Push toggle is hidden in TWA (detected via `onekural-is-twa` localStorage flag). FCM handles all Android notifications — Web Push would cause duplicates.
 
 ## Data Model (core types)
 

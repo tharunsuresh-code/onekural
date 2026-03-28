@@ -61,3 +61,6 @@ android/*.aab
 android/*.apk
 android/*.idsig
 android/manifest-checksum.txt
+
+# Firebase
+android/app/google-services.json
