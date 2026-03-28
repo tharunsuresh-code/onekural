@@ -21,8 +21,8 @@
     "path": "./android.keystore",
     "alias": "onekural"
   },
-  "appVersionName": "1.1.1",
-  "appVersionCode": 13,
+  "appVersionName": "1.1.2",
+  "appVersionCode": 14,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://onekural.com/manifest.json",
