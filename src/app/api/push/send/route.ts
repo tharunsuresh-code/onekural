@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
                 priority: "normal",
                 notification: {
                   channelId: "daily_kural",
-                  icon: "ic_notification",
+                  icon: "ic_notification_icon",
                   color: "#1B5E4F",
                 },
               },
