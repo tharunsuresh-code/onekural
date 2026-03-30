@@ -59,23 +59,29 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       const user = data?.user;
       if (!user) return;
       const remote = user.user_metadata?.kuralPrefs as Partial<Prefs> | undefined;
-      if (!remote) return;
-      // Remote wins on first sign-in (no local data), otherwise local already loaded
       const hasLocal = localStorage.getItem(STORAGE_KEY) !== null;
-      if (!hasLocal) {
+      if (!hasLocal && remote) {
+        // New device / cleared storage — remote wins
         const merged: Prefs = {
           boxContent: (["tamil", "transliteration"].includes(remote.boxContent ?? "") ? remote.boxContent : local.boxContent) as BoxContent,
         };
         setPrefs(merged);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } else if (hasLocal && !remote) {
+        // Preference was set before signing in (or never synced) — push local to Supabase
+        // so the notification system can read it.
+        await supabase.auth.updateUser({ data: { kuralPrefs: local } });
       }
     })();
   }, []);
 
   const persist = useCallback(async (next: Prefs) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    const { data } = await supabase.auth.getUser();
-    if (data?.user) {
+    // Use getSession() instead of getUser() — getSession() auto-refreshes an expired
+    // access token via the refresh token, whereas getUser() validates server-side and
+    // returns null on expiry, silently skipping the Supabase update.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
       await supabase.auth.updateUser({ data: { kuralPrefs: next } });
     }
   }, []);
