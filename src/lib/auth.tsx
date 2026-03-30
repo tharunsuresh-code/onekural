@@ -83,21 +83,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // When a session becomes available, link the FCM device to the user once.
+  // When a session becomes available, link the FCM device to the user.
+  // Retries up to 3 times (3 s apart) to handle the race where the Android app's
+  // fcm-subscribe POST hasn't completed before this effect fires.
   useEffect(() => {
     if (!session) return;
     const fcmDeviceId = localStorage.getItem("onekural-fcm-device-id");
     if (!fcmDeviceId) return;
-    fetch("/api/push/link-fcm-user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ fcmDeviceId }),
-    }).then((res) => {
-      if (res.ok) localStorage.removeItem("onekural-fcm-device-id");
-    });
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const tryLink = async (attempt: number) => {
+      if (cancelled) return;
+      try {
+        const res = await fetch("/api/push/link-fcm-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ fcmDeviceId }),
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const json: { ok: boolean; pending?: boolean } = await res.json();
+          if (json.ok) {
+            localStorage.removeItem("onekural-fcm-device-id");
+          } else if (json.pending && attempt < 3) {
+            // Subscription row not yet created — retry after a short delay
+            timeoutId = setTimeout(() => tryLink(attempt + 1), 3000);
+          }
+        }
+      } catch {
+        // Network error — will retry on next launch
+      }
+    };
+
+    tryLink(0);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [session]);
 
   useEffect(() => {
