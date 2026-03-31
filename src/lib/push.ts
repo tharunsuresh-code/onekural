@@ -6,6 +6,8 @@
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const DEVICE_ID_KEY = "onekural-device-id";
+const PUSH_TZ_KEY = "onekural-push-tz";
+const PUSH_TZ_USER_KEY = "onekural-push-tz-user";
 const IDB_NAME = "onekural-push";
 const IDB_STORE = "meta";
 
@@ -88,6 +90,7 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
       return false;
     }
     saveDeviceIdToIDB(getDeviceId());
+    localStorage.setItem(PUSH_TZ_KEY, Intl.DateTimeFormat().resolvedOptions().timeZone);
     return true;
   } catch (err) {
     if (err instanceof DOMException && err.name === "NotAllowedError") {
@@ -124,6 +127,54 @@ export async function unsubscribeFromPush(): Promise<boolean> {
   } catch (err) {
     console.error("[Push] Unsubscribe error:", err);
     return false;
+  }
+}
+
+/**
+ * Updates the stored push timezone if the device's timezone has changed since last sync.
+ * Covers web push subscribers (anonymous or logged-in), keyed by device_id.
+ * No-op if never subscribed or timezone is unchanged.
+ */
+export async function syncTimezoneIfChanged(): Promise<void> {
+  const deviceId = localStorage.getItem(DEVICE_ID_KEY);
+  if (!deviceId) return;
+
+  const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (localStorage.getItem(PUSH_TZ_KEY) === currentTz) return;
+
+  try {
+    const res = await fetch("/api/push/timezone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId, timezone: currentTz }),
+    });
+    if (res.ok) localStorage.setItem(PUSH_TZ_KEY, currentTz);
+  } catch {
+    // Non-fatal — retries on next launch
+  }
+}
+
+/**
+ * Updates the stored push timezone for all subscriptions tied to the logged-in user.
+ * Covers FCM/TWA rows and web push rows for the same account.
+ * No-op if timezone is unchanged since last sync.
+ */
+export async function syncUserTimezoneIfChanged(accessToken: string): Promise<void> {
+  const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (localStorage.getItem(PUSH_TZ_USER_KEY) === currentTz) return;
+
+  try {
+    const res = await fetch("/api/push/timezone", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ timezone: currentTz }),
+    });
+    if (res.ok) localStorage.setItem(PUSH_TZ_USER_KEY, currentTz);
+  } catch {
+    // Non-fatal — retries on next launch
   }
 }
 

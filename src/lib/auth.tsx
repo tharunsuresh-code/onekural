@@ -10,6 +10,7 @@ import {
 } from "react";
 import { supabase } from "./supabase";
 import type { User, Session } from "@supabase/supabase-js";
+import { syncTimezoneIfChanged, syncUserTimezoneIfChanged } from "./push";
 
 interface AuthContextType {
   user: User | null;
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem("onekural-notif-granted");
     }
+    syncTimezoneIfChanged(); // fire-and-forget; no-op if tz unchanged or not subscribed
   }, []);
 
   // When a session becomes available, link the FCM device to the user.
@@ -133,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.access_token) syncUserTimezoneIfChanged(session.access_token);
     });
 
     // Listen for auth changes (including TOKEN_REFRESHED)
@@ -142,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.access_token) syncUserTimezoneIfChanged(session.access_token);
     });
 
     // PWA: when the app returns to foreground after being backgrounded,
