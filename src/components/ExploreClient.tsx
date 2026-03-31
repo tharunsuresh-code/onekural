@@ -8,6 +8,12 @@ import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences";
 import { MAX_KURAL_ID } from "@/lib/constants";
 import { emitNavStart } from "./NavigationProgress";
+import {
+  storeGetChaptersByBook,
+  storeGetKural,
+  storeGetKuralsByChapter,
+  storeSearchKurals,
+} from "@/lib/kural-store";
 
 const BOOKS = [1, 2, 3] as const;
 
@@ -25,11 +31,10 @@ export default function ExploreClient() {
   const debounceRef = useRef<NodeJS.Timeout>();
   const { boxContent, setBoxContent } = usePreferences();
 
-  // Fetch chapters when book changes
+  // Load chapters when book changes
   useEffect(() => {
     setLoadingChapters(true);
-    fetch(`/api/chapters?book=${activeBook}`)
-      .then((res) => res.json())
+    storeGetChaptersByBook(activeBook)
       .then((data) => {
         setChapters(data);
         setExpandedChapter(null);
@@ -48,12 +53,11 @@ export default function ExploreClient() {
       return;
     }
 
-    // If the query is a bare integer in range 1–MAX_KURAL_ID, fetch that kural directly
+    // If the query is a bare integer in range 1–MAX_KURAL_ID, look it up directly
     const numericId = parseInt(q.trim(), 10);
     if (String(numericId) === q.trim() && numericId >= 1 && numericId <= MAX_KURAL_ID) {
       setIsSearching(true);
-      fetch(`/api/kural/${numericId}`)
-        .then((res) => (res.ok ? res.json() : null))
+      storeGetKural(numericId)
         .then((data) => setSearchResults(data ? [data] : []))
         .catch(() => setSearchResults([]))
         .finally(() => setIsSearching(false));
@@ -63,10 +67,7 @@ export default function ExploreClient() {
     setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/search?q=${encodeURIComponent(q.trim())}`
-        );
-        const data = await res.json();
+        const data = await storeSearchKurals(q.trim());
         setSearchResults(data);
       } catch {
         setSearchResults([]);
@@ -85,8 +86,7 @@ export default function ExploreClient() {
       }
       setExpandedChapter(chapterNum);
       if (!chapterKurals[chapterNum]) {
-        const res = await fetch(`/api/kurals?chapter=${chapterNum}`);
-        const data = await res.json();
+        const data = await storeGetKuralsByChapter(chapterNum);
         setChapterKurals((prev) => ({ ...prev, [chapterNum]: data }));
       }
     },

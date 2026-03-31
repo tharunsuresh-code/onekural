@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -8,6 +8,7 @@ const APP_SHELL = [
   "/journal",
   "/profile",
   "/manifest.json",
+  "/data/kurals.json",
 ];
 
 // ─── Install ───────────────────────────────────────────────────────────────
@@ -45,10 +46,11 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   if (url.origin !== self.location.origin && !url.hostname.includes("fonts.g")) return;
 
-  // Static assets: cache-first
+  // Static assets + kural dataset: cache-first
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
+    url.pathname === "/data/kurals.json" ||
     url.hostname.includes("fonts.g")
   ) {
     event.respondWith(

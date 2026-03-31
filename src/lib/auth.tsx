@@ -74,13 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // Persist OS notification permission state passed by LauncherActivity.
     // Used by DailyReminderToggle to show accurate enabled/disabled status in TWA.
-    // If the param is absent (e.g. permission not yet asked), clear any stale value
-    // so the web falls back to the neutral null state rather than showing "Disabled".
+    // Only write when the param is explicitly present — if absent (e.g. background
+    // restore where the URL no longer has launch params), leave the stored value
+    // intact so the profile page continues to show the correct status.
     const notifGranted = params.get("notifGranted");
     if (notifGranted !== null) {
       localStorage.setItem("onekural-notif-granted", notifGranted);
-    } else {
-      localStorage.removeItem("onekural-notif-granted");
     }
     syncTimezoneIfChanged(); // fire-and-forget; no-op if tz unchanged or not subscribed
   }, []);

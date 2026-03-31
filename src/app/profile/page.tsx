@@ -14,6 +14,10 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true);
   const [pushAvailable, setPushAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // TWA: tracks OS notification permission state ("true" | "false" | null)
+  const [notifGranted, setNotifGranted] = useState<string | null>(() =>
+    typeof window !== "undefined" ? localStorage.getItem("onekural-notif-granted") : null
+  );
   // Ref so visibilitychange handler sees the current value synchronously,
   // without waiting for React to re-render and replace the closure.
   const operationInProgress = useRef(false);
@@ -26,6 +30,13 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     // cause duplicate notifications. Detected via persistent flag set in auth.tsx
     // when LauncherActivity appends ?fcmDeviceId= to the launch URL.
     if (localStorage.getItem("onekural-is-twa") === "true") {
+      // Read notifGranted directly from URL params to cover the first-launch case
+      // where auth.tsx's useEffect hasn't written to localStorage yet.
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get("notifGranted");
+      if (fromUrl !== null) {
+        setNotifGranted(fromUrl);
+      }
       setLoading(false);
       return;
     }
@@ -109,7 +120,6 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
   // TWA path: FCM handles notifications natively — no Web Push toggle needed
   if (typeof window !== "undefined" &&
       localStorage.getItem("onekural-is-twa") === "true") {
-    const rawNotifGranted = localStorage.getItem("onekural-notif-granted"); // null | "true" | "false"
     return (
       <div className="border border-dark/10 dark:border-dark-fg/20 rounded-xl">
         <div className="flex items-center justify-between px-4 py-3.5">
@@ -117,14 +127,14 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
             <p className="text-sm text-dark/80 dark:text-dark-fg/85">Daily Reminder</p>
             <p className="text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5">Managed by app notifications</p>
           </div>
-          {rawNotifGranted === "true" && (
+          {notifGranted === "true" && (
             <span className="text-xs font-medium text-emerald">Enabled</span>
           )}
-          {rawNotifGranted === "false" && (
+          {notifGranted === "false" && (
             <span className="text-xs font-medium text-deep-red dark:text-deep-red/90">Disabled</span>
           )}
         </div>
-        {rawNotifGranted === "false" && (
+        {notifGranted === "false" && (
           <p className="px-4 pb-3 text-xs text-dark/40 dark:text-dark-fg/50">
             To enable: <span className="font-medium">Settings</span> →{" "}
             <span className="font-medium">Apps</span> →{" "}

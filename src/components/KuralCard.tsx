@@ -11,6 +11,7 @@ import type { Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
 import { getDailyKuralId } from "@/lib/kurals";
+import { storeGetKural } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import ThemeSwitcher from "./ThemeSwitcher";
 
@@ -45,13 +46,7 @@ interface FMState {
 
 async function fetchKural(id: number): Promise<Kural | null> {
   if (id < 1 || id > MAX_KURAL_ID) return null;
-  try {
-    const res = await fetch(`/api/kural/${id}`);
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
+  return storeGetKural(id);
 }
 
 export default function KuralCard({ initialKural, mode = "detail", dailyKuralId, adjacentKurals }: KuralCardProps) {

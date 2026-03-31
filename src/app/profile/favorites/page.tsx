@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useFavorites } from "@/lib/favorites";
+import { storeGetKuralsByIds } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import { getSolomonTamil } from "@/lib/types";
 import type { Kural } from "@/lib/types";
@@ -23,11 +24,9 @@ export default function FavoritesPage() {
       return;
     }
 
-    // Fetch all favorited kurals in one request
-    fetch(`/api/kurals/batch?ids=${favorites.join(",")}`)
-      .then((r) => (r.ok ? r.json() : []))
+    storeGetKuralsByIds(favorites)
       .then((results) => {
-        setKurals(Array.isArray(results) ? results : []);
+        setKurals(results);
         setPage(0);
         setLoading(false);
       })

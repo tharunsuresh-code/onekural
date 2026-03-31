@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import SignInModal from "@/components/SignInModal";
 import JournalEditor from "@/components/JournalEditor";
 import type { Kural } from "@/lib/types";
+import { storeGetKural } from "@/lib/kural-store";
 
 const LOCAL_KEY = "kural-journals";
 
@@ -70,14 +71,8 @@ export default function JournalPage() {
   }, [authLoading, loadEntries]);
 
   const handleEntryClick = async (kuralId: number) => {
-    try {
-      const res = await fetch(`/api/kural/${kuralId}`);
-      if (!res.ok) return;
-      const kural = await res.json();
-      setEditingKural(kural);
-    } catch {
-      // ignore
-    }
+    const kural = await storeGetKural(kuralId);
+    if (kural) setEditingKural(kural);
   };
 
   if (authLoading || loading) {
