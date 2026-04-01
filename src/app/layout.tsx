@@ -106,7 +106,10 @@ export default function RootLayout({
         {/* Single theme-color tag — set before the blocking script so the script can
             update it synchronously, giving Chrome the correct status-bar colour
             before any paint (avoids the white-flash TWA manifest fallback). */}
-        <meta name="theme-color" content="#FFFFFF" />
+        {/* suppressHydrationWarning prevents React hydration from resetting this to
+            #FFFFFF after the blocking script below has already set it to #0F0E0C
+            for dark-mode users. Without this, the status bar flashes white on load. */}
+        <meta name="theme-color" content="#FFFFFF" suppressHydrationWarning />
         {/* Blocking script: apply saved theme (or system default) before first paint to avoid flash.
             Also updates the theme-color meta tag above so the status bar matches immediately. */}
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme')||'system';var e=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('light','dark');document.documentElement.classList.add(e);var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=e==='dark'?'#0F0E0C':'#FFFFFF';}catch(e){}` }} />

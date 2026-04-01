@@ -45,6 +45,7 @@ export function getDailyKuralId(date: string = getTodayLocal()): number {
   return DAILY_ORDER[((daysSinceEpoch % MAX_KURAL_ID) + MAX_KURAL_ID) % MAX_KURAL_ID];
 }
 
+
 export async function getDailyKural(date: string = getTodayLocal()): Promise<Kural> {
   const id = getDailyKuralId(date);
   const { data, error } = await supabase

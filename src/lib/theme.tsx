@@ -58,6 +58,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const handler = (e: MediaQueryListEvent) => {
         html.classList.remove("light", "dark");
         html.classList.add(e.matches ? "dark" : "light");
+        document.querySelectorAll('meta[name="theme-color"]').forEach((el) => {
+          (el as HTMLMetaElement).content = e.matches ? "#0F0E0C" : "#FFFFFF";
+        });
       };
       mq.addEventListener("change", handler);
       return () => mq.removeEventListener("change", handler);
