@@ -249,7 +249,9 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     dragDirectionLock: true,
     dragConstraints: { left: 0, right: 0 },
     dragElastic: { left: 0.15, right: 0.15 },
-    dragSnapToOrigin: true,
+    // dragSnapToOrigin removed: handleDragEnd already calls fm.animate(x, 0) which
+    // provides the snap-back. Having both caused two competing springs on the same
+    // MotionValue, producing a visible double-snap stutter on short left swipes.
     onDragEnd: handleDragEnd,
     style: { x: fmRef.current.x, opacity: fmRef.current.opacity, rotate: fmRef.current.rotate },
   } : {};

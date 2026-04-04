@@ -116,9 +116,36 @@ export function BackExitHandler() {
 
     // Capture phase ensures our handler fires before Next.js's bubble-phase listener.
     window.addEventListener("popstate", handlePopState, true);
+
+    // Navigation API (Chrome 102+): intercept traverse navigations BEFORE Chrome
+    // starts any back-slide or predictive-back animation. The `navigate` event fires
+    // earlier in the pipeline than `popstate`, so calling e.intercept() here tells
+    // Chrome to skip the visual transition entirely. popstate still fires after the
+    // intercept handler resolves, so the existing sentinel/toast logic runs unchanged.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nav = (window as any).navigation;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleNavigate = nav ? (e: any) => {
+      if (e.navigationType !== "traverse") return;
+      // Let the exit-drain traversals proceed — the app is closing anyway.
+      if (exitingRef.current) return;
+      // Suppress the back animation for root pages and sheet dismissals.
+      // For non-root pages without a sheet, allow Chrome's normal animation.
+      if (isSheetOpen() || atRootRef.current) {
+        e.intercept({ handler: () => Promise.resolve() });
+      }
+    } : null;
+
+    if (nav && handleNavigate) {
+      nav.addEventListener("navigate", handleNavigate);
+    }
+
     return () => {
       window.removeEventListener("popstate", handlePopState, true);
       if (toastTimer.current) clearTimeout(toastTimer.current);
+      if (nav && handleNavigate) {
+        nav.removeEventListener("navigate", handleNavigate);
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
