@@ -169,7 +169,8 @@ export async function POST(request: NextRequest) {
             const msg = err instanceof Error ? err.message : String(err);
             if (
               msg.includes("registration-token-not-registered") ||
-              msg.includes("invalid-registration-token")
+              msg.includes("invalid-registration-token") ||
+              msg.includes("Requested entity was not found")
             ) {
               expiredFcmIds.push(row.id);
             } else {
@@ -183,14 +184,20 @@ export async function POST(request: NextRequest) {
 
   // Clean up expired subscriptions
   const allExpired = [...expiredWebPushIds, ...expiredFcmIds];
+  let cleanupError: string | null = null;
   if (allExpired.length > 0) {
-    await supabaseAdmin.from("push_subscriptions").delete().in("id", allExpired);
+    const { error: delErr } = await supabaseAdmin
+      .from("push_subscriptions")
+      .delete()
+      .in("id", allExpired);
+    if (delErr) cleanupError = delErr.message;
   }
 
   return NextResponse.json({
     sent,
     expired: allExpired.length,
     expiredBreakdown: { webpush: expiredWebPushIds.length, fcm: expiredFcmIds.length },
+    cleanupError,
     errors,
   });
 }
