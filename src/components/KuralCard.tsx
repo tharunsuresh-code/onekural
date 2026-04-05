@@ -15,27 +15,8 @@ import { storeGetKural } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import ThemeSwitcher from "./ThemeSwitcher";
 
-function SheetSkeleton() {
-  return (
-    <>
-      <div className="fixed inset-0 bg-dark/40 dark:bg-dark/60 z-[60]" />
-      <div className="fixed bottom-0 left-0 right-0 z-[60] bg-cream dark:bg-dark-subtle rounded-t-2xl max-w-content mx-auto flex flex-col">
-        <div className="pt-3 pb-1 flex justify-center">
-          <div className="w-10 h-1 bg-dark/15 dark:bg-dark-fg/20 rounded-full" />
-        </div>
-        <div className="px-6 pt-4 pb-10 space-y-4">
-          <div className="skeleton-shimmer h-4 w-1/3 rounded" />
-          <div className="skeleton-shimmer h-4 w-full rounded" />
-          <div className="skeleton-shimmer h-4 w-5/6 rounded" />
-          <div className="skeleton-shimmer h-4 w-4/6 rounded" />
-        </div>
-      </div>
-    </>
-  );
-}
-
-const JournalEditor = dynamic(() => import("./JournalEditor"), { loading: SheetSkeleton });
-const ShareCard = dynamic(() => import("./ShareCard"), { loading: SheetSkeleton });
+const JournalEditor = dynamic(() => import("./JournalEditor"));
+const ShareCard = dynamic(() => import("./ShareCard"));
 const ExplanationSheet = dynamic(() => import("./ExplanationSheet"));
 const OnboardingHint = dynamic(() => import("./OnboardingHint"), { ssr: false });
 import { useAudio } from "@/lib/audio";
