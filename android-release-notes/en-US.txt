@@ -1,0 +1,7 @@
+Native app rewrite — faster, offline-first.
+
+• All 1,330 Kurals available instantly, no internet needed
+• Journals and favourites cached on device
+• Daily Kural algorithm matches the web app exactly
+• Smoother animations and navigation
+• Push notifications via FCM (unchanged)

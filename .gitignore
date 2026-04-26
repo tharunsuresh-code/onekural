@@ -46,8 +46,9 @@ TRANSLATION_PLAN.md
 scripts/translate.ts
 scripts/output/
 
-# Local planning docs
-/docs/
+# Local planning docs (track plans/, ignore everything else in docs/)
+/docs/*
+!/docs/plans/
 lighthouse_report.json
 onekural.com-20260318T222804.html
 
@@ -64,3 +65,6 @@ android/manifest-checksum.txt
 
 # Firebase
 android/app/google-services.json
+
+# Auto-synced from public/data/kurals.json during build
+android/app/src/main/assets/kurals.json

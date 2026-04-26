@@ -13,18 +13,7 @@ import androidx.core.app.NotificationCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
-/**
- * Handles FCM token refresh and incoming push messages.
- *
- * Token refresh → FcmTokenRegistrar.registerToken() → backend upserts the new token.
- *
- * Foreground messages → showNotification() builds a notification with an explicit
- * PendingIntent to LauncherActivity, so tapping opens the TWA (not Chrome browser).
- *
- * Background/killed state: FCM delivers notification messages directly to the system
- * tray without calling onMessageReceived(). The <meta-data> defaults in AndroidManifest
- * (default_notification_icon, default_notification_channel_id) handle those.
- */
+/** Handles FCM token refresh and incoming push messages. */
 public class FcmService extends FirebaseMessagingService {
 
     private static final String TAG = "FcmService";
@@ -66,8 +55,7 @@ public class FcmService extends FirebaseMessagingService {
     private void showNotification(String title, String body) {
         createNotificationChannel();
 
-        // Explicit intent to LauncherActivity — opens the TWA app, not Chrome browser
-        Intent intent = new Intent(this, LauncherActivity.class);
+        Intent intent = new Intent(this, MainActivity.class);
         intent.setAction("OPEN_MAIN_ACTIVITY");
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 

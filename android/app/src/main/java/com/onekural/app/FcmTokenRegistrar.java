@@ -35,6 +35,37 @@ public class FcmTokenRegistrar {
         return deviceId;
     }
 
+    private static final String LINK_USER_URL = "https://onekural.com/api/push/link-fcm-user";
+
+    /** POST to link an authenticated user's Supabase JWT to their FCM device. */
+    public static void linkUser(Context context, String supabaseJwt) {
+        if (supabaseJwt == null || supabaseJwt.isEmpty()) return;
+        final String deviceId = getOrCreateDeviceId(context);
+
+        new Thread(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("deviceId", deviceId);
+
+                byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
+                HttpURLConnection conn = (HttpURLConnection) new URL(LINK_USER_URL).openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Authorization", "Bearer " + supabaseJwt);
+                conn.setRequestProperty("Content-Length", String.valueOf(payload.length));
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(10_000);
+                conn.setReadTimeout(10_000);
+                try (OutputStream os = conn.getOutputStream()) { os.write(payload); }
+                int code = conn.getResponseCode();
+                Log.d(TAG, "linkUser HTTP " + code);
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to link FCM user", e);
+            }
+        }).start();
+    }
+
     /**
      * POST the FCM token to the backend on a background thread.
      * Upserts by device_id so token rotation is handled automatically.
