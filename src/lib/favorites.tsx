@@ -95,18 +95,21 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       const isFav = favorites.includes(id);
 
       if (user) {
+        // Optimistic update — revert on error
         if (isFav) {
-          await supabase
+          setFavorites((prev) => prev.filter((f) => f !== id));
+          const { error } = await supabase
             .from("favorites")
             .delete()
             .eq("user_id", user.id)
             .eq("kural_id", id);
-          setFavorites((prev) => prev.filter((f) => f !== id));
+          if (error) setFavorites((prev) => [id, ...prev]);
         } else {
-          await supabase
+          setFavorites((prev) => [id, ...prev]);
+          const { error } = await supabase
             .from("favorites")
             .insert({ user_id: user.id, kural_id: id });
-          setFavorites((prev) => [id, ...prev]);
+          if (error) setFavorites((prev) => prev.filter((f) => f !== id));
         }
       } else {
         if (isFav) {

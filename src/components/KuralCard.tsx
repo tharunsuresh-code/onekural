@@ -15,6 +15,7 @@ import { storeGetKural } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import ThemeSwitcher from "./ThemeSwitcher";
 import Toast from "./Toast";
+import { generateImage } from "./ShareCard";
 import type { ComponentType } from "react";
 
 // JournalEditor is loaded imperatively (not via dynamic()) so it renders
@@ -72,6 +73,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const [showExplanation, setShowExplanation] = useState(false);
   const [JournalEditorComp, setJournalEditorComp] = useState<ComponentType<{ kural: Kural; onClose: () => void }> | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isPlaying, play, stop } = useAudio();
   const [audioUnavailable, setAudioUnavailable] = useState(false);
@@ -108,21 +110,41 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   }, [JournalEditorComp]);
 
   const handleShare = useCallback(async () => {
+    if (isSharing) return;
+    setIsSharing(true);
     const link = `${window.location.origin}/kural/${kural.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Thirukkural #${kural.id}`,
-          text: kural.meaning_english,
-          url: link,
-        });
-        return;
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
-        // fall through to clipboard on other errors
+    const text = `Check out today's Thirukkural at OneKural: ${link}`;
+
+    try {
+      if (navigator.share) {
+        // Try with 1:1 image first
+        try {
+          const blob = await generateImage(kural, "square", boxContent);
+          const file = new File([blob], `kural-${kural.id}.png`, { type: "image/png" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+            setIsSharing(false);
+            return;
+          }
+        } catch { /* image gen failed — fall through to text share */ }
+
+        // Text-only share
+        try {
+          await navigator.share({ title: "OneKural", text, url: link });
+          setIsSharing(false);
+          return;
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") {
+            setIsSharing(false);
+            return;
+          }
+        }
       }
-    }
-    // Clipboard — modern API (HTTPS) or execCommand fallback (HTTP)
+    } catch { /* ignore */ }
+
+    setIsSharing(false);
+
+    // Desktop/HTTP fallback: copy link to clipboard
     let copied = false;
     if (navigator.clipboard) {
       try { await navigator.clipboard.writeText(link); copied = true; } catch { /* fall through */ }
@@ -140,7 +162,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     }
-  }, [kural.id, kural.meaning_english]);
+  }, [kural, boxContent, isSharing]);
 
   // Load FM after first paint — swap plain div → motion.div for drag
   useEffect(() => {
@@ -537,7 +559,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
             onClick={handleShare}
             className="text-sm text-dark/50 dark:text-dark-fg/50 flex items-center gap-1.5"
           >
-            <span>↑</span> Share
+            <span>↑</span> {isSharing ? "Sharing…" : "Share"}
           </button>
         </div>
 

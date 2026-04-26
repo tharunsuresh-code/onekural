@@ -114,7 +114,7 @@ function measureContent(
   return h;
 }
 
-async function generateImage(
+export async function generateImage(
   kural: Kural,
   ratio: AspectRatio,
   boxContent: "tamil" | "transliteration"

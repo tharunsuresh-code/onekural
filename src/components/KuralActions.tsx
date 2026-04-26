@@ -2,8 +2,10 @@
 
 import { useState, useCallback } from "react";
 import { useFavorites } from "@/lib/favorites";
+import { usePreferences } from "@/lib/preferences";
 import JournalEditor from "./JournalEditor";
 import Toast from "./Toast";
+import { generateImage } from "./ShareCard";
 import type { Kural } from "@/lib/types";
 
 interface KuralActionsProps {
@@ -12,26 +14,46 @@ interface KuralActionsProps {
 
 export default function KuralActions({ kural }: KuralActionsProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { boxContent } = usePreferences();
   const [showJournal, setShowJournal] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const faved = isFavorite(kural.id);
 
   const handleShare = useCallback(async () => {
+    if (isSharing) return;
+    setIsSharing(true);
     const link = `${window.location.origin}/kural/${kural.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Thirukkural #${kural.id}`,
-          text: kural.meaning_english,
-          url: link,
-        });
-        return;
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
+    const text = `Check out today's Thirukkural at OneKural: ${link}`;
+
+    try {
+      if (navigator.share) {
+        try {
+          const blob = await generateImage(kural, "square", boxContent);
+          const file = new File([blob], `kural-${kural.id}.png`, { type: "image/png" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+            setIsSharing(false);
+            return;
+          }
+        } catch { /* fall through to text share */ }
+
+        try {
+          await navigator.share({ title: "OneKural", text, url: link });
+          setIsSharing(false);
+          return;
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") {
+            setIsSharing(false);
+            return;
+          }
+        }
       }
-    }
-    // Clipboard — modern API (HTTPS) or execCommand fallback (HTTP)
+    } catch { /* ignore */ }
+
+    setIsSharing(false);
+
     let copied = false;
     if (navigator.clipboard) {
       try { await navigator.clipboard.writeText(link); copied = true; } catch { /* fall through */ }
@@ -49,7 +71,7 @@ export default function KuralActions({ kural }: KuralActionsProps) {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     }
-  }, [kural.id, kural.meaning_english]);
+  }, [kural, boxContent, isSharing]);
 
   return (
     <>
@@ -74,7 +96,7 @@ export default function KuralActions({ kural }: KuralActionsProps) {
           onClick={handleShare}
           className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-dark/15 text-dark/50 hover:border-emerald/30 transition-colors"
         >
-          <span>↑</span> Share
+          <span>↑</span> {isSharing ? "Sharing…" : "Share"}
         </button>
       </div>
 
