@@ -71,7 +71,9 @@ html, body {
     text-wrap: balance;
   }
   .h-dvh {
-    height: 100dvh;
+    /* --vh is set by JS (Providers.tsx) from window.innerHeight, which is always
+       accurate on Android TWA even when dvh miscalculates during deep-link launch. */
+    height: var(--vh, 100dvh);
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);

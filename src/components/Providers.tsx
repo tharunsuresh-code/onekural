@@ -9,10 +9,21 @@ import { preloadKuralStore } from "@/lib/kural-store";
 import type { ReactNode } from "react";
 
 export default function Providers({ children }: { children: ReactNode }) {
-  // Kick off kurals.json loading in the background as soon as the app mounts
-  // so the data is warm before the user navigates to Explore or taps prev/next.
   useEffect(() => {
     preloadKuralStore();
+  }, []);
+
+  // Set --vh = window.innerHeight so .h-dvh pages use the real inner height.
+  // 100dvh can miscalculate on Android TWA when the app opens from an external
+  // deep link (WhatsApp, Instagram) because system UI draws late — causing the
+  // main container to be smaller than the content and clipping the bottom rows.
+  useEffect(() => {
+    const setVh = () => {
+      document.documentElement.style.setProperty("--vh", `${window.innerHeight}px`);
+    };
+    setVh();
+    window.addEventListener("resize", setVh);
+    return () => window.removeEventListener("resize", setVh);
   }, []);
 
   return (

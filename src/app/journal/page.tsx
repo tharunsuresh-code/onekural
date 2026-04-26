@@ -54,6 +54,7 @@ export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingKural, setEditingKural] = useState<Kural | null>(null);
+
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 5;
 
