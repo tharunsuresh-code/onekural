@@ -1,15 +1,94 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
 const APP_SHELL = [
+  "/",
   "/explore",
   "/journal",
   "/profile",
   "/manifest.json",
   "/data/kurals.json",
 ];
+
+// ─── Offline kural helpers ─────────────────────────────────────────────────
+// Lazily populated from pre-cached /data/kurals.json on first offline fallback.
+let _offlineKurals = null;
+
+async function getOfflineKurals() {
+  if (_offlineKurals) return _offlineKurals;
+  const cached = await caches.match("/data/kurals.json");
+  if (!cached) return null;
+  try {
+    _offlineKurals = await cached.json();
+    return _offlineKurals;
+  } catch {
+    return null;
+  }
+}
+
+function jsonRes(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function offlineKuralById(id) {
+  const kurals = await getOfflineKurals();
+  if (!kurals) return jsonRes({ error: "Offline" }, 503);
+  const k = kurals.find((k) => k.id === id);
+  return k ? jsonRes(k) : jsonRes({ error: "Not found" }, 404);
+}
+
+async function offlineKuralsByChapter(chapter) {
+  const kurals = await getOfflineKurals();
+  if (!kurals) return jsonRes({ error: "Offline" }, 503);
+  return jsonRes(
+    kurals.filter((k) => k.chapter === chapter).sort((a, b) => a.id - b.id)
+  );
+}
+
+async function offlineChaptersByBook(book) {
+  const kurals = await getOfflineKurals();
+  if (!kurals) return jsonRes({ error: "Offline" }, 503);
+  const seen = new Set();
+  const chapters = [];
+  for (const k of [...kurals].sort((a, b) => a.chapter - b.chapter)) {
+    if (k.book === book && !seen.has(k.chapter)) {
+      seen.add(k.chapter);
+      chapters.push({
+        chapter: k.chapter,
+        chapter_name_tamil: k.chapter_name_tamil,
+        chapter_name_english: k.chapter_name_english,
+        book: k.book,
+      });
+    }
+  }
+  return jsonRes(chapters);
+}
+
+async function offlineSearch(query) {
+  const kurals = await getOfflineKurals();
+  if (!kurals) return jsonRes({ error: "Offline" }, 503);
+  const q = query.trim().toLowerCase();
+  if (!q) return jsonRes([]);
+  const results = [];
+  for (const k of kurals) {
+    if (
+      k.kural_tamil.toLowerCase().includes(q) ||
+      k.meaning_english.toLowerCase().includes(q) ||
+      k.meaning_tamil.toLowerCase().includes(q) ||
+      k.transliteration.toLowerCase().includes(q) ||
+      k.chapter_name_english.toLowerCase().includes(q)
+    ) {
+      results.push(k);
+      if (results.length >= 50) break;
+    }
+  }
+  return jsonRes(results);
+}
 
 // ─── Install ───────────────────────────────────────────────────────────────
 self.addEventListener("install", (event) => {
@@ -33,6 +112,13 @@ self.addEventListener("activate", (event) => {
             .map((k) => caches.delete(k))
         )
       )
+      .then(() => {
+        // Parallelise SW boot with navigation network request — eliminates
+        // latency gap when serving from SWR cache below.
+        if (self.registration.navigationPreload) {
+          return self.registration.navigationPreload.enable();
+        }
+      })
       .then(() => self.clients.claim())
   );
 });
@@ -68,8 +154,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Kural API: network-first, cache viewed kurals for offline
-  if (url.pathname.startsWith("/api/kural")) {
+  // Kural + chapters + search API: network-first, offline fallback from kurals.json
+  if (
+    url.pathname.startsWith("/api/kural") ||
+    url.pathname.startsWith("/api/chapters") ||
+    url.pathname.startsWith("/api/search")
+  ) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -79,17 +169,70 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => {
+          // Try previously-cached response first
+          const cached = await caches.match(request);
+          if (cached) return cached;
+
+          // Compute from pre-cached kurals.json
+          if (url.pathname.match(/^\/api\/kural\/\d+$/)) {
+            return offlineKuralById(parseInt(url.pathname.split("/").pop(), 10));
+          }
+          if (url.pathname === "/api/kurals") {
+            const ch = parseInt(url.searchParams.get("chapter") ?? "", 10);
+            if (!isNaN(ch)) return offlineKuralsByChapter(ch);
+          }
+          if (url.pathname === "/api/chapters") {
+            const book = parseInt(url.searchParams.get("book") ?? "1", 10);
+            return offlineChaptersByBook(isNaN(book) ? 1 : book);
+          }
+          if (url.pathname === "/api/search") {
+            return offlineSearch(url.searchParams.get("q") ?? "");
+          }
+          return jsonRes({ error: "Offline" }, 503);
+        })
     );
     return;
   }
 
-  // Navigation: network-first with offline fallback to shell
+  // Navigation: stale-while-revalidate — serve cache instantly (no blank flash
+  // on resume after Android kills the process), update cache in background.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() =>
-        caches.match("/").then((cached) => cached || new Response("Offline", { status: 503 }))
-      )
+      (async () => {
+        const cached = await caches.match(request, { ignoreSearch: true });
+
+        // event.preloadResponse: Chrome starts this fetch in parallel with SW
+        // boot when navigationPreload is enabled — no extra round-trip cost.
+        const networkPromise = event.preloadResponse
+          ? event.preloadResponse.catch(() => null)
+          : fetch(request).catch(() => null);
+
+        if (cached) {
+          // Return cache immediately; revalidate in background
+          networkPromise
+            .then((fresh) => {
+              if (fresh && fresh.ok) {
+                caches.open(SHELL_CACHE).then((c) => c.put(request, fresh.clone()));
+              }
+            })
+            .catch(() => {});
+          return cached;
+        }
+
+        // No cache yet (first visit or after version bump) — wait for network
+        const fresh = await networkPromise;
+        if (fresh && fresh.ok) {
+          caches.open(SHELL_CACHE).then((c) => c.put(request, fresh.clone()));
+          return fresh;
+        }
+
+        // Offline + no cache — home fallback or 503
+        return (
+          (await caches.match("/")) ??
+          new Response("Offline", { status: 503 })
+        );
+      })()
     );
     return;
   }

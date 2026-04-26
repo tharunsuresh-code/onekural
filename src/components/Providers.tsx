@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AuthProvider } from "@/lib/auth";
+import { FavoritesProvider } from "@/lib/favorites";
 import { PreferencesProvider } from "@/lib/preferences";
 import { ThemeProvider } from "@/lib/theme";
 import { preloadKuralStore } from "@/lib/kural-store";
@@ -17,7 +18,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <PreferencesProvider>{children}</PreferencesProvider>
+        <FavoritesProvider>
+          <PreferencesProvider>{children}</PreferencesProvider>
+        </FavoritesProvider>
       </AuthProvider>
     </ThemeProvider>
   );

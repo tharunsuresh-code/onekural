@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useAuth } from "./auth";
 import { supabase } from "./supabase";
 
@@ -19,15 +27,35 @@ function setLocalFavorites(ids: number[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
 }
 
-export function useFavorites() {
+interface FavoritesContextValue {
+  favorites: number[];
+  loaded: boolean;
+  isFavorite: (id: number) => boolean;
+  toggleFavorite: (id: number) => Promise<void>;
+}
+
+const FavoritesContext = createContext<FavoritesContextValue>({
+  favorites: [],
+  loaded: false,
+  isFavorite: () => false,
+  toggleFavorite: async () => {},
+});
+
+export function FavoritesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // Prevents duplicate Supabase fetches when auth re-fires for the same user
+  // (e.g. TOKEN_REFRESHED). undefined = not yet loaded for any user.
+  const loadedForRef = useRef<string | null | undefined>(undefined);
 
-  // Load favorites
   useEffect(() => {
+    const userId = user?.id ?? null;
+    if (loadedForRef.current === userId) return;
+    loadedForRef.current = userId;
+    setLoaded(false);
+
     if (user) {
-      // Logged in: load from Supabase, merge localStorage, clear localStorage
       (async () => {
         const { data } = await supabase
           .from("favorites")
@@ -38,24 +66,20 @@ export function useFavorites() {
         const remoteFavs = (data ?? []).map((r) => r.kural_id);
         const localFavs = getLocalFavorites();
 
-        // Merge: add any local favorites not already in remote
         const toInsert = localFavs.filter((id) => !remoteFavs.includes(id));
         if (toInsert.length > 0) {
           await supabase.from("favorites").insert(
             toInsert.map((kural_id) => ({ user_id: user.id, kural_id }))
           );
-          // Clear localStorage after successful merge
           localStorage.removeItem(STORAGE_KEY);
         } else if (localFavs.length > 0) {
           localStorage.removeItem(STORAGE_KEY);
         }
 
-        const merged = Array.from(new Set([...remoteFavs, ...toInsert]));
-        setFavorites(merged);
+        setFavorites(Array.from(new Set([...remoteFavs, ...toInsert])));
         setLoaded(true);
       })();
     } else {
-      // Anonymous: load from localStorage
       setFavorites(getLocalFavorites());
       setLoaded(true);
     }
@@ -71,7 +95,6 @@ export function useFavorites() {
       const isFav = favorites.includes(id);
 
       if (user) {
-        // Supabase
         if (isFav) {
           await supabase
             .from("favorites")
@@ -86,7 +109,6 @@ export function useFavorites() {
           setFavorites((prev) => [id, ...prev]);
         }
       } else {
-        // localStorage
         if (isFav) {
           const next = favorites.filter((f) => f !== id);
           setFavorites(next);
@@ -101,5 +123,15 @@ export function useFavorites() {
     [favorites, user]
   );
 
-  return { favorites, isFavorite, toggleFavorite, loaded };
+  return (
+    <FavoritesContext.Provider
+      value={{ favorites, loaded, isFavorite, toggleFavorite }}
+    >
+      {children}
+    </FavoritesContext.Provider>
+  );
+}
+
+export function useFavorites() {
+  return useContext(FavoritesContext);
 }
