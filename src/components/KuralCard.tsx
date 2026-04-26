@@ -14,9 +14,18 @@ import { getDailyKuralId } from "@/lib/kurals";
 import { storeGetKural } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import ThemeSwitcher from "./ThemeSwitcher";
+import type { ComponentType } from "react";
 
-const JournalEditor = dynamic(() => import("./JournalEditor"));
-const ShareCard = dynamic(() => import("./ShareCard"));
+// JournalEditor is loaded imperatively (not via dynamic()) so it renders
+// without a Suspense cycle after the pre-load promise resolves.
+let _journalEditorPromise: Promise<ComponentType<{ kural: Kural; onClose: () => void }>> | null = null;
+function loadJournalEditor() {
+  if (!_journalEditorPromise) {
+    _journalEditorPromise = import("./JournalEditor").then((m) => m.default);
+  }
+  return _journalEditorPromise;
+}
+
 const ExplanationSheet = dynamic(() => import("./ExplanationSheet"));
 const OnboardingHint = dynamic(() => import("./OnboardingHint"), { ssr: false });
 import { useAudio } from "@/lib/audio";
@@ -59,8 +68,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const [isAnimating, setIsAnimating] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [JournalEditorComp, setJournalEditorComp] = useState<ComponentType<{ kural: Kural; onClose: () => void }> | null>(null);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isPlaying, play, stop } = useAudio();
   const [audioUnavailable, setAudioUnavailable] = useState(false);
@@ -71,18 +80,47 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const fmRef = useRef<FMState | null>(null);
   const [fmReady, setFmReady] = useState(false);
 
-  // After FM is ready (page is interactive), warm Share + Journal chunks in background.
+  // After FM is ready, pre-load JournalEditor and store the component reference.
+  // Storing the ref (not just the chunk) means the first render skips Suspense entirely.
   // 300ms delay avoids competing with FM's first animated frame on Android.
   const preloadFired = useRef(false);
   useEffect(() => {
     if (!fmReady || preloadFired.current) return;
     preloadFired.current = true;
     const timer = setTimeout(() => {
-      import("./ShareCard");
-      import("./JournalEditor");
+      loadJournalEditor().then((Comp) => setJournalEditorComp(() => Comp));
     }, 300);
     return () => clearTimeout(timer);
   }, [fmReady]);
+
+  const handleJournalOpen = useCallback(() => {
+    if (JournalEditorComp) {
+      setShowJournal(true);
+    } else {
+      // Pre-load hasn't resolved yet — start/reuse the import and show on ready
+      loadJournalEditor().then((Comp) => {
+        setJournalEditorComp(() => Comp);
+        setShowJournal(true);
+      });
+    }
+  }, [JournalEditorComp]);
+
+  const handleShare = useCallback(async () => {
+    const link = `${window.location.origin}/kural/${kural.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Thirukkural #${kural.id}`,
+          text: kural.meaning_english,
+          url: link,
+        });
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+    } else {
+      try { await navigator.clipboard.writeText(link); } catch { /* ignore */ }
+    }
+  }, [kural.id, kural.meaning_english]);
 
   // Load FM after first paint — swap plain div → motion.div for drag
   useEffect(() => {
@@ -186,7 +224,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       const todayId = getDailyKuralId(new Date().toLocaleDateString("en-CA"));
       fetchKural(todayId).then((k) => { if (k) setKural(k); });
       setShowJournal(false);
-      setShowShare(false);
       setShowExplanation(false);
     };
     window.addEventListener("onekural:go-home", handleGoHome);
@@ -471,13 +508,13 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
             <span>{faved ? "♥" : "♡"}</span> Favourite
           </button>
           <button
-            onClick={() => setShowJournal(true)}
+            onClick={handleJournalOpen}
             className="text-sm text-dark/50 dark:text-dark-fg/50 flex items-center gap-1.5"
           >
             <span>✎</span> Journal
           </button>
           <button
-            onClick={() => setShowShare(true)}
+            onClick={handleShare}
             className="text-sm text-dark/50 dark:text-dark-fg/50 flex items-center gap-1.5"
           >
             <span>↑</span> Share
@@ -487,12 +524,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         {isHome && <Link href="/privacy" className="sr-only">Privacy Policy</Link>}
       </main>
 
-      {showJournal && (
-        <JournalEditor kural={kural} onClose={() => setShowJournal(false)} />
-      )}
-
-      {showShare && (
-        <ShareCard kural={kural} onClose={() => setShowShare(false)} />
+      {showJournal && JournalEditorComp && (
+        <JournalEditorComp kural={kural} onClose={() => setShowJournal(false)} />
       )}
 
       {showExplanation && (

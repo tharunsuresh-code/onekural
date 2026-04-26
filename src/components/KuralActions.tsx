@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useFavorites } from "@/lib/favorites";
 import JournalEditor from "./JournalEditor";
-import ShareCard from "./ShareCard";
 import type { Kural } from "@/lib/types";
 
 interface KuralActionsProps {
@@ -13,13 +12,25 @@ interface KuralActionsProps {
 export default function KuralActions({ kural }: KuralActionsProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const [showJournal, setShowJournal] = useState(false);
-  const [showShare, setShowShare] = useState(false);
 
   const faved = isFavorite(kural.id);
 
-  const handleJournalClick = () => {
-    setShowJournal(true);
-  };
+  const handleShare = useCallback(async () => {
+    const link = `${window.location.origin}/kural/${kural.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Thirukkural #${kural.id}`,
+          text: kural.meaning_english,
+          url: link,
+        });
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+    } else {
+      try { await navigator.clipboard.writeText(link); } catch { /* ignore */ }
+    }
+  }, [kural.id, kural.meaning_english]);
 
   return (
     <>
@@ -35,13 +46,13 @@ export default function KuralActions({ kural }: KuralActionsProps) {
           <span>{faved ? "♥" : "♡"}</span> Favourite
         </button>
         <button
-          onClick={handleJournalClick}
+          onClick={() => setShowJournal(true)}
           className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-dark/15 text-dark/50 hover:border-emerald/30 transition-colors"
         >
           <span>✎</span> Journal
         </button>
         <button
-          onClick={() => setShowShare(true)}
+          onClick={handleShare}
           className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-dark/15 text-dark/50 hover:border-emerald/30 transition-colors"
         >
           <span>↑</span> Share
@@ -50,10 +61,6 @@ export default function KuralActions({ kural }: KuralActionsProps) {
 
       {showJournal && (
         <JournalEditor kural={kural} onClose={() => setShowJournal(false)} />
-      )}
-
-      {showShare && (
-        <ShareCard kural={kural} onClose={() => setShowShare(false)} />
       )}
     </>
   );
