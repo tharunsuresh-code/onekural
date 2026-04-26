@@ -57,27 +57,35 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
     if (user) {
       (async () => {
-        const { data } = await supabase
-          .from("favorites")
-          .select("kural_id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+        try {
+          const { data, error } = await supabase
+            .from("favorites")
+            .select("kural_id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false });
 
-        const remoteFavs = (data ?? []).map((r) => r.kural_id);
-        const localFavs = getLocalFavorites();
+          if (error) throw error;
 
-        const toInsert = localFavs.filter((id) => !remoteFavs.includes(id));
-        if (toInsert.length > 0) {
-          await supabase.from("favorites").insert(
-            toInsert.map((kural_id) => ({ user_id: user.id, kural_id }))
-          );
-          localStorage.removeItem(STORAGE_KEY);
-        } else if (localFavs.length > 0) {
-          localStorage.removeItem(STORAGE_KEY);
+          const remoteFavs = (data ?? []).map((r) => r.kural_id);
+          const localFavs = getLocalFavorites();
+
+          const toInsert = localFavs.filter((id) => !remoteFavs.includes(id));
+          if (toInsert.length > 0) {
+            await supabase.from("favorites").insert(
+              toInsert.map((kural_id) => ({ user_id: user.id, kural_id }))
+            );
+            localStorage.removeItem(STORAGE_KEY);
+          } else if (localFavs.length > 0) {
+            localStorage.removeItem(STORAGE_KEY);
+          }
+
+          setFavorites(Array.from(new Set([...remoteFavs, ...toInsert])));
+        } catch {
+          // Offline or error — show local favorites so UI is functional
+          setFavorites(getLocalFavorites());
+        } finally {
+          setLoaded(true);
         }
-
-        setFavorites(Array.from(new Set([...remoteFavs, ...toInsert])));
-        setLoaded(true);
       })();
     } else {
       setFavorites(getLocalFavorites());

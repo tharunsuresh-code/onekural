@@ -494,7 +494,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         </button>
 
         {/* Navigation row */}
-        <div className="flex items-center justify-between py-3">
+        <div className="flex-shrink-0 flex items-center justify-between py-3">
           <button
             onClick={() => navigateKural("prev")}
             className="flex items-center gap-1.5 text-sm text-dark/40 dark:text-dark-fg/50 hover:text-dark/70 dark:hover:text-dark-fg/80 active:text-dark dark:active:text-dark-fg transition-colors"
@@ -517,7 +517,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         </div>
 
         {/* Action row */}
-        <div className="flex items-center justify-between pt-4 border-t border-dark/10 dark:border-dark-fg/10">
+        <div className="flex-shrink-0 flex items-center justify-between pt-4 border-t border-dark/10 dark:border-dark-fg/10">
           <div className="relative">
             <button
               onClick={async () => {

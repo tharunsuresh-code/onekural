@@ -9,6 +9,7 @@ import type { Kural } from "@/lib/types";
 import { storeGetKural } from "@/lib/kural-store";
 
 const LOCAL_KEY = "kural-journals";
+const REMOTE_CACHE_KEY = "kural-journals-remote-cache";
 
 interface JournalEntry {
   id: string;
@@ -30,6 +31,23 @@ function getLocalJournals(): LocalJournals {
   }
 }
 
+function getRemoteCache(userId: string): JournalEntry[] | null {
+  try {
+    const raw = localStorage.getItem(REMOTE_CACHE_KEY);
+    if (!raw) return null;
+    const { uid, entries } = JSON.parse(raw);
+    return uid === userId ? entries : null;
+  } catch {
+    return null;
+  }
+}
+
+function setRemoteCache(userId: string, entries: JournalEntry[]) {
+  try {
+    localStorage.setItem(REMOTE_CACHE_KEY, JSON.stringify({ uid: userId, entries }));
+  } catch {}
+}
+
 export default function JournalPage() {
   const { user, loading: authLoading } = useAuth();
   const [showSignIn, setShowSignIn] = useState(false);
@@ -41,14 +59,26 @@ export default function JournalPage() {
 
   const loadEntries = useCallback(async () => {
     if (user) {
-      // Logged in: fetch from Supabase
+      // Show cached entries immediately — no spinner if we have data
+      const cached = getRemoteCache(user.id);
+      if (cached) {
+        setEntries(cached.filter((e) => e.reflection?.trim().length > 0));
+        setLoading(false);
+      }
+
+      // Fetch fresh from Supabase (background if cached, blocking if not)
       const { data } = await supabase
         .from("journals")
         .select("id, kural_id, reflection, updated_at")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
-      setEntries((data ?? []).filter((e) => e.reflection?.trim().length > 0));
-      setPage(0);
+
+      if (data) {
+        const fresh = data.filter((e) => e.reflection?.trim().length > 0);
+        setRemoteCache(user.id, fresh);
+        setEntries(fresh);
+        setPage(0);
+      }
     } else {
       // Guest: load from localStorage
       const local = getLocalJournals();

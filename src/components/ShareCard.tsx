@@ -119,6 +119,16 @@ export async function generateImage(
   ratio: AspectRatio,
   boxContent: "tamil" | "transliteration"
 ): Promise<Blob> {
+  // Ensure fonts are in the browser's font cache before drawing — critical for
+  // offline use since next/font self-hosts the files but canvas needs them loaded.
+  await Promise.race([
+    Promise.allSettled([
+      document.fonts.load("bold 44px 'Noto Serif Tamil', serif"),
+      document.fonts.load("28px 'Noto Serif Tamil', serif"),
+    ]),
+    new Promise<void>((r) => setTimeout(r, 2000)),
+  ]);
+
   const { w, h } = SIZES[ratio];
   const canvas = document.createElement("canvas");
   canvas.width = w;
