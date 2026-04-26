@@ -14,6 +14,7 @@ import { getDailyKuralId } from "@/lib/kurals";
 import { storeGetKural } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import ThemeSwitcher from "./ThemeSwitcher";
+import Toast from "./Toast";
 import type { ComponentType } from "react";
 
 // JournalEditor is loaded imperatively (not via dynamic()) so it renders
@@ -70,6 +71,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const [showJournal, setShowJournal] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [JournalEditorComp, setJournalEditorComp] = useState<ComponentType<{ kural: Kural; onClose: () => void }> | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isPlaying, play, stop } = useAudio();
   const [audioUnavailable, setAudioUnavailable] = useState(false);
@@ -114,11 +116,29 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           text: kural.meaning_english,
           url: link,
         });
+        return;
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;
+        // fall through to clipboard on other errors
       }
-    } else {
-      try { await navigator.clipboard.writeText(link); } catch { /* ignore */ }
+    }
+    // Clipboard — modern API (HTTPS) or execCommand fallback (HTTP)
+    let copied = false;
+    if (navigator.clipboard) {
+      try { await navigator.clipboard.writeText(link); copied = true; } catch { /* fall through */ }
+    }
+    if (!copied) {
+      const el = document.createElement("textarea");
+      el.value = link;
+      el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(el);
+      el.select();
+      copied = document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    if (copied) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
     }
   }, [kural.id, kural.meaning_english]);
 
@@ -533,6 +553,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       )}
 
       {isHome && <OnboardingHint />}
+
+      <Toast message="Link copied!" show={shareCopied} />
     </>
   );
 }

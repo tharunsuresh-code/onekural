@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useFavorites } from "@/lib/favorites";
 import JournalEditor from "./JournalEditor";
+import Toast from "./Toast";
 import type { Kural } from "@/lib/types";
 
 interface KuralActionsProps {
@@ -12,6 +13,7 @@ interface KuralActionsProps {
 export default function KuralActions({ kural }: KuralActionsProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const [showJournal, setShowJournal] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const faved = isFavorite(kural.id);
 
@@ -24,11 +26,28 @@ export default function KuralActions({ kural }: KuralActionsProps) {
           text: kural.meaning_english,
           url: link,
         });
+        return;
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;
       }
-    } else {
-      try { await navigator.clipboard.writeText(link); } catch { /* ignore */ }
+    }
+    // Clipboard — modern API (HTTPS) or execCommand fallback (HTTP)
+    let copied = false;
+    if (navigator.clipboard) {
+      try { await navigator.clipboard.writeText(link); copied = true; } catch { /* fall through */ }
+    }
+    if (!copied) {
+      const el = document.createElement("textarea");
+      el.value = link;
+      el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(el);
+      el.select();
+      copied = document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    if (copied) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
     }
   }, [kural.id, kural.meaning_english]);
 
@@ -62,6 +81,8 @@ export default function KuralActions({ kural }: KuralActionsProps) {
       {showJournal && (
         <JournalEditor kural={kural} onClose={() => setShowJournal(false)} />
       )}
+
+      <Toast message="Link copied!" show={shareCopied} />
     </>
   );
 }
