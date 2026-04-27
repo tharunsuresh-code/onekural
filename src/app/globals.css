@@ -67,6 +67,10 @@ html, body {
 .animate-fade-in {
     animation: fadeIn 0.2s ease both;
   }
+  .spinner-delayed {
+    opacity: 0;
+    animation: fadeIn 0.15s ease 0.35s forwards;
+  }
   .text-balance {
     text-wrap: balance;
   }

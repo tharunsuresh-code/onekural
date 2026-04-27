@@ -71,11 +71,12 @@ interface JournalEditorProps {
   kural: Kural;
   onClose: () => void;
   showKuralLink?: boolean;
+  initialReflection?: string;
 }
 
 const SHEET_HEIGHT = 1200;
 
-export default function JournalEditor({ kural, onClose, showKuralLink }: JournalEditorProps) {
+export default function JournalEditor({ kural, onClose, showKuralLink, initialReflection }: JournalEditorProps) {
   const { user } = useAuth();
   const { boxContent } = usePreferences();
   const keyboardOffset = useKeyboardOffset();
@@ -124,7 +125,7 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
     }
   }
 
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialReflection ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [journalId, setJournalId] = useState<string | null>(null);
@@ -135,7 +136,15 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
   // Load existing journal entry for this kural
   useEffect(() => {
     if (user) {
-      // Logged in: load from Supabase
+      // Show localStorage value immediately as offline fallback (only when no
+      // initialReflection was passed — that already came from the remote cache).
+      if (!initialReflection) {
+        const localText = getLocalJournals()[String(kural.id)];
+        if (localText !== undefined) setText(localText);
+      }
+
+      // Fetch authoritative data from Supabase; update text + journalId when available.
+      // Also writes back to localStorage so the next offline open shows current text.
       (async () => {
         const { data } = await supabase
           .from("journals")
@@ -147,6 +156,7 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
         if (data) {
           setText(data.reflection ?? "");
           setJournalId(data.id);
+          setLocalJournal(kural.id, data.reflection ?? "");
         }
       })();
     } else {
@@ -154,6 +164,7 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
       const local = getLocalJournals();
       setText(local[String(kural.id)] ?? "");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, kural.id]);
 
   const saveToSupabase = useCallback(
@@ -161,6 +172,9 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
       if (!user) return;
       setSaving(true);
       setSaved(false);
+
+      // Write-through: keep localStorage in sync so offline access works next open
+      setLocalJournal(kural.id, reflection);
 
       if (!reflection.trim()) {
         // Delete existing entry if text is cleared

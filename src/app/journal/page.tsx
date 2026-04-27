@@ -54,6 +54,7 @@ export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingKural, setEditingKural] = useState<Kural | null>(null);
+  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
 
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 5;
@@ -101,14 +102,17 @@ export default function JournalPage() {
     loadEntries();
   }, [authLoading, loadEntries]);
 
-  const handleEntryClick = async (kuralId: number) => {
-    const kural = await storeGetKural(kuralId);
-    if (kural) setEditingKural(kural);
+  const handleEntryClick = async (entry: JournalEntry) => {
+    const kural = await storeGetKural(entry.kural_id);
+    if (kural) {
+      setEditingEntry(entry);
+      setEditingKural(kural);
+    }
   };
 
   if (authLoading || loading) {
     return (
-      <div className="h-dvh overflow-y-auto flex items-center justify-center">
+      <div className="h-dvh overflow-y-auto flex items-center justify-center spinner-delayed">
         <div className="w-6 h-6 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -149,7 +153,7 @@ export default function JournalPage() {
               {entries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((entry) => (
                 <button
                   key={entry.id}
-                  onClick={() => handleEntryClick(entry.kural_id)}
+                  onClick={() => handleEntryClick(entry)}
                   className="w-full text-left border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -204,8 +208,10 @@ export default function JournalPage() {
         <JournalEditor
           kural={editingKural}
           showKuralLink
+          initialReflection={editingEntry?.reflection}
           onClose={() => {
             setEditingKural(null);
+            setEditingEntry(null);
             loadEntries();
           }}
         />
