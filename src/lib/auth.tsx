@@ -30,11 +30,15 @@ function readCachedSession(): { user: User | null; session: Session | null } {
     const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
     if (!raw) return { user: null, session: null };
     const parsed = JSON.parse(raw) as Session & { expires_at?: number };
-    // Treat an expired session as absent — getSession() will refresh it async
-    if (parsed.expires_at && Date.now() / 1000 > parsed.expires_at) {
-      return { user: null, session: null };
-    }
-    return { user: parsed.user ?? null, session: parsed };
+    const tokenExpired = parsed.expires_at && Date.now() / 1000 > parsed.expires_at;
+    // Return the cached user even when the access token is expired — getSession()
+    // will refresh it async via the refresh token. Returning null here causes
+    // loading:true, which blocks the profile page with a spinner until the network
+    // round-trip completes (visible on force-stop + reopen when token has lapsed).
+    return {
+      user: parsed.user ?? null,
+      session: tokenExpired ? null : parsed,
+    };
   } catch {
     return { user: null, session: null };
   }
