@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { usePreferences } from "@/lib/preferences";
@@ -287,12 +286,12 @@ export default function JournalEditor({ kural, onClose, showKuralLink }: Journal
               </p>
             )}
             {showKuralLink && (
-              <Link
-                href={`/kural/${kural.id}`}
+              <button
+                onClick={() => { window.location.href = `/kural/${kural.id}`; }}
                 className="inline-block mt-2 text-xs text-emerald hover:underline"
               >
                 Go to Kural ↗
-              </Link>
+              </button>
             )}
           </div>
 

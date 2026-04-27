@@ -217,6 +217,17 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Detail-only: SW may serve /kural/1 shell for any /kural/[id] when offline.
+  // Detect URL vs initialKural mismatch and load the correct kural from the store.
+  useEffect(() => {
+    if (isHome) return;
+    const urlId = parseInt(window.location.pathname.split("/").pop() ?? "", 10);
+    if (!isNaN(urlId) && urlId >= 1 && urlId <= MAX_KURAL_ID && urlId !== initialKural.id) {
+      fetchKural(urlId).then((k) => { if (k) setKural(k); });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Home-only: midnight rollover + home-icon reset
   useEffect(() => {
     if (!isHome) return;

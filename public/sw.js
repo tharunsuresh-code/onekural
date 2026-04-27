@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -10,6 +10,7 @@ const APP_SHELL = [
   "/profile",
   "/manifest.json",
   "/data/kurals.json",
+  "/kural/1",  // generic kural shell — served for any /kural/[id] when offline
 ];
 
 // ─── Offline kural helpers ─────────────────────────────────────────────────
@@ -227,8 +228,11 @@ self.addEventListener("fetch", (event) => {
           return fresh;
         }
 
-        // Offline + no cache — home fallback or 503
+        // Offline + no cache — kural pages use the /kural/1 shell (KuralCard
+        // corrects the ID from the URL after hydration); all others use /.
+        const isKuralPage = url.pathname.match(/^\/kural\/\d+$/);
         return (
+          (isKuralPage ? await caches.match("/kural/1") : null) ??
           (await caches.match("/")) ??
           new Response("Offline", { status: 503 })
         );

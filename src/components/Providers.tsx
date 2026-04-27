@@ -23,7 +23,16 @@ export default function Providers({ children }: { children: ReactNode }) {
     };
     setVh();
     window.addEventListener("resize", setVh);
-    return () => window.removeEventListener("resize", setVh);
+    // visualViewport.resize fires when Chrome's offline/address bar shrinks the
+    // visual viewport without a window resize (e.g. TWA offline indicator).
+    window.visualViewport?.addEventListener("resize", setVh);
+    // Re-check on foreground — system UI may have changed while backgrounded.
+    document.addEventListener("visibilitychange", setVh);
+    return () => {
+      window.removeEventListener("resize", setVh);
+      window.visualViewport?.removeEventListener("resize", setVh);
+      document.removeEventListener("visibilitychange", setVh);
+    };
   }, []);
 
   return (
