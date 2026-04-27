@@ -11,7 +11,7 @@ import type { Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
 import { getDailyKuralId } from "@/lib/kurals";
-import { storeGetKural } from "@/lib/kural-store";
+import { storeGetKural, storeGetKuralSync } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import ThemeSwitcher from "./ThemeSwitcher";
 import Toast from "./Toast";
@@ -217,13 +217,23 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Detail-only: SW may serve /kural/1 shell for any /kural/[id] when offline.
-  // Detect URL vs initialKural mismatch and load the correct kural from the store.
-  useEffect(() => {
+  // Detail-only: SW serves the /kural/1 shell for all /kural/[id] navigations
+  // (online and offline). Detect URL vs initialKural mismatch and apply the
+  // correct kural before the browser paints to avoid a visible flash.
+  // useIsomorphicLayoutEffect fires synchronously after commit but before paint,
+  // so a synchronous store hit (store already loaded from explore/journal page)
+  // causes React to re-render with the right kural in the same paint frame.
+  // Falls back to an async fetch if the store hasn't loaded yet.
+  useIsomorphicLayoutEffect(() => {
     if (isHome) return;
     const urlId = parseInt(window.location.pathname.split("/").pop() ?? "", 10);
     if (!isNaN(urlId) && urlId >= 1 && urlId <= MAX_KURAL_ID && urlId !== initialKural.id) {
-      fetchKural(urlId).then((k) => { if (k) setKural(k); });
+      const sync = storeGetKuralSync(urlId);
+      if (sync) {
+        setKural(sync);
+      } else {
+        fetchKural(urlId).then((k) => { if (k) setKural(k); });
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
