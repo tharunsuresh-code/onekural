@@ -268,7 +268,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="h-dvh overflow-y-auto flex items-center justify-center">
+      <div className="h-dvh overflow-y-auto flex items-center justify-center spinner-delayed">
         <div className="w-6 h-6 border-2 border-emerald border-t-transparent rounded-full animate-spin" />
       </div>
     );
