@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -133,11 +133,10 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   if (url.origin !== self.location.origin && !url.hostname.includes("fonts.g")) return;
 
-  // Static assets + kural dataset: cache-first
+  // Static assets: cache-first (content-hashed, never change after deploy)
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
-    url.pathname === "/data/kurals.json" ||
     url.hostname.includes("fonts.g")
   ) {
     event.respondWith(
@@ -150,6 +149,31 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         });
+      })
+    );
+    return;
+  }
+
+  // Kural dataset: stale-while-revalidate — serve cached copy immediately so
+  // the app never waits on a network round-trip, but fetch a fresh copy in the
+  // background so data updates (new kurals.json deploy) reach users promptly.
+  if (url.pathname === "/data/kurals.json") {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const networkFetch = fetch(request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(SHELL_CACHE).then((c) => c.put(request, clone));
+          }
+          return response;
+        }).catch(() => null);
+
+        // Return cached immediately; background fetch updates for next load.
+        if (cached) {
+          networkFetch.catch(() => {});
+          return cached;
+        }
+        return networkFetch;
       })
     );
     return;
@@ -196,9 +220,34 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation: stale-while-revalidate — serve cache instantly (no blank flash
-  // on resume after Android kills the process), update cache in background.
+  // Navigation: kural pages always use the pre-cached /kural/1 shell so there
+  // is never a per-kural network round-trip. KuralCard reads the correct kural
+  // from the client-side IndexedDB store (populated from kurals.json) and
+  // applies it synchronously before the browser paints — no visible flash.
+  // All other navigation requests use stale-while-revalidate.
   if (request.mode === "navigate") {
+    const isKuralPage = url.pathname.match(/^\/kural\/\d+$/);
+
+    if (isKuralPage) {
+      event.respondWith(
+        (async () => {
+          const shell = await caches.match("/kural/1");
+          if (shell) return shell;
+          // Shell not cached yet (very first SW install) — fetch from network.
+          // Cache the result as the shell for future navigations.
+          const fresh = await fetch(request).catch(() => null);
+          if (fresh && fresh.ok) {
+            caches.open(SHELL_CACHE).then((c) => c.put("/kural/1", fresh.clone()));
+            return fresh;
+          }
+          return (await caches.match("/")) ?? new Response("Offline", { status: 503 });
+        })()
+      );
+      return;
+    }
+
+    // Non-kural pages: stale-while-revalidate — serve cache instantly (no blank
+    // flash on resume after Android kills the process), update cache in background.
     event.respondWith(
       (async () => {
         const cached = await caches.match(request, { ignoreSearch: true });
@@ -228,11 +277,8 @@ self.addEventListener("fetch", (event) => {
           return fresh;
         }
 
-        // Offline + no cache — kural pages use the /kural/1 shell (KuralCard
-        // corrects the ID from the URL after hydration); all others use /.
-        const isKuralPage = url.pathname.match(/^\/kural\/\d+$/);
+        // Offline + no cache
         return (
-          (isKuralPage ? await caches.match("/kural/1") : null) ??
           (await caches.match("/")) ??
           new Response("Offline", { status: 503 })
         );

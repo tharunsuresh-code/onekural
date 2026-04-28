@@ -106,6 +106,11 @@ export async function storeGetKural(id: number): Promise<Kural | null> {
   }
 }
 
+/** Synchronous lookup — returns null if the store hasn't loaded yet. */
+export function storeGetKuralSync(id: number): Kural | null {
+  return kuralMap?.get(id) ?? null;
+}
+
 export async function storeGetKuralsByChapter(chapter: number): Promise<Kural[]> {
   try {
     return Array.from((await ensureLoaded()).values())

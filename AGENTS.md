@@ -99,6 +99,19 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 - **`initial={false}` on AnimatePresence**: Suppresses enter animations for ALL children unconditionally — not just on first page mount. Avoid it if you want key-change animations to play.
 - **Static elements**: Chapter badge, language switch, and "Tap for Explanation" must live outside the keyed div — otherwise they blink on every kural navigation (especially visible in Firefox).
 
+## Kural Navigation & Caching
+
+- **Kural page shell strategy**: The SW always serves the pre-cached `/kural/1` shell for every `/kural/[id]` navigation — no per-kural network request. KuralCard detects the URL/initialKural mismatch and loads the correct kural from IndexedDB. This means all kural pages load instantly (same as offline) after first install.
+- **No-flash kural correction**: Use `useIsomorphicLayoutEffect` (not `useEffect`) for the URL-mismatch fix in KuralCard, combined with `storeGetKuralSync(id)` for a synchronous store hit. `useLayoutEffect` fires after React commits but before the browser paints, so a sync store hit causes React to re-render with the correct kural in the same frame — zero visible flash. `storeGetKuralSync` returns `null` only if the store hasn't loaded yet; the async `fetchKural` fallback handles that edge case.
+- **Store is always warm from Explore/Journal**: Both pages call store functions (`storeGetChaptersByBook`, `storeGetKural`, etc.) on mount, which guarantees `kuralMap` is non-null by the time the user navigates to a kural — so `storeGetKuralSync` always succeeds on that path.
+- **kurals.json SWR**: `kurals.json` uses stale-while-revalidate in the SW. The cached copy is served immediately (never blocks); a background fetch updates the cache so a new deploy propagates to users on the next session. The IDB store has a 7-day expiry — it re-fetches from the (always-fresh) SW cache on next expiry.
+- **SW cache version**: Bump `CACHE_VERSION` in `public/sw.js` to invalidate all old caches on the next SW install. Current version: `v5`.
+
+## BackExitHandler Gotchas
+
+- **atRootRef can be stale**: `atRootRef.current` is updated in `useEffect([pathname])`, which fires after paint. If the user navigates to a kural page and presses back before the effect runs, `atRootRef` still holds the previous root page's `true` value. Fix: in `handleNavigate` (Navigation API), eagerly assign `atRootRef.current = ROOT_PATHS.includes(location.pathname)` before reading it. During the `navigate` event, `location.pathname` is still the *source* page (before the traverse commits), so it is always accurate.
+- **handleNavigate fires before popstate**: The Navigation API `navigate` event precedes `popstate` for traversals. Any ref updates made in `handleNavigate` are visible when `handlePopState` runs — use this ordering to pass state between the two handlers without extra refs.
+
 ## Layout Stability
 
 - **Fixed header height**: Use `invisible` (not conditional rendering) for elements that appear/disappear (e.g. "Today's Kural" sub-label). Conditional rendering changes header height and causes the chapter row below to jump.
@@ -112,7 +125,7 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 
 ## PWA / Push Notifications
 
-- Service worker: `public/sw.js` — network-first nav, cache-first static, kural API cached offline
+- Service worker: `public/sw.js` — kural pages served from `/kural/1` shell (no per-URL network fetch), kurals.json stale-while-revalidate, static assets cache-first, kural API network-first with offline fallback
 - Cron: [cron-job.org](https://cron-job.org) triggers `GET /api/push/send` every 30 minutes (external free service — GitHub Actions was removed due to unreliable scheduling that skipped runs)
 - **DO NOT add Vercel cron jobs** (`"crons"` in `vercel.json`) for push notifications — cron-job.org is the scheduler. `vercel.json` stays empty `{}`.
 - VAPID keys in `.env.local` as above

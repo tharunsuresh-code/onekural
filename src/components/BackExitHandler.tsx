@@ -129,6 +129,13 @@ export function BackExitHandler() {
       if (e.navigationType !== "traverse") return;
       // Let the exit-drain traversals proceed — the app is closing anyway.
       if (exitingRef.current) return;
+      // Eagerly sync atRootRef from the live location BEFORE checking it.
+      // The navigate event fires while location.pathname still reflects the
+      // source page (not the destination), so this gives us the correct
+      // "are we currently on a root page?" answer even if useEffect([pathname])
+      // hasn't had a chance to run yet (e.g. user presses back very quickly
+      // after a SPA navigation to a kural page).
+      atRootRef.current = ROOT_PATHS.includes(location.pathname);
       // Suppress the back animation for root pages and sheet dismissals.
       // For non-root pages without a sheet, allow Chrome's normal animation.
       if (isSheetOpen() || atRootRef.current) {
