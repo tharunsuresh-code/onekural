@@ -80,6 +80,9 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const audioUnavailableTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { boxContent, setBoxContent, prefsReady } = usePreferences();
 
+  // Tracks the current kural in a ref so useEffect([]) closures can read a fresh ID.
+  const kuralRef = useRef<Kural>(initialKural);
+
   // Lazy-loaded Framer Motion state
   const fmRef = useRef<FMState | null>(null);
   const [fmReady, setFmReady] = useState(false);
@@ -88,6 +91,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   // Storing the ref (not just the chunk) means the first render skips Suspense entirely.
   // 300ms delay avoids competing with FM's first animated frame on Android.
   const preloadFired = useRef(false);
+  useEffect(() => { kuralRef.current = kural; }, [kural]);
   useEffect(() => {
     if (!fmReady || preloadFired.current) return;
     preloadFired.current = true;
@@ -246,11 +250,14 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     // Fade-out → swap kural → fade-in (mirrors the navigateKural animation)
     const switchToTodaysKural = (nowLocal: string) => {
       const todayId = getDailyKuralId(nowLocal);
+      // Always update metadata silently (no animation needed for date/badge).
+      setLocalDailyKuralId(todayId);
+      setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
+      // Skip the fade animation when the kural content hasn't changed.
+      if (kuralRef.current.id === todayId) return;
       setFadingOut(true);
       setTimeout(async () => {
         const k = await fetchKural(todayId);
-        setLocalDailyKuralId(todayId);
-        setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
         if (k) setKural(k);
         setFadingOut(false);
       }, 200);
