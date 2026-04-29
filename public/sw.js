@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -129,31 +129,9 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and cross-origin (except fonts and Google avatar images)
+  // Skip non-GET and cross-origin (except fonts)
   if (request.method !== "GET") return;
-  if (
-    url.origin !== self.location.origin &&
-    !url.hostname.includes("fonts.g") &&
-    url.hostname !== "lh3.googleusercontent.com"
-  ) return;
-
-  // Google profile avatar images: cache-first so the image is served
-  // instantly on resume without a visible reload when the browser cache expires.
-  if (url.hostname === "lh3.googleusercontent.com") {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response.ok || response.type === "opaque") {
-            const clone = response.clone();
-            caches.open(SHELL_CACHE).then((c) => c.put(request, clone));
-          }
-          return response;
-        }).catch(() => new Response("", { status: 503 }));
-      })
-    );
-    return;
-  }
+  if (url.origin !== self.location.origin && !url.hostname.includes("fonts.g")) return;
 
   // Static assets: cache-first (content-hashed, never change after deploy)
   if (
