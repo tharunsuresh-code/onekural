@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -137,19 +137,20 @@ self.addEventListener("fetch", (event) => {
     url.hostname !== "lh3.googleusercontent.com"
   ) return;
 
-  // Google profile avatar images: cache-first so the image is served
-  // instantly on resume without a visible reload when the browser cache expires.
+  // Google profile avatar: cache-first with CORS responses only.
+  // The <Image crossOrigin="anonymous"> sends a CORS request so we get a real
+  // status-200 response (not opaque). Opaque responses (status 0) are never
+  // cached — serving them back from SW breaks image display in Chrome.
   if (url.hostname === "lh3.googleusercontent.com") {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          if (response.ok || response.type === "opaque") {
-            const clone = response.clone();
-            caches.open(SHELL_CACHE).then((c) => c.put(request, clone));
+          if (response.ok) {
+            caches.open(SHELL_CACHE).then((c) => c.put(request, response.clone()));
           }
           return response;
-        }).catch(() => new Response("", { status: 503 }));
+        }).catch(() => Response.error());
       })
     );
     return;

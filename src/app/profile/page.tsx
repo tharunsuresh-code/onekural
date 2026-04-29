@@ -314,7 +314,7 @@ export default function ProfilePage() {
                   width={80}
                   height={80}
                   className="rounded-full mb-4 object-cover"
-                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
                   unoptimized
                 />
               ) : (

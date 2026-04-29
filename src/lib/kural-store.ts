@@ -190,3 +190,22 @@ export function preloadKuralStore(): void {
   if (typeof window === "undefined") return;
   ensureLoaded().catch(() => {});
 }
+
+// ─── Pending navigation kural ─────────────────────────────────────────────────
+// Set by Explore (and any other list page) right before navigating to a kural
+// page, so KuralCard can pick up the correct kural synchronously in
+// useIsomorphicLayoutEffect — before the first browser paint — without waiting
+// for IDB or the network. This eliminates the flash of kural #1 (the SW shell)
+// when the store hasn't loaded yet.
+let _pendingNavKural: Kural | null = null;
+
+export function setPendingNavKural(kural: Kural): void {
+  _pendingNavKural = kural;
+}
+
+/** Consume and return the pending kural only if its id matches expectedId. */
+export function takePendingNavKural(expectedId: number): Kural | null {
+  const k = _pendingNavKural;
+  _pendingNavKural = null;
+  return k?.id === expectedId ? k : null;
+}
