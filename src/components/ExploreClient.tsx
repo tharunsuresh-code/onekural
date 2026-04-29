@@ -17,8 +17,15 @@ import {
 
 const BOOKS = [1, 2, 3] as const;
 
+const slideVariants = {
+  enter: (d: number) => ({ opacity: 0, x: d * 24 }),
+  center: { opacity: 1, x: 0 },
+  exit: (d: number) => ({ opacity: 0, x: d * -24 }),
+};
+
 export default function ExploreClient() {
   const [activeBook, setActiveBook] = useState<number>(1);
+  const [direction, setDirection] = useState(0);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
   const [chapterKurals, setChapterKurals] = useState<Record<number, Kural[]>>(
@@ -92,6 +99,11 @@ export default function ExploreClient() {
     },
     [expandedChapter, chapterKurals]
   );
+
+  const changeBook = useCallback((newBook: number) => {
+    setDirection(newBook > activeBook ? 1 : -1);
+    setActiveBook(newBook);
+  }, [activeBook]);
 
   const showSearch = searchQuery.trim().length > 0;
 
@@ -189,7 +201,7 @@ export default function ExploreClient() {
               return (
                 <button
                   key={book}
-                  onClick={() => setActiveBook(book)}
+                  onClick={() => changeBook(book)}
                   className={`relative flex-1 py-3 text-sm font-medium text-center transition-colors ${
                     isActive ? "text-emerald" : "text-dark/50 dark:text-dark-fg/50"
                   }`}
@@ -207,10 +219,33 @@ export default function ExploreClient() {
           </div>
 
           {/* Chapter list */}
+          <motion.div
+            style={{ touchAction: "pan-y" }}
+            onPanEnd={(_, info) => {
+              const { offset, velocity } = info;
+              if (
+                Math.abs(offset.x) > Math.abs(offset.y) &&
+                (Math.abs(offset.x) > 50 || Math.abs(velocity.x) > 300)
+              ) {
+                if (offset.x < 0 && activeBook < 3) changeBook(activeBook + 1);
+                else if (offset.x > 0 && activeBook > 1) changeBook(activeBook - 1);
+              }
+            }}
+          >
           {loadingChapters ? (
             <p className="text-sm text-dark/50 dark:text-dark-fg/50 text-center py-8">Loading…</p>
           ) : (
-            <div className="space-y-2">
+            <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={activeBook}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="space-y-2"
+            >
               {chapters.map((ch) => {
                 const isExpanded = expandedChapter === ch.chapter;
                 const kurals = chapterKurals[ch.chapter];
@@ -222,9 +257,9 @@ export default function ExploreClient() {
                   >
                     <button
                       onClick={() => toggleChapter(ch.chapter)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-dark/2 dark:hover:bg-dark-fg/5 transition-colors"
+                      className="w-full flex items-start justify-between px-4 py-3 text-left hover:bg-dark/2 dark:hover:bg-dark-fg/5 transition-colors"
                     >
-                      <div>
+                      <div className="flex-1 min-w-0 pr-3">
                         {boxContent === "tamil" ? (
                           <p className="text-sm font-medium text-dark/80 dark:text-dark-fg/85 font-tamil">
                             {ch.chapter_name_tamil}
@@ -235,9 +270,9 @@ export default function ExploreClient() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs text-dark/40 dark:text-dark-fg/50">
-                          Ch. {ch.chapter}
+                          Ch.&nbsp;{ch.chapter}
                         </span>
                         <motion.span
                           animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -292,8 +327,10 @@ export default function ExploreClient() {
                   </div>
                 );
               })}
-            </div>
+            </motion.div>
+            </AnimatePresence>
           )}
+          </motion.div>
         </>
       )}
     </main>
