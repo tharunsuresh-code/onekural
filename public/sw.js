@@ -129,32 +129,9 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and cross-origin (except fonts and Google avatar images)
+  // Skip non-GET and cross-origin (except fonts)
   if (request.method !== "GET") return;
-  if (
-    url.origin !== self.location.origin &&
-    !url.hostname.includes("fonts.g") &&
-    url.hostname !== "lh3.googleusercontent.com"
-  ) return;
-
-  // Google profile avatar: cache-first with CORS responses only.
-  // The <Image crossOrigin="anonymous"> sends a CORS request so we get a real
-  // status-200 response (not opaque). Opaque responses (status 0) are never
-  // cached — serving them back from SW breaks image display in Chrome.
-  if (url.hostname === "lh3.googleusercontent.com") {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response.ok) {
-            caches.open(SHELL_CACHE).then((c) => c.put(request, response.clone()));
-          }
-          return response;
-        }).catch(() => Response.error());
-      })
-    );
-    return;
-  }
+  if (url.origin !== self.location.origin && !url.hostname.includes("fonts.g")) return;
 
   // Static assets: cache-first (content-hashed, never change after deploy)
   if (

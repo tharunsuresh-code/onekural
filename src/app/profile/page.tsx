@@ -306,24 +306,26 @@ export default function ProfilePage() {
 
             {/* User info — centered */}
             <div className="flex flex-col items-center">
-              {/* Avatar */}
-              {user.user_metadata?.avatar_url ? (
-                <Image
-                  src={user.user_metadata.avatar_url}
-                  alt=""
-                  width={80}
-                  height={80}
-                  className="rounded-full mb-4 object-cover"
-                  crossOrigin="anonymous"
-                  unoptimized
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-emerald/20 dark:bg-emerald/15 flex items-center justify-center mb-4">
+              {/* Avatar — letter placeholder always rendered underneath so a
+                  network re-fetch of the photo never produces an empty flash. */}
+              <div className="relative w-20 h-20 mb-4">
+                <div className="absolute inset-0 rounded-full bg-emerald/20 dark:bg-emerald/15 flex items-center justify-center">
                   <span className="text-2xl font-semibold text-emerald">
                     {(user.user_metadata?.full_name?.[0] ?? user.email?.[0] ?? "U").toUpperCase()}
                   </span>
                 </div>
-              )}
+                {user.user_metadata?.avatar_url && (
+                  <Image
+                    src={user.user_metadata.avatar_url}
+                    alt=""
+                    width={80}
+                    height={80}
+                    className="absolute inset-0 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                    unoptimized
+                  />
+                )}
+              </div>
               <h1 className="text-lg font-semibold text-dark dark:text-dark-fg mb-1">
                 {user.user_metadata?.full_name ?? "User"}
               </h1>
