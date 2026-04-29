@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getKural } from "@/lib/kurals";
+import { getKuralLocalById } from "@/lib/kurals-server";
 import KuralCard from "@/components/KuralCard";
 import { MAX_KURAL_ID } from "@/lib/constants";
 import { BOOK_NAMES } from "@/lib/types";
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   let kural;
   try {
-    kural = await getKural(id);
+    kural = getKuralLocalById(id);
   } catch {
     return {};
   }
@@ -42,7 +42,7 @@ export default async function KuralDetailPage({ params }: Props) {
 
   let kural;
   try {
-    kural = await getKural(id);
+    kural = getKuralLocalById(id);
   } catch {
     notFound();
   }

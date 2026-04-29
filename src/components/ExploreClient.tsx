@@ -13,6 +13,7 @@ import {
   storeGetKural,
   storeGetKuralsByChapter,
   storeSearchKurals,
+  setPendingNavKural,
 } from "@/lib/kural-store";
 
 const BOOKS = [1, 2, 3] as const;
@@ -37,6 +38,11 @@ export default function ExploreClient() {
   const [loadingChapters, setLoadingChapters] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
   const { boxContent, setBoxContent } = usePreferences();
+
+  const handleKuralNav = useCallback((k: Kural) => {
+    setPendingNavKural(k);
+    emitNavStart();
+  }, []);
 
   // Load chapters when book changes
   useEffect(() => {
@@ -163,7 +169,7 @@ export default function ExploreClient() {
                 <Link
                   key={k.id}
                   href={`/kural/${k.id}`}
-                  onClick={emitNavStart}
+                  onClick={() => handleKuralNav(k)}
                   className="block bg-white dark:bg-dark-subtle border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -302,7 +308,7 @@ export default function ExploreClient() {
                                 <Link
                                   key={k.id}
                                   href={`/kural/${k.id}`}
-                                  onClick={emitNavStart}
+                                  onClick={() => handleKuralNav(k)}
                                   className="block py-2 border-b border-dark/5 dark:border-dark-fg/10 last:border-0 hover:bg-emerald/5 dark:hover:bg-emerald/10 rounded px-2 -mx-2 transition-colors"
                                 >
                                   {boxContent === "tamil" ? (

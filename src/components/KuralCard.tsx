@@ -11,7 +11,7 @@ import type { Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
 import { useFavorites } from "@/lib/favorites";
 import { getDailyKuralId } from "@/lib/kurals";
-import { storeGetKural, storeGetKuralSync } from "@/lib/kural-store";
+import { storeGetKural, storeGetKuralSync, takePendingNavKural } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import ThemeSwitcher from "./ThemeSwitcher";
 import Toast from "./Toast";
@@ -224,20 +224,22 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   // Detail-only: SW serves the /kural/1 shell for all /kural/[id] navigations
   // (online and offline). Detect URL vs initialKural mismatch and apply the
   // correct kural before the browser paints to avoid a visible flash.
-  // useIsomorphicLayoutEffect fires synchronously after commit but before paint,
-  // so a synchronous store hit (store already loaded from explore/journal page)
-  // causes React to re-render with the right kural in the same paint frame.
-  // Falls back to an async fetch if the store hasn't loaded yet.
+  // Priority order:
+  //   1. pendingNavKural — set synchronously by the list page on click, always available
+  //   2. storeGetKuralSync — instant if IDB store is already loaded
+  //   3. async fetchKural — fallback (causes one extra paint, but only on first-ever visit)
   useIsomorphicLayoutEffect(() => {
     if (isHome) return;
     const urlId = parseInt(window.location.pathname.split("/").pop() ?? "", 10);
-    if (!isNaN(urlId) && urlId >= 1 && urlId <= MAX_KURAL_ID && urlId !== initialKural.id) {
-      const sync = storeGetKuralSync(urlId);
-      if (sync) {
-        setKural(sync);
-      } else {
-        fetchKural(urlId).then((k) => { if (k) setKural(k); });
-      }
+    if (isNaN(urlId) || urlId < 1 || urlId > MAX_KURAL_ID) return;
+    // Always consume the pending kural to avoid stale data on the next navigation.
+    const pending = takePendingNavKural(urlId);
+    if (urlId === initialKural.id) return; // server already gave us the right kural
+    const sync = pending ?? storeGetKuralSync(urlId);
+    if (sync) {
+      setKural(sync);
+    } else {
+      fetchKural(urlId).then((k) => { if (k) setKural(k); });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
