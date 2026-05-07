@@ -9,6 +9,15 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: "http://localhost:54321",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: "test-anon-key",
     },
+    coverage: {
+      provider: "v8",
+      thresholds: {
+        lines: 30,
+        branches: 30,
+        functions: 30,
+        statements: 30,
+      },
+    },
   },
   resolve: {
     alias: {

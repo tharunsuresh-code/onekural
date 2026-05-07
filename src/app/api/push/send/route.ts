@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   // Service-role client (bypasses RLS to read all subscriptions)
   const supabaseAdmin = createClient(
-    process.env.SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
         const langPref = row.user_id ? (langPrefMap.get(row.user_id) ?? "tamil") : "tamil";
         const body = langPref === "transliteration" ? kural.transliteration : kural.kural_tamil;
         const title = langPref === "transliteration"
-          ? `${BOOK_NAMES[kural.book].english} · ${kural.chapter_name_english}`
-          : `${BOOK_NAMES[kural.book].tamil} · ${kural.chapter_name_tamil}`;
+          ? `${BOOK_NAMES[kural.book]?.english ?? ""} · ${kural.chapter_name_english}`
+          : `${BOOK_NAMES[kural.book]?.tamil ?? ""} · ${kural.chapter_name_tamil}`;
         const payload = JSON.stringify({ title, body, url: "/" });
         try {
           await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload);
@@ -149,8 +149,8 @@ export async function POST(request: NextRequest) {
           const langPref = row.user_id ? (langPrefMap.get(row.user_id) ?? "tamil") : "tamil";
           const body = langPref === "transliteration" ? kural.transliteration : kural.kural_tamil;
           const title = langPref === "transliteration"
-            ? `${BOOK_NAMES[kural.book].english} · ${kural.chapter_name_english}`
-            : `${BOOK_NAMES[kural.book].tamil} · ${kural.chapter_name_tamil}`;
+            ? `${BOOK_NAMES[kural.book]?.english ?? ""} · ${kural.chapter_name_english}`
+            : `${BOOK_NAMES[kural.book]?.tamil ?? ""} · ${kural.chapter_name_tamil}`;
           try {
             await fcm.send({
               token: row.fcm_token as string,
