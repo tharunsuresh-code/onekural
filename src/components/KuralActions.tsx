@@ -5,7 +5,7 @@ import { useFavorites } from "@/lib/favorites";
 import { usePreferences } from "@/lib/preferences";
 import JournalEditor from "./JournalEditor";
 import Toast from "./Toast";
-import { generateImage } from "./ShareCard";
+import { generateImage } from "./ShareCard/ShareImageGenerator";
 import type { Kural } from "@/lib/types";
 
 interface KuralActionsProps {

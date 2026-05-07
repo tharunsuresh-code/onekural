@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 export default function ServiceWorkerRegistrar() {
   useEffect(() => {
@@ -10,10 +11,10 @@ export default function ServiceWorkerRegistrar() {
       navigator.serviceWorker
         .register("/sw.js", { scope: "/" })
         .then((reg) => {
-          console.log("[SW] Registered, scope:", reg.scope);
+          logger.log("[SW] Registered, scope:", reg.scope);
         })
         .catch((err) => {
-          console.error("[SW] Registration failed:", err);
+          logger.error("[SW] Registration failed:", err);
         });
     }
 

@@ -37,7 +37,7 @@ function loadJournalEditor() {
 
 const ExplanationSheet = dynamic(() => import("./ExplanationSheet"));
 const OnboardingHint = dynamic(() => import("./OnboardingHint"), { ssr: false });
-import { generateImage } from "./ShareCard";
+import { generateImage } from "./ShareCard/ShareImageGenerator";
 
 interface KuralCardProps {
   initialKural: Kural;

@@ -4,6 +4,8 @@
  * Subscriptions are keyed by a stable device UUID stored in localStorage.
  */
 
+import { logger } from "./logger";
+
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const DEVICE_ID_KEY = "onekural-device-id";
 const PUSH_TZ_KEY = "onekural-push-tz";
@@ -49,14 +51,14 @@ function getDeviceId(): string {
 export async function subscribeToPush(userId?: string): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   if (!VAPID_PUBLIC_KEY) {
-    console.error("[Push] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set");
+    logger.error("[Push] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set");
     return false;
   }
 
   // Callers must ensure Notification.permission === "granted" before calling this.
   // Requesting permission is the caller's responsibility (e.g. toggle() in profile/page.tsx).
   if (Notification.permission !== "granted") {
-    console.warn("[Push] subscribeToPush called without notification permission granted");
+    logger.warn("[Push] subscribeToPush called without notification permission granted");
     return false;
   }
 
@@ -86,7 +88,7 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
     });
 
     if (!res.ok) {
-      console.error("[Push] Failed to save subscription:", await res.text());
+      logger.error("[Push] Failed to save subscription:", await res.text());
       return false;
     }
     saveDeviceIdToIDB(getDeviceId());
@@ -96,9 +98,9 @@ export async function subscribeToPush(userId?: string): Promise<boolean> {
     if (err instanceof DOMException && err.name === "NotAllowedError") {
       // Notification permission not granted — the UI permission check should
       // have caught this, but guard here as a fallback.
-      console.warn("[Push] Subscribe blocked — notification permission not granted");
+      logger.warn("[Push] Subscribe blocked — notification permission not granted");
     } else {
-      console.error("[Push] Subscribe error:", err);
+      logger.error("[Push] Subscribe error:", err);
     }
     return false;
   }
@@ -120,12 +122,12 @@ export async function unsubscribeFromPush(): Promise<boolean> {
     });
 
     if (!res.ok) {
-      console.error("[Push] Failed to remove subscription:", await res.text());
+      logger.error("[Push] Failed to remove subscription:", await res.text());
       return false;
     }
     return true;
   } catch (err) {
-    console.error("[Push] Unsubscribe error:", err);
+    logger.error("[Push] Unsubscribe error:", err);
     return false;
   }
 }

@@ -19,7 +19,7 @@ const DAILY_ORDER: number[] = (() => {
   const arr = Array.from({ length: MAX_KURAL_ID }, (_, i) => i + 1);
   for (let i = MAX_KURAL_ID - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
   }
   return arr;
 })();
@@ -42,7 +42,7 @@ export function getDailyKuralId(date: string = getTodayLocal()): number {
   const today = new Date(date + "T00:00:00Z").getTime();
   const epoch = new Date(EPOCH + "T00:00:00Z").getTime();
   const daysSinceEpoch = Math.floor((today - epoch) / MS_PER_DAY);
-  return DAILY_ORDER[((daysSinceEpoch % MAX_KURAL_ID) + MAX_KURAL_ID) % MAX_KURAL_ID];
+  return DAILY_ORDER[((daysSinceEpoch % MAX_KURAL_ID) + MAX_KURAL_ID) % MAX_KURAL_ID]!;
 }
 
 

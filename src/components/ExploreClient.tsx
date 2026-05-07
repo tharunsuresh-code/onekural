@@ -212,7 +212,7 @@ export default function ExploreClient() {
                     isActive ? "text-emerald" : "text-dark/50 dark:text-dark-fg/50"
                   }`}
                 >
-                  {BOOK_NAMES[book].english}
+                  {BOOK_NAMES[book]?.english}
                   {isActive && (
                     <motion.div
                       layoutId="book-tab-underline"

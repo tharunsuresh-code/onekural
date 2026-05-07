@@ -18,7 +18,7 @@ function renderExplanation(text: string) {
   const isCitation = (l: string) => /^\*\*/.test(l.trim());
   return lines.map((line, i) => {
     // citation → citation: tight spacing; anything else: larger gap
-    const marginClass = i === 0 ? "" : isCitation(line) && isCitation(lines[i - 1]) ? "mt-2" : "mt-6";
+    const marginClass = i === 0 ? "" : isCitation(line) && isCitation(lines[i - 1]!) ? "mt-2" : "mt-6";
 
     const parts = line.split(/\*\*(.+?)\*\*/g);
     return (
