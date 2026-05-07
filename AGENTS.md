@@ -105,7 +105,7 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 - **No-flash kural correction**: Use `useIsomorphicLayoutEffect` (not `useEffect`) for the URL-mismatch fix in KuralCard, combined with `storeGetKuralSync(id)` for a synchronous store hit. `useLayoutEffect` fires after React commits but before the browser paints, so a sync store hit causes React to re-render with the correct kural in the same frame — zero visible flash. `storeGetKuralSync` returns `null` only if the store hasn't loaded yet; the async `fetchKural` fallback handles that edge case.
 - **Store is always warm from Explore/Journal**: Both pages call store functions (`storeGetChaptersByBook`, `storeGetKural`, etc.) on mount, which guarantees `kuralMap` is non-null by the time the user navigates to a kural — so `storeGetKuralSync` always succeeds on that path.
 - **kurals.json SWR**: `kurals.json` uses stale-while-revalidate in the SW. The cached copy is served immediately (never blocks); a background fetch updates the cache so a new deploy propagates to users on the next session. The IDB store has a 7-day expiry — it re-fetches from the (always-fresh) SW cache on next expiry.
-- **SW cache version**: Bump `CACHE_VERSION` in `public/sw.js` to invalidate all old caches on the next SW install. Current version: `v5`.
+- **SW cache version**: Bump `CACHE_VERSION` in `public/sw.js` to invalidate all old caches on the next SW install. Current version: `v6`.
 
 ## BackExitHandler Gotchas
 

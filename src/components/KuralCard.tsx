@@ -8,15 +8,22 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { Kural } from "@/lib/types";
-import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
-import { useFavorites } from "@/lib/favorites";
 import { getDailyKuralId } from "@/lib/kurals";
 import { storeGetKural, storeGetKuralSync, takePendingNavKural } from "@/lib/kural-store";
+import { useFavorites } from "@/lib/favorites";
 import { usePreferences } from "@/lib/preferences";
-import ThemeSwitcher from "./ThemeSwitcher";
+import { useAudio } from "@/lib/audio";
+import { MAX_KURAL_ID } from "@/lib/constants";
+import type { ComponentType, ElementType } from "react";
+import type { MotionValue } from "framer-motion";
+
+import Header from "./KuralCard/Header";
+import MetaBar from "./KuralCard/MetaBar";
+import KuralContent from "./KuralCard/KuralContent";
+import NavRow from "./KuralCard/NavRow";
+import ActionBar from "./KuralCard/ActionBar";
+import SkeletonOverlay from "./KuralCard/SkeletonOverlay";
 import Toast from "./Toast";
-import { generateImage } from "./ShareCard";
-import type { ComponentType } from "react";
 
 // JournalEditor is loaded imperatively (not via dynamic()) so it renders
 // without a Suspense cycle after the pre-load promise resolves.
@@ -30,8 +37,7 @@ function loadJournalEditor() {
 
 const ExplanationSheet = dynamic(() => import("./ExplanationSheet"));
 const OnboardingHint = dynamic(() => import("./OnboardingHint"), { ssr: false });
-import { useAudio } from "@/lib/audio";
-import { MAX_KURAL_ID } from "@/lib/constants";
+import { generateImage } from "./ShareCard";
 
 interface KuralCardProps {
   initialKural: Kural;
@@ -42,16 +48,11 @@ interface KuralCardProps {
 
 // Framer Motion state loaded lazily after first paint
 interface FMState {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  motion: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  x: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  opacity: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rotate: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  animate: any;
+  motion: typeof import("framer-motion").motion;
+  x: MotionValue<number>;
+  opacity: MotionValue<number>;
+  rotate: MotionValue<number>;
+  animate: typeof import("framer-motion").animate;
   unsubscribe: () => void;
 }
 
@@ -88,8 +89,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const [fmReady, setFmReady] = useState(false);
 
   // After FM is ready, pre-load JournalEditor and store the component reference.
-  // Storing the ref (not just the chunk) means the first render skips Suspense entirely.
-  // 300ms delay avoids competing with FM's first animated frame on Android.
   const preloadFired = useRef(false);
   useEffect(() => { kuralRef.current = kural; }, [kural]);
   useEffect(() => {
@@ -105,13 +104,25 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     if (JournalEditorComp) {
       setShowJournal(true);
     } else {
-      // Pre-load hasn't resolved yet — start/reuse the import and show on ready
       loadJournalEditor().then((Comp) => {
         setJournalEditorComp(() => Comp);
         setShowJournal(true);
       });
     }
   }, [JournalEditorComp]);
+
+  const handlePlayToggle = useCallback(async () => {
+    if (isPlaying) {
+      stop();
+      return;
+    }
+    const ok = await play(kural.kural_tamil);
+    if (!ok) {
+      if (audioUnavailableTimer.current) clearTimeout(audioUnavailableTimer.current);
+      setAudioUnavailable(true);
+      audioUnavailableTimer.current = setTimeout(() => setAudioUnavailable(false), 3500);
+    }
+  }, [isPlaying, kural.kural_tamil, play, stop]);
 
   const handleShare = useCallback(async () => {
     if (isSharing) return;
@@ -121,7 +132,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
 
     try {
       if (navigator.share) {
-        // Try with 1:1 image first
         try {
           const blob = await generateImage(kural, "square", boxContent);
           const file = new File([blob], `kural-${kural.id}.png`, { type: "image/png" });
@@ -130,9 +140,8 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
             setIsSharing(false);
             return;
           }
-        } catch { /* image gen failed — fall through to text share */ }
+        } catch { /* image gen failed */ }
 
-        // Text-only share
         try {
           await navigator.share({ title: "OneKural", text, url: link });
           setIsSharing(false);
@@ -148,7 +157,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
 
     setIsSharing(false);
 
-    // Desktop/HTTP fallback: copy link to clipboard
     let copied = false;
     if (navigator.clipboard) {
       try { await navigator.clipboard.writeText(link); copied = true; } catch { /* fall through */ }
@@ -168,7 +176,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     }
   }, [kural, boxContent, isSharing]);
 
-  // Load FM after first paint — swap plain div → motion.div for drag
+  // Load FM after first paint
   useEffect(() => {
     import("framer-motion").then((mod) => {
       const x = mod.motionValue(0);
@@ -185,10 +193,9 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     return () => { fmRef.current?.unsubscribe(); };
   }, []);
 
-  // Prefetch cache: id → Kural. Populated in background after each navigation.
+  // Prefetch cache: id → Kural.
   const prefetchCache = useRef<Map<number, Kural>>(new Map());
 
-  // Prefetch prev + next whenever the current kural changes.
   useEffect(() => {
     const prefetch = (id: number) => {
       if (id < 1 || id > MAX_KURAL_ID) return;
@@ -201,7 +208,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     prefetch(nextId);
   }, [kural.id]);
 
-  // Home-only: correct server/client date mismatch before first paint (no flash)
+  // Home-only: correct server/client date mismatch before first paint
   useIsomorphicLayoutEffect(() => {
     if (!isHome) return;
     const localDate = new Date().toLocaleDateString("en-CA");
@@ -209,8 +216,6 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     setLocalDailyKuralId(localId);
     setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
     if (localId !== initialKural.id) {
-      // Use server-prefetched adjacent kurals to correct instantly (no network fetch).
-      // Falls back to fetching if the date is somehow not covered.
       const prefetched = adjacentKurals?.[localDate];
       if (prefetched) {
         setKural(prefetched);
@@ -221,20 +226,13 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Detail-only: SW serves the /kural/1 shell for all /kural/[id] navigations
-  // (online and offline). Detect URL vs initialKural mismatch and apply the
-  // correct kural before the browser paints to avoid a visible flash.
-  // Priority order:
-  //   1. pendingNavKural — set synchronously by the list page on click, always available
-  //   2. storeGetKuralSync — instant if IDB store is already loaded
-  //   3. async fetchKural — fallback (causes one extra paint, but only on first-ever visit)
+  // Detail-only: no-flash kural correction
   useIsomorphicLayoutEffect(() => {
     if (isHome) return;
     const urlId = parseInt(window.location.pathname.split("/").pop() ?? "", 10);
     if (isNaN(urlId) || urlId < 1 || urlId > MAX_KURAL_ID) return;
-    // Always consume the pending kural to avoid stale data on the next navigation.
     const pending = takePendingNavKural(urlId);
-    if (urlId === initialKural.id) return; // server already gave us the right kural
+    if (urlId === initialKural.id) return;
     const sync = pending ?? storeGetKuralSync(urlId);
     if (sync) {
       setKural(sync);
@@ -244,18 +242,15 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Home-only: midnight rollover + home-icon reset
+  // Home-only: midnight rollover
   useEffect(() => {
     if (!isHome) return;
     const localDate = new Date().toLocaleDateString("en-CA");
 
-    // Fade-out → swap kural → fade-in (mirrors the navigateKural animation)
     const switchToTodaysKural = (nowLocal: string) => {
       const todayId = getDailyKuralId(nowLocal);
-      // Always update metadata silently (no animation needed for date/badge).
       setLocalDailyKuralId(todayId);
       setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
-      // Skip the fade animation when the kural content hasn't changed.
       if (kuralRef.current.id === todayId) return;
       setFadingOut(true);
       setTimeout(async () => {
@@ -270,15 +265,12 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       const nowLocal = new Date().toLocaleDateString("en-CA");
       const loadedDate = sessionStorage.getItem("kural-date");
       if (!loadedDate || loadedDate === nowLocal) return;
-      // Date rolled over — update in-place without a full page reload
       sessionStorage.setItem("kural-date", nowLocal);
       switchToTodaysKural(nowLocal);
     };
     sessionStorage.setItem("kural-date", localDate);
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // Schedule a refresh at the next local midnight so the kural updates
-    // automatically if the user leaves the app open past midnight.
     const refreshAtMidnight = (): ReturnType<typeof setTimeout> => {
       const now = new Date();
       const nextMidnight = new Date(now);
@@ -287,7 +279,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         const nowLocal = new Date().toLocaleDateString("en-CA");
         sessionStorage.setItem("kural-date", nowLocal);
         switchToTodaysKural(nowLocal);
-        midnightTimer = refreshAtMidnight(); // reschedule for the next midnight
+        midnightTimer = refreshAtMidnight();
       }, nextMidnight.getTime() - now.getTime());
     };
     let midnightTimer = refreshAtMidnight();
@@ -347,7 +339,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     [navigateKural]
   );
 
-  // Keyboard arrow navigation (desktop)
+  // Keyboard arrow navigation
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") navigateKural("prev");
@@ -357,23 +349,15 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     return () => window.removeEventListener("keydown", handleKey);
   }, [navigateKural]);
 
-  const isTamil = boxContent === "tamil";
-  const bookName = BOOK_NAMES[kural.book]?.[isTamil ? "tamil" : "english"] ?? "";
   const faved = isFavorite(kural.id);
-  const prevId = kural.id > 1 ? kural.id - 1 : MAX_KURAL_ID;
-  const nextId = kural.id < MAX_KURAL_ID ? kural.id + 1 : 1;
 
   // Swap div → motion.div once FM is loaded
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const DragDiv = (fmReady ? fmRef.current!.motion.div : "div") as any;
+  const DragDiv = (fmReady ? fmRef.current!.motion.div : "div") as ElementType;
   const dragProps = fmReady && fmRef.current ? {
     drag: "x",
     dragDirectionLock: true,
     dragConstraints: { left: 0, right: 0 },
     dragElastic: { left: 0.15, right: 0.15 },
-    // dragSnapToOrigin removed: handleDragEnd already calls fm.animate(x, 0) which
-    // provides the snap-back. Having both caused two competing springs on the same
-    // MotionValue, producing a visible double-snap stutter on short left swipes.
     onDragEnd: handleDragEnd,
     style: { x: fmRef.current.x, opacity: fmRef.current.opacity, rotate: fmRef.current.rotate },
   } : {};
@@ -381,139 +365,38 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   return (
     <>
       <main className="relative flex flex-col h-dvh max-w-content mx-auto px-6 pt-14 pb-nav select-none">
-        {/* Header */}
-        <div className="relative flex justify-center mb-6">
-          {isHome ? (
-            <>
-              <ThemeSwitcher />
-              <div className="text-center">
-                <h1 className="text-xl font-bold tracking-wide">
-                  <span className="text-emerald">One</span><span className="text-dark dark:text-dark-fg">Kural</span>
-                </h1>
-                <p className={`text-xs uppercase tracking-widest text-emerald/80 dark:text-emerald/90 font-medium mt-1 ${kural.id === localDailyKuralId ? "" : "invisible"}`}>
-                  Today&apos;s Kural
-                </p>
-                <p className={`text-xs text-dark/40 dark:text-dark-fg/50 mt-0.5 ${(kural.id === localDailyKuralId && dateStr) ? "" : "invisible"}`}>{dateStr || "\u00A0"}</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-center">
-                <h1 className="text-xl font-bold tracking-wide">
-                  <span className="text-emerald">One</span><span className="text-dark dark:text-dark-fg">Kural</span>
-                </h1>
-              </div>
-              <button
-                onClick={() => router.back()}
-                className="absolute left-0 top-0 text-sm text-dark/50 dark:text-dark-fg/50 hover:text-emerald transition-colors"
-              >
-                ← Back
-              </button>
-            </>
-          )}
-        </div>
+        <Header
+          isHome={isHome}
+          kuralId={kural.id}
+          localDailyKuralId={localDailyKuralId}
+          dateStr={dateStr}
+          onBack={() => router.back()}
+        />
 
-        {/* Chapter badge + lang switch — fixed above scroll area, never moves */}
-        <div className={`flex items-center justify-between mb-3 ${prefsReady ? "" : "invisible"}`}>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald inline-block" />
-            <span className="text-xs text-dark/50 dark:text-dark-fg/60 tracking-wide">
-              {bookName} · {isTamil ? kural.chapter_name_tamil : kural.chapter_name_english}
-            </span>
-          </div>
-          <button
-            data-lang-toggle
-            onClick={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
-            className="text-xs px-2.5 py-1 rounded-full bg-emerald/15 dark:bg-emerald/20 text-emerald hover:bg-emerald/25 dark:hover:bg-emerald/30 transition-colors"
-          >
-            {boxContent === "tamil" ? "English" : "தமிழ்"}
-          </button>
-        </div>
+        <MetaBar
+          kural={kural}
+          boxContent={boxContent}
+          prefsReady={prefsReady}
+          onToggleLang={() => setBoxContent(boxContent === "tamil" ? "transliteration" : "tamil")}
+        />
 
-        {/* Non-scrolling wrapper */}
         <div className="relative flex-1 min-h-0">
-
-        {/* Swipeable card — plain div until FM loads, then motion.div with drag */}
-        <DragDiv
-          className="h-full overflow-y-auto flex flex-col"
-          {...dragProps}
-        >
-          {/* my-auto centres the block when it fits; collapses to 0 when overflowing */}
-          <div className="my-auto py-2">
-            {/* CSS crossfade: fade out old content, update kural, fade in new */}
-            <div style={{ opacity: fadingOut ? 0 : 1, transition: "opacity 0.2s ease" }} className={prefsReady ? "" : "invisible"}>
-              {/* Editorial decorative line — top */}
-              <div className="divider-editorial mx-auto mb-8 w-12" />
-
-              {/* Kural text */}
-              <div className="text-center mb-8 px-2">
-                {boxContent === "tamil" ? (
-                  <p className="font-kural-tamil font-bold text-dark dark:text-dark-fg whitespace-pre-line text-balance">
-                    {kural.kural_tamil}
-                  </p>
-                ) : (
-                  <p className="font-serif text-3xl font-bold text-dark dark:text-dark-fg whitespace-pre-line leading-tight tracking-normal text-balance">
-                    {kural.transliteration}
-                  </p>
-                )}
-              </div>
-
-              {/* Editorial decorative line — bottom */}
-              <div className="divider-editorial mx-auto mb-8 w-12" />
-
-              {/* Insight */}
-              <div className="bg-emerald/8 dark:bg-emerald/10 backdrop-blur-sm rounded-lg px-6 py-5 shadow-sm dark:shadow-none border border-emerald/10 dark:border-emerald/20 text-center">
-                <p className={`text-xs uppercase tracking-widest text-emerald/70 dark:text-emerald mb-3 font-medium ${boxContent === "tamil" ? "font-tamil text-sm" : ""}`}>
-                  {boxContent === "tamil" ? "பொருள்" : "Insight"}
-                </p>
-                <p className={`font-serif leading-relaxed text-dark/80 dark:text-dark-fg/85 ${boxContent === "tamil" ? "font-tamil text-sm" : "text-base"}`}>
-                  {boxContent === "tamil" ? getSolomonTamil(kural) : kural.meaning_english}
-                </p>
-              </div>
-            </div>
-          </div>
-        </DragDiv>
-
-          {/* Slow-network skeleton — CSS opacity with 500ms delay so it only appears
-              when the fetch is slow; fades out immediately when done */}
-          <div
-            style={{
-              opacity: isAnimating ? 1 : 0,
-              transitionProperty: "opacity",
-              transitionDuration: "0.25s",
-              transitionTimingFunction: "ease",
-              transitionDelay: isAnimating ? "0.5s" : "0s",
-              pointerEvents: "none",
-            }}
-            className="absolute inset-0 z-10 flex flex-col bg-[var(--bg-base)] overflow-hidden"
-            aria-hidden
+          <DragDiv
+            className="h-full overflow-y-auto flex flex-col"
+            {...dragProps}
           >
-            <div className="my-auto space-y-8">
-              {/* Top divider */}
-              <div className="skeleton-shimmer h-px w-12 mx-auto" />
+            <KuralContent
+              kural={kural}
+              boxContent={boxContent}
+              prefsReady={prefsReady}
+              fadingOut={fadingOut}
+            />
+          </DragDiv>
 
-              {/* Kural text lines */}
-              <div className="flex flex-col items-center gap-3 px-2">
-                <div className="skeleton-shimmer h-7 w-4/5 rounded" />
-                <div className="skeleton-shimmer h-7 w-3/4 rounded" />
-                <div className="skeleton-shimmer h-7 w-2/3 rounded" />
-              </div>
-
-              {/* Bottom divider */}
-              <div className="skeleton-shimmer h-px w-12 mx-auto" />
-
-              {/* Insight box */}
-              <div className="rounded-lg px-6 py-5 border border-emerald/10 dark:border-emerald/20 space-y-3">
-                <div className="skeleton-shimmer h-3 w-14 mx-auto rounded" />
-                <div className="skeleton-shimmer h-4 w-full rounded" />
-                <div className="skeleton-shimmer h-4 w-5/6 mx-auto rounded" />
-                <div className="skeleton-shimmer h-4 w-4/6 mx-auto rounded" />
-              </div>
-            </div>
-          </div>
+          <SkeletonOverlay visible={isAnimating} />
         </div>
 
-        {/* Tap for Explanation — fixed above nav row, never moves */}
+        {/* Tap for Explanation */}
         <button
           onClick={() => setShowExplanation(true)}
           className="w-full flex flex-col items-center gap-1.5 py-2 [@media(hover:hover)]:hover:opacity-60 active:opacity-40 transition-opacity"
@@ -523,75 +406,18 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
           </span>
         </button>
 
-        {/* Navigation row */}
-        <div className="flex-shrink-0 flex items-center justify-between py-3">
-          <button
-            onClick={() => navigateKural("prev")}
-            className="flex items-center gap-1.5 text-sm text-dark/40 dark:text-dark-fg/50 hover:text-dark/70 dark:hover:text-dark-fg/80 active:text-dark dark:active:text-dark-fg transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M7 1L1 7.5L7 14" />
-            </svg>
-            <span className="text-xs">#{prevId}</span>
-          </button>
-          <span className="text-xs text-dark/25 dark:text-dark-fg/30">{kural.id} / 1330</span>
-          <button
-            onClick={() => navigateKural("next")}
-            className="flex items-center gap-1.5 text-sm text-dark/40 dark:text-dark-fg/50 hover:text-dark/70 dark:hover:text-dark-fg/80 active:text-dark dark:active:text-dark-fg transition-colors"
-          >
-            <span className="text-xs">#{nextId}</span>
-            <svg width="16" height="16" viewBox="0 0 9 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 1L8 7.5L2 14" />
-            </svg>
-          </button>
-        </div>
+        <NavRow currentId={kural.id} onNavigate={navigateKural} />
 
-        {/* Action row */}
-        <div className="flex-shrink-0 flex items-center justify-between pt-4 border-t border-dark/10 dark:border-dark-fg/10">
-          <div className="relative">
-            <button
-              onClick={async () => {
-                if (isPlaying) { stop(); return; }
-                const ok = await play(kural.kural_tamil);
-                if (!ok) {
-                  if (audioUnavailableTimer.current) clearTimeout(audioUnavailableTimer.current);
-                  setAudioUnavailable(true);
-                  audioUnavailableTimer.current = setTimeout(() => setAudioUnavailable(false), 3500);
-                }
-              }}
-              className={`text-sm flex items-center gap-1.5 transition-colors ${
-                isPlaying ? "text-emerald" : "text-dark/50 dark:text-dark-fg/50"
-              }`}
-            >
-              <span>{isPlaying ? "■" : "♪"}</span> {isPlaying ? "Stop" : "Listen"}
-            </button>
-            {audioUnavailable && (
-              <p className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-44 text-center text-[11px] leading-tight bg-dark/90 dark:bg-dark-fg/90 text-dark-fg dark:text-dark rounded-lg px-3 py-2 pointer-events-none animate-fade-in">
-                Tamil voice not available on this device
-              </p>
-            )}
-          </div>
-          <button
-            onClick={() => toggleFavorite(kural.id)}
-            className={`text-sm flex items-center gap-1.5 transition-colors ${
-              faved ? "text-deep-red dark:text-deep-red/80" : "text-dark/50 dark:text-dark-fg/50"
-            }`}
-          >
-            <span>{faved ? "♥" : "♡"}</span> Favourite
-          </button>
-          <button
-            onClick={handleJournalOpen}
-            className="text-sm text-dark/50 dark:text-dark-fg/50 flex items-center gap-1.5"
-          >
-            <span>✎</span> Journal
-          </button>
-          <button
-            onClick={handleShare}
-            className="text-sm text-dark/50 dark:text-dark-fg/50 flex items-center gap-1.5"
-          >
-            <span>↑</span> {isSharing ? "Sharing…" : "Share"}
-          </button>
-        </div>
+        <ActionBar
+          isPlaying={isPlaying}
+          audioUnavailable={audioUnavailable}
+          faved={faved}
+          isSharing={isSharing}
+          onPlayToggle={handlePlayToggle}
+          onToggleFavorite={() => toggleFavorite(kural.id)}
+          onJournalOpen={handleJournalOpen}
+          onShare={handleShare}
+        />
 
         {isHome && <Link href="/privacy" className="sr-only">Privacy Policy</Link>}
       </main>

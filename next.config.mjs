@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+import withBundleAnalyzer from "@next/bundle-analyzer" /** @type {(opts: { enabled: boolean }) => (config: import('next').NextConfig) => import('next').NextConfig} */;
+
 const nextConfig = {
   experimental: {
     optimizePackageImports: ["framer-motion", "@supabase/supabase-js", "@supabase/auth-js"],
@@ -54,4 +56,6 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+const withAnalyzer = process.env.ANALYZE === "true" ? withBundleAnalyzer({ enabled: true }) : (/** @type {import('next').NextConfig} */ (config) => config);
+
+export default withAnalyzer(nextConfig);

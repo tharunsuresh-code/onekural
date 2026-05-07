@@ -73,7 +73,7 @@ function DailyReminderToggle({ userId }: { userId?: string }) {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     async function onVisibility() {
