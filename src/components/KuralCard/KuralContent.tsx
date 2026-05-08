@@ -7,17 +7,19 @@ interface KuralContentProps {
   kural: Kural;
   boxContent: string;
   prefsReady: boolean;
+  kuralReady: boolean;
   fadingOut: boolean;
 }
 
-export default function KuralContent({ kural, boxContent, prefsReady, fadingOut }: KuralContentProps) {
+export default function KuralContent({ kural, boxContent, prefsReady, kuralReady, fadingOut }: KuralContentProps) {
   const isTamil = boxContent === "tamil";
+  const contentVisible = prefsReady && kuralReady;
 
   return (
     <div className="my-auto py-2">
       <div
         style={{ opacity: fadingOut ? 0 : 1, transition: "opacity 0.2s ease" }}
-        className={prefsReady ? "" : "invisible"}
+        className={contentVisible ? "" : "invisible"}
       >
         {/* Editorial decorative line — top */}
         <div className="divider-editorial mx-auto mb-8 w-12" />

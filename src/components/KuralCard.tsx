@@ -81,6 +81,13 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const audioUnavailableTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { boxContent, setBoxContent, prefsReady } = usePreferences();
 
+  // Guard: stays false until useIsomorphicLayoutEffect confirms the kural is
+  // correct. Prevents stale initialKural (from ISR cache or SW shell) from
+  // flashing on mount before the layout effect corrects it. Must be a fresh
+  // state on every mount because prefsReady survives across navigations
+  // (PreferencesProvider lives in layout.tsx and never unmounts).
+  const [kuralReady, setKuralReady] = useState(false);
+
   // Tracks the current kural in a ref so useEffect([]) closures can read a fresh ID.
   const kuralRef = useRef<Kural>(initialKural);
 
@@ -219,9 +226,15 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       const prefetched = adjacentKurals?.[localDate];
       if (prefetched) {
         setKural(prefetched);
+        setKuralReady(true);
       } else {
-        fetchKural(localId).then((k) => { if (k) setKural(k); });
+        fetchKural(localId).then((k) => {
+          if (k) setKural(k);
+          setKuralReady(true);
+        });
       }
+    } else {
+      setKuralReady(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -232,12 +245,19 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     const urlId = parseInt(window.location.pathname.split("/").pop() ?? "", 10);
     if (isNaN(urlId) || urlId < 1 || urlId > MAX_KURAL_ID) return;
     const pending = takePendingNavKural(urlId);
-    if (urlId === initialKural.id) return;
+    if (urlId === initialKural.id) {
+      setKuralReady(true);
+      return;
+    }
     const sync = pending ?? storeGetKuralSync(urlId);
     if (sync) {
       setKural(sync);
+      setKuralReady(true);
     } else {
-      fetchKural(urlId).then((k) => { if (k) setKural(k); });
+      fetchKural(urlId).then((k) => {
+        if (k) setKural(k);
+        setKuralReady(true);
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -397,6 +417,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
               kural={kural}
               boxContent={boxContent}
               prefsReady={prefsReady}
+              kuralReady={kuralReady}
               fadingOut={fadingOut}
             />
           </DragDiv>
