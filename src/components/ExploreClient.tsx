@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Chapter, Kural } from "@/lib/types";
 import { BOOK_NAMES, getSolomonTamil } from "@/lib/types";
@@ -166,10 +165,14 @@ export default function ExploreClient() {
                 {searchResults.length} result{searchResults.length !== 1 && "s"}
               </p>
               {searchResults.map((k) => (
-                <Link
+                <a
                   key={k.id}
                   href={`/kural/${k.id}`}
-                  onClick={() => handleKuralNav(k)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleKuralNav(k);
+                    window.location.assign(`/kural/${k.id}`);
+                  }}
                   className="block bg-white dark:bg-dark-subtle border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -193,7 +196,7 @@ export default function ExploreClient() {
                   <p className="text-xs text-dark/60 dark:text-dark-fg/65 line-clamp-2">
                     {boxContent === "tamil" ? getSolomonTamil(k) : k.meaning_english}
                   </p>
-                </Link>
+                </a>
               ))}
             </div>
           )}
@@ -305,10 +308,14 @@ export default function ExploreClient() {
                               </p>
                             ) : (
                               kurals.map((k) => (
-                                <Link
+                                <a
                                   key={k.id}
                                   href={`/kural/${k.id}`}
-                                  onClick={() => handleKuralNav(k)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleKuralNav(k);
+                                    window.location.assign(`/kural/${k.id}`);
+                                  }}
                                   className="block py-2 border-b border-dark/5 dark:border-dark-fg/10 last:border-0 hover:bg-emerald/5 dark:hover:bg-emerald/10 rounded px-2 -mx-2 transition-colors"
                                 >
                                   {boxContent === "tamil" ? (
@@ -323,7 +330,7 @@ export default function ExploreClient() {
                                   <p className="text-xs text-dark/50 dark:text-dark-fg/60 mt-1 line-clamp-1">
                                     #{k.id} · {boxContent === "tamil" ? getSolomonTamil(k) : k.meaning_english}
                                   </p>
-                                </Link>
+                                </a>
                               ))
                             )}
                           </div>
