@@ -14,12 +14,13 @@ interface KuralContentProps {
 export default function KuralContent({ kural, boxContent, prefsReady, kuralReady, fadingOut }: KuralContentProps) {
   const isTamil = boxContent === "tamil";
   const contentVisible = prefsReady && kuralReady;
+  const opacity = fadingOut || !contentVisible ? 0 : 1;
 
   return (
     <div className="my-auto py-2">
       <div
-        style={{ opacity: fadingOut ? 0 : 1, transition: "opacity 0.2s ease" }}
-        className={contentVisible ? "" : "invisible"}
+        style={{ opacity, transition: "opacity 0.25s ease" }}
+        aria-hidden={!contentVisible || fadingOut}
       >
         {/* Editorial decorative line — top */}
         <div className="divider-editorial mx-auto mb-8 w-12" />
