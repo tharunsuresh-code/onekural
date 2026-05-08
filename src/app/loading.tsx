@@ -1,12 +1,6 @@
 export default function Loading() {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-cream dark:bg-dark-bg">
-      <span
-        className="font-tamil font-bold text-emerald"
-        style={{ fontSize: "5rem", animation: "fadeIn 0.4s ease forwards", opacity: 0 }}
-      >
-        அ
-      </span>
-    </div>
-  );
+  // Return null — OneKural is offline-first. All data is cached in SW + IDB,
+  // so navigation is instant. A loading overlay would block/delay the UI for
+  // no benefit and causes a visible "அ" flash on every route transition.
+  return null;
 }

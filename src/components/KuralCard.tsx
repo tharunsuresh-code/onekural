@@ -286,9 +286,17 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
 
     const handleGoHome = () => {
       const todayId = getDailyKuralId(new Date().toLocaleDateString("en-CA"));
-      fetchKural(todayId).then((k) => { if (k) setKural(k); });
       setShowJournal(false);
       setShowExplanation(false);
+      setDateStr(new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }));
+      if (kuralRef.current.id === todayId) return;
+      setLocalDailyKuralId(todayId);
+      setFadingOut(true);
+      setTimeout(async () => {
+        const k = await fetchKural(todayId);
+        if (k) setKural(k);
+        setFadingOut(false);
+      }, 200);
     };
     window.addEventListener("onekural:go-home", handleGoHome);
 
