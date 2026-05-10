@@ -226,7 +226,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
       const prefetched = adjacentKurals?.[localDate];
       if (prefetched) {
         setKural(prefetched);
-        setKuralReady(true);
+        setTimeout(() => setKuralReady(true), 120);
       } else {
         fetchKural(localId).then((k) => {
           if (k) setKural(k);
@@ -234,7 +234,7 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
         });
       }
     } else {
-      setKuralReady(true);
+      setTimeout(() => setKuralReady(true), 120);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -246,13 +246,13 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     if (isNaN(urlId) || urlId < 1 || urlId > MAX_KURAL_ID) return;
     const pending = takePendingNavKural(urlId);
     if (urlId === initialKural.id) {
-      setKuralReady(true);
+      setTimeout(() => setKuralReady(true), 120);
       return;
     }
     const sync = pending ?? storeGetKuralSync(urlId);
     if (sync) {
       setKural(sync);
-      setKuralReady(true);
+      setTimeout(() => setKuralReady(true), 120);
     } else {
       fetchKural(urlId).then((k) => {
         if (k) setKural(k);
