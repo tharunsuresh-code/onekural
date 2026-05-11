@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { usePreferences } from "@/lib/preferences";
 import { openSheet, closeSheet } from "@/lib/sheet-depth";
+import { setPendingNavKural } from "@/lib/kural-store";
 import SignInModal from "./SignInModal";
 import type { Kural } from "@/lib/types";
 
@@ -77,6 +79,7 @@ interface JournalEditorProps {
 const SHEET_HEIGHT = 1200;
 
 export default function JournalEditor({ kural, onClose, showKuralLink, initialReflection }: JournalEditorProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const { boxContent } = usePreferences();
   const keyboardOffset = useKeyboardOffset();
@@ -301,7 +304,10 @@ export default function JournalEditor({ kural, onClose, showKuralLink, initialRe
             )}
             {showKuralLink && (
               <button
-                onClick={() => { window.location.href = `/kural/${kural.id}`; }}
+                onClick={() => {
+                  setPendingNavKural(kural);
+                  router.push(`/kural/${kural.id}`);
+                }}
                 className="inline-block mt-2 text-xs text-emerald hover:underline"
               >
                 Go to Kural ↗
