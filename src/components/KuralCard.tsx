@@ -65,7 +65,17 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
   const router = useRouter();
   const isHome = mode === "home";
 
-  const [kural, setKural] = useState<Kural>(initialKural);
+  // Hit IDB first on mount — the store is warm from Explore/Journal/Favorites.
+  // Server initialKural is only used as cold-start fallback (direct URL load,
+  // first install). This eliminates the online network round-trip for RSC
+  // fetches — same instant path online and offline.
+  const [kural, setKural] = useState<Kural>(() => {
+    if (typeof window === "undefined") return initialKural;
+    if (mode === "home") return initialKural;
+    const urlId = parseInt(window.location.pathname.split("/").pop() ?? "", 10);
+    if (isNaN(urlId) || urlId < 1 || urlId > MAX_KURAL_ID) return initialKural;
+    return storeGetKuralSync(urlId) ?? initialKural;
+  });
   const [localDailyKuralId, setLocalDailyKuralId] = useState(dailyKuralId ?? 0);
   const [dateStr, setDateStr] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
@@ -244,11 +254,14 @@ export default function KuralCard({ initialKural, mode = "detail", dailyKuralId,
     if (isHome) return;
     const urlId = parseInt(window.location.pathname.split("/").pop() ?? "", 10);
     if (isNaN(urlId) || urlId < 1 || urlId > MAX_KURAL_ID) return;
-    const pending = takePendingNavKural(urlId);
-    if (urlId === initialKural.id) {
+    // kural is already correct from IDB lazy init in 99% of cases (store is
+    // warm from Explore/Journal/Favorites). Just fade in.
+    if (kural.id === urlId) {
       setTimeout(() => setKuralReady(true), 120);
       return;
     }
+    // Cold start: IDB wasn't warm. Try pending nav kural or async load.
+    const pending = takePendingNavKural(urlId);
     const sync = pending ?? storeGetKuralSync(urlId);
     if (sync) {
       setKural(sync);
