@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v8";
+const CACHE_VERSION = "v9";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -220,28 +220,33 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Kural pages: serve pre-cached /kural/1 shell for ALL request types —
-  // both full navigations and Next.js RSC payload fetches. KuralCard
-  // corrects the kural synchronously from IDB before paint. Same instant
-  // path online and offline — no per-kural network round-trip ever.
-  if (url.pathname.match(/^\/kural\/\d+$/)) {
-    event.respondWith(
-      (async () => {
-        const shell = await caches.match("/kural/1");
-        if (shell) return shell;
-        const fresh = await fetch(request).catch(() => null);
-        if (fresh && fresh.ok) {
-          caches.open(SHELL_CACHE).then((c) => c.put("/kural/1", fresh.clone()));
-          return fresh;
-        }
-        return (await caches.match("/")) ?? new Response("Offline", { status: 503 });
-      })()
-    );
-    return;
-  }
-
-  // Non-kural navigation: stale-while-revalidate
+  // Navigation: kural pages always use the pre-cached /kural/1 shell so there
+  // is never a per-kural network round-trip. KuralCard reads the correct kural
+  // from the client-side IndexedDB store (populated from kurals.json) and
+  // applies it synchronously before the browser paints — no visible flash.
+  // All other navigation requests use stale-while-revalidate.
   if (request.mode === "navigate") {
+    const isKuralPage = url.pathname.match(/^\/kural\/\d+$/);
+
+    if (isKuralPage) {
+      event.respondWith(
+        (async () => {
+          const shell = await caches.match("/kural/1");
+          if (shell) return shell;
+          // Shell not cached yet (very first SW install) — fetch from network.
+          // Cache the result as the shell for future navigations.
+          const fresh = await fetch(request).catch(() => null);
+          if (fresh && fresh.ok) {
+            caches.open(SHELL_CACHE).then((c) => c.put("/kural/1", fresh.clone()));
+            return fresh;
+          }
+          return (await caches.match("/")) ?? new Response("Offline", { status: 503 });
+        })()
+      );
+      return;
+    }
+
+    // Non-kural pages: stale-while-revalidate — serve cache instantly (no blank
     // flash on resume after Android kills the process), update cache in background.
     event.respondWith(
       (async () => {
