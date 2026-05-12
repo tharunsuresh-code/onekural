@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v9";
+const CACHE_VERSION = "v10";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -8,6 +8,7 @@ const APP_SHELL = [
   "/explore",
   "/journal",
   "/profile",
+  "/profile/favorites",
   "/manifest.json",
   "/data/kurals.json",
   "/kural/1",  // generic kural shell — served for any /kural/[id] when offline

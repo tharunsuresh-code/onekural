@@ -48,6 +48,66 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   // Prevents duplicate Supabase fetches when auth re-fires for the same user
   // (e.g. TOKEN_REFRESHED). undefined = not yet loaded for any user.
   const loadedForRef = useRef<string | null | undefined>(undefined);
+  const isOnlineRef = useRef(typeof window !== "undefined" ? navigator.onLine : true);
+
+  // Sync localStorage with Supabase when coming online
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleOnline = async () => {
+      if (!user) return; // Only sync when signed in
+
+      isOnlineRef.current = true;
+      try {
+        const { data, error } = await supabase
+          .from("favorites")
+          .select("kural_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const remoteFavs = (data ?? []).map((r) => r.kural_id);
+        const localFavs = getLocalFavorites();
+
+        // Find local favorites that aren't in remote (need to upload)
+        const toInsert = localFavs.filter((id) => !remoteFavs.includes(id));
+        if (toInsert.length > 0) {
+          await supabase.from("favorites").insert(
+            toInsert.map((kural_id) => ({ user_id: user.id, kural_id }))
+          );
+        }
+
+        // Find remote favorites that aren't in local (need to download)
+        // Note: We don't automatically remove local favorites that were deleted remotely
+        // to avoid losing data if deletion was accidental. User can manually unfavorite.
+
+        // Merge and update local storage
+        const merged = Array.from(new Set([...remoteFavs, ...localFavs]));
+        setFavorites(merged);
+        setLocalFavorites(merged);
+      } catch {
+        // Sync failed — will retry on next online event
+      }
+    };
+
+    const handleOffline = () => {
+      isOnlineRef.current = false;
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Also sync on mount if we're already online
+    if (navigator.onLine) {
+      handleOnline().catch(() => {});
+    }
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [user]);
 
   useEffect(() => {
     const userId = user?.id ?? null;
