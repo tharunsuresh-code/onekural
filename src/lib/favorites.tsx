@@ -53,7 +53,13 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     const userId = user?.id ?? null;
     if (loadedForRef.current === userId) return;
     loadedForRef.current = userId;
-    setLoaded(false);
+
+    // Load from localStorage immediately so the UI is never blocked
+    // while waiting for a Supabase network round-trip (offline, slow
+    // connection, etc.). Background sync happens below.
+    const localFavs = getLocalFavorites();
+    setFavorites(localFavs);
+    setLoaded(true);
 
     if (user) {
       (async () => {
@@ -67,29 +73,22 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           if (error) throw error;
 
           const remoteFavs = (data ?? []).map((r) => r.kural_id);
-          const localFavs = getLocalFavorites();
 
           const toInsert = localFavs.filter((id) => !remoteFavs.includes(id));
           if (toInsert.length > 0) {
             await supabase.from("favorites").insert(
               toInsert.map((kural_id) => ({ user_id: user.id, kural_id }))
             );
-            localStorage.removeItem(STORAGE_KEY);
-          } else if (localFavs.length > 0) {
-            localStorage.removeItem(STORAGE_KEY);
           }
 
-          setFavorites(Array.from(new Set([...remoteFavs, ...toInsert])));
+          // Merge remote + local, dedupe
+          const merged = Array.from(new Set([...remoteFavs, ...localFavs]));
+          setFavorites(merged);
+          setLocalFavorites(merged);
         } catch {
-          // Offline or error — show local favorites so UI is functional
-          setFavorites(getLocalFavorites());
-        } finally {
-          setLoaded(true);
+          // Supabase unreachable — local data is already showing, nothing to do.
         }
       })();
-    } else {
-      setFavorites(getLocalFavorites());
-      setLoaded(true);
     }
   }, [user]);
 

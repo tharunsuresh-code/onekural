@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useFavorites } from "@/lib/favorites";
-import { storeGetKuralsByIds } from "@/lib/kural-store";
+import { storeGetKuralsByIds, setPendingNavKural } from "@/lib/kural-store";
 import { usePreferences } from "@/lib/preferences";
 import { getSolomonTamil } from "@/lib/types";
 import type { Kural } from "@/lib/types";
@@ -65,6 +65,7 @@ export default function FavoritesPage() {
               <Link
                 key={kural.id}
                 href={`/kural/${kural.id}`}
+                onClick={() => setPendingNavKural(kural)}
                 className="block border border-dark/10 dark:border-dark-fg/20 rounded-xl p-4 hover:border-emerald/30 dark:hover:border-emerald/40 transition-colors"
               >
                 <div className="flex items-center justify-between mb-2">

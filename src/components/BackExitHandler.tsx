@@ -35,10 +35,13 @@ export function BackExitHandler() {
   // bug: the drain loop caused rapid history traversal, briefly rendering each page.
   const exitingRef = useRef(false);
 
-  // Keep atRootRef in sync when navigating forward (no popstate fires).
-  useEffect(() => {
-    atRootRef.current = ROOT_PATHS.includes(pathname);
-  }, [pathname]);
+  // Sync atRootRef on every render — useEffect fires after paint and is too
+  // slow for a rapid back-press right after client-side navigation (e.g.
+  // <Link> from kural → explore). Without this, atRootRef reads stale from
+  // the previous page, the popstate handler sees wasAtRoot=false, and the
+  // back press escapes through Next.js's router instead of triggering the
+  // exit toast.
+  atRootRef.current = ROOT_PATHS.includes(pathname);
 
   // Register the popstate handler ONCE for the component lifetime.
   // Using a persistent handler (instead of re-registering per pathname) ensures
