@@ -16,63 +16,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Restore full kurals.json if truncated, then apply fix
+      - name: Restore kurals.json from good commit and apply fix
+        run: |
+          # Find last commit with full kurals.json
+          for SHA in $(git log --format='%H' -- public/data/kurals.json); do
+            BYTES=$(git cat-file -s ${SHA}:public/data/kurals.json 2>/dev/null || echo 0)
+            if [ "$BYTES" -gt 4000000 ]; then
+              echo "Restoring from commit $SHA ($BYTES bytes)"
+              git checkout $SHA -- public/data/kurals.json
+              break
+            fi
+          done
+
+      - name: Apply the fix
         run: |
           node -e "
-          const fs = require('fs');
-          const { execSync } = require('child_process');
-
-          // Check if the current file is valid and complete
-          let data;
-          let fileOk = false;
-          try {
-            const raw = fs.readFileSync('public/data/kurals.json', 'utf8');
-            data = JSON.parse(raw);
-            if (data.length === 1330) fileOk = true;
-          } catch(e) {
-            console.log('File is truncated or invalid:', e.message);
-          }
-
-          if (!fileOk) {
-            console.log('Restoring full kurals.json from last good commit...');
-            const log = execSync('git log --format=%H -- public/data/kurals.json').toString().trim().split('\n');
-            let restored = false;
-            for (const sha of log) {
-              try {
-                const size = parseInt(execSync('git cat-file -s ' + sha + ':public/data/kurals.json').toString().trim());
-                console.log(sha + ': ' + size + ' bytes');
-                if (size > 4000000) {
-                  const content = execSync('git show ' + sha + ':public/data/kurals.json');
-                  const parsed = JSON.parse(content.toString());
-                  if (parsed.length === 1330) {
-                    data = parsed;
-                    console.log('Restored from commit: ' + sha);
-                    restored = true;
-                    break;
-                  }
-                }
-              } catch(e2) {
-                console.log('Skipping ' + sha + ': ' + e2.message);
-              }
-            }
-            if (!restored) throw new Error('Could not find a good kurals.json in git history');
-          }
-
-          const k = data.find(x => x.id === 729);
-          const broken = 'குறள்.\n**கல்லாதவரின்';
-          const fixed  = 'குறள்.\n\n**கல்லாதவரின்';
-
-          if (!k.explanation_tamil.includes(broken)) {
-            console.log('Kural 729 already has correct format - no change needed.');
-            process.exit(0);
-          }
-
-          k.explanation_tamil = k.explanation_tamil.replace(broken, fixed);
-          fs.writeFileSync('public/data/kurals.json', JSON.stringify(data, null, 2) + '\n');
-          console.log('Fixed kural 729 explanation_tamil.');
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('public/data/kurals.json', 'utf8'));
+            const k = data.find(x => x.id === 729);
+            const old = k.explanation_tamil;
+            k.explanation_tamil = old.replace('குறள்.\n**கல்லாதவரின்', 'குறள்.\n\n**கல்லாதவரின்');
+            if (k.explanation_tamil === old) { console.log('Already fixed.'); process.exit(0); }
+            fs.writeFileSync('public/data/kurals.json', JSON.stringify(data, null, 2) + '\n');
+            console.log('Fixed kural 729.');
           "
 
-      - name: Commit and push if changed
+      - name: Commit and push
         run: |
           git config user.email "agent@onekural.com"
           git config user.name "OneKural Agent"
