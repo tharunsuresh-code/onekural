@@ -35,7 +35,6 @@ jobs:
 
           if (!fileOk) {
             console.log('Restoring full kurals.json from last good commit...');
-            // Find the last commit where the file is complete (>4MB)
             const log = execSync('git log --format=%H -- public/data/kurals.json').toString().trim().split('\n');
             let restored = false;
             for (const sha of log) {
@@ -59,13 +58,12 @@ jobs:
             if (!restored) throw new Error('Could not find a good kurals.json in git history');
           }
 
-          // Apply the fix: kural 729 explanation_tamil needs \n\n** not \n**
           const k = data.find(x => x.id === 729);
           const broken = 'குறள்.\n**கல்லாதவரின்';
           const fixed  = 'குறள்.\n\n**கல்லாதவரின்';
 
           if (!k.explanation_tamil.includes(broken)) {
-            console.log('Kural 729 already has correct format — no change needed.');
+            console.log('Kural 729 already has correct format - no change needed.');
             process.exit(0);
           }
 
