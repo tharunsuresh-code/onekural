@@ -1,0 +1,44 @@
+name: One-shot fix kurals 729
+on: workflow_dispatch
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore correct kurals.json from local commit
+        run: |
+          # Find first commit where kurals.json is > 4MB (the correct full file)
+          for sha in $(git log --format="%H" -- public/data/kurals.json); do
+            SIZE=$(git show ${sha}:public/data/kurals.json | wc -c)
+            echo "$sha: $SIZE bytes"
+            if [ $SIZE -gt 4000000 ]; then
+              echo "Found correct commit: $sha ($SIZE bytes)"
+              git checkout ${sha} -- public/data/kurals.json
+              break
+            fi
+          done
+      - name: Verify the fix
+        run: |
+          FILE_SIZE=$(wc -c < public/data/kurals.json)
+          echo "File size: $FILE_SIZE bytes"
+          python3 -c "
+import json
+with open('public/data/kurals.json') as f:
+    d = json.load(f)
+print(f'{len(d)} kurals')
+k729 = next(k for k in d if k['id'] == 729)
+et = k729['explanation_tamil']
+idx = et.find('**')
+print('Before first **: ' + repr(et[max(0,idx-5):idx+10]))
+"
+      - name: Commit and push
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add public/data/kurals.json
+          git diff --staged --stat
+          git commit -m "fix: restore correct kurals.json with proper explanation format for kural #729" || echo "Nothing to commit"
+          git push
