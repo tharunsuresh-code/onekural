@@ -107,10 +107,13 @@ Push subscriptions: keyed by `device_id` (UUID stored in localStorage) — one r
 - **kurals.json SWR**: `kurals.json` uses stale-while-revalidate in the SW. The cached copy is served immediately (never blocks); a background fetch updates the cache so a new deploy propagates to users on the next session. The IDB store has a 7-day expiry — it re-fetches from the (always-fresh) SW cache on next expiry.
 - **SW cache version**: Bump `CACHE_VERSION` in `public/sw.js` to invalidate all old caches on the next SW install. Current version: `v6`.
 
-## BackExitHandler Gotchas
+## BackExitHandler
 
+- **Behavior**: Single back exits from any page (no double-press). Sheets (explanation, share, sign-in, journal editor) dismiss first — they push `oneKuralSheet` history entries and bubble-phase listeners dismiss on popstate.
+- **OAuth cleanup**: `oauthCleanupPending` absorbs the spurious popstate fired by Supabase's `window.location.hash = ''` cleanup. `history.pushState` on OAuth landing preserves the hash using `window.location.href` explicitly (empty URL strips the hash).
 - **atRootRef can be stale**: `atRootRef.current` is updated in `useEffect([pathname])`, which fires after paint. If the user navigates to a kural page and presses back before the effect runs, `atRootRef` still holds the previous root page's `true` value. Fix: in `handleNavigate` (Navigation API), eagerly assign `atRootRef.current = ROOT_PATHS.includes(location.pathname)` before reading it. During the `navigate` event, `location.pathname` is still the *source* page (before the traverse commits), so it is always accurate.
 - **handleNavigate fires before popstate**: The Navigation API `navigate` event precedes `popstate` for traversals. Any ref updates made in `handleNavigate` are visible when `handlePopState` runs — use this ordering to pass state between the two handlers without extra refs.
+- **exitingRef prevents re-entry**: When `history.go(-history.length)` drains the stack during exit, `exitingRef.current = true` prevents `handlePopState` from re-entering and `handleNavigate` from re-intercepting (so Chrome can complete the close animation).
 
 ## Layout Stability
 
