@@ -101,9 +101,15 @@ JSON output:"""
                             content = content.strip()
                         # Parse JSON and reconstruct 3-section text
                         data = json.loads(content)
-                        opening = data.get("opening", data.get("opening_paragraph", "")).strip()
-                        quoted = data.get("quoted", data.get("quoted_words", "")).strip()
-                        conclusion = data.get("conclusion", data.get("conclusion_paragraph", "")).strip()
+                        # Handle case where LLM returns a JSON array instead of object
+                        if isinstance(data, list):
+                            data = data[0] if data else {}
+                        if not isinstance(data, dict):
+                            log(f"  ⚠ Unexpected JSON type for kural {kural_id} ({lang}): {type(data)}")
+                            continue
+                        opening = str(data.get("opening", data.get("opening_paragraph", ""))).strip()
+                        quoted = str(data.get("quoted", data.get("quoted_words", ""))).strip()
+                        conclusion = str(data.get("conclusion", data.get("conclusion_paragraph", ""))).strip()
                         
                         if opening and quoted and conclusion:
                             return f"{opening}\n\n{quoted}\n\n{conclusion}"
