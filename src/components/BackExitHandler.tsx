@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isSheetOpen, dismissTopSheet } from "@/lib/sheet-depth";
 
@@ -16,27 +16,46 @@ function isStandalone() {
 
 export function BackExitHandler() {
   const pathname = usePathname();
+  const [showToast, setShowToast] = useState(false);
+  const exitPending = useRef(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Set when an OAuth redirect is detected; absorbs the one spurious popstate
   // that fires when Supabase cleans the hash with window.location.hash = ''.
   const oauthCleanupPending = useRef(false);
   // Tracks whether we are currently on a root path. Updated both by the
   // pathname effect (forward navigations) and eagerly inside the popstate
-  // handler (so rapid back-press sees the correct value before React
+  // handler (so rapid double-back-press sees the correct value before React
   // has had a chance to re-render).
   const atRootRef = useRef(ROOT_PATHS.includes(pathname));
   // Prevents re-entering exit logic while history.go(-N) is draining the stack.
+  // Without stopImmediatePropagation during drain, Next.js's bubble-phase listener
+  // would update its router state, re-fire useEffect([pathname]), and push a fresh
+  // sentinel — resetting canGoBack() to true so the TWA never closes.
+  // This was also the root cause of the "jarring page slide / blinking sections"
+  // bug: the drain loop caused rapid history traversal, briefly rendering each page.
   const exitingRef = useRef(false);
 
   // Sync atRootRef on every render — useEffect fires after paint and is too
-  // slow for a rapid back-press right after client-side navigation.
+  // slow for a rapid back-press right after client-side navigation (e.g.
+  // <Link> from kural → explore). Without this, atRootRef reads stale from
+  // the previous page, the popstate handler sees wasAtRoot=false, and the
+  // back press escapes through Next.js's router instead of triggering the
+  // exit toast.
   atRootRef.current = ROOT_PATHS.includes(pathname);
 
   // Register the popstate handler ONCE for the component lifetime.
+  // Using a persistent handler (instead of re-registering per pathname) ensures
+  // there is never a window where the handler is absent — which previously allowed
+  // Next.js to intercept back-presses and cause a spurious page scrollbar + layout shift.
   useEffect(() => {
     if (!isStandalone()) return;
 
     const handlePopState = (e: PopStateEvent) => {
-      // While history.go(-N) is draining history toward exit, stop the event.
+      // While history.go(-N) is draining history toward exit, stop the event
+      // but do nothing else. Without stopImmediatePropagation here, Next.js's
+      // bubble-phase listener would update its router state, causing usePathname()
+      // to change, which re-fires useEffect([pathname]) and pushes a fresh sentinel
+      // — resetting canGoBack() to true and looping forever (causing page blinking).
       if (exitingRef.current) {
         e.stopImmediatePropagation();
         return;
@@ -51,37 +70,81 @@ export function BackExitHandler() {
         return;
       }
 
-      // Sheets (explanation, share, sign-in, journal editor) dismiss first.
       if (isSheetOpen()) {
+        // Prevent Next.js from re-rendering the home page when dismissing a sheet.
+        // The sheet's dismiss callback (registered via openSheet) handles the animation.
+        // Note: for sheets on non-root pages, BackExitHandler returns early at the
+        // atRootRef check below, so the sheet's own bubble-phase listener handles it.
         e.stopImmediatePropagation();
         dismissTopSheet();
         return;
       }
 
-      // Single back exits from any page — no more double-press or stack traversal.
+      // Eagerly update atRootRef using location.pathname (browser updates it before
+      // the event fires) so that a rapid second back-press sees the correct value
+      // even if React hasn't re-rendered yet.
+      const wasAtRoot = atRootRef.current;
+      atRootRef.current = ROOT_PATHS.includes(location.pathname);
+
+      // Non-root paths are legitimate navigations — let Next.js handle them normally.
+      if (!wasAtRoot) return;
+
+      // Prevent Next.js router from intercepting this back press.
+      // Without this, Next.js briefly re-renders the page causing a flash,
+      // layout shift on the nav row, and a spurious page scrollbar.
       e.stopImmediatePropagation();
-      exitingRef.current = true;
-      history.go(-(history.length));
+
+      if (exitPending.current) {
+        // Second back press within 2 s — exit the app.
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        exitPending.current = false;
+        setShowToast(false);
+        // Drain all sentinel entries to position 0 (canGoBack() = false).
+        // exitingRef ensures the drain's popstate is stopped so Next.js cannot
+        // update its router state, push a fresh sentinel, and reset canGoBack() = true.
+        exitingRef.current = true;
+        history.go(-(history.length));
+        return;
+      }
+
+      // First back press — show toast and re-push sentinel so the app stays open.
+      history.pushState({ oneKuralRoot: true }, "");
+      exitPending.current = true;
+      setShowToast(true);
+      toastTimer.current = setTimeout(() => {
+        exitPending.current = false;
+        setShowToast(false);
+      }, 2000);
     };
 
     // Capture phase ensures our handler fires before Next.js's bubble-phase listener.
     window.addEventListener("popstate", handlePopState, true);
 
-    // Navigation API (Chrome 102+): intercept traverse navigations to prevent
-    // Android's back-swipe animation. The `navigate` event fires earlier than
-    // `popstate`, so intercepting here blocks the visual transition.
+    // Navigation API (Chrome 102+): intercept traverse navigations BEFORE Chrome
+    // starts any back-slide or predictive-back animation. The `navigate` event fires
+    // earlier in the pipeline than `popstate`, so calling e.intercept() here tells
+    // Chrome to skip the visual transition entirely. popstate still fires after the
+    // intercept handler resolves, so the existing sentinel/toast logic runs unchanged.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nav = (window as any).navigation;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleNavigate = nav
-      ? (e: any) => {
-          if (e.navigationType !== "traverse") return;
-          // Let the exit-drain traversals proceed — the app is closing anyway.
-          if (exitingRef.current) return;
-          // Always intercept to suppress the back-swipe animation.
-          e.intercept({ handler: () => Promise.resolve() });
-        }
-      : null;
+    const handleNavigate = nav ? (e: any) => {
+      if (e.navigationType !== "traverse") return;
+      // Let the exit-drain traversals proceed — the app is closing anyway.
+      if (exitingRef.current) return;
+      // Eagerly sync atRootRef from the live location BEFORE checking it.
+      // The navigate event fires while location.pathname still reflects the
+      // source page (not the destination), so this gives us the correct
+      // "are we currently on a root page?" answer even if useEffect([pathname])
+      // hasn't had a chance to run yet (e.g. user presses back very quickly
+      // after a SPA navigation to a kural page).
+      atRootRef.current = ROOT_PATHS.includes(location.pathname);
+      // Suppress the back animation for root pages and sheet dismissals.
+      // For non-root pages without a sheet, allow Chrome's normal animation.
+      if (isSheetOpen() || atRootRef.current) {
+        e.intercept({ handler: () => Promise.resolve() });
+      }
+    } : null;
 
     if (nav && handleNavigate) {
       nav.addEventListener("navigate", handleNavigate);
@@ -89,6 +152,7 @@ export function BackExitHandler() {
 
     return () => {
       window.removeEventListener("popstate", handlePopState, true);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
       if (nav && handleNavigate) {
         nav.removeEventListener("navigate", handleNavigate);
       }
@@ -97,10 +161,18 @@ export function BackExitHandler() {
 
   // Push a sentinel history entry each time we land on a root path.
   // This gives the Android back button something to "hit" before leaving the app.
+  // Also resets the double-back state when navigating between root paths.
   useEffect(() => {
     if (!isStandalone()) return;
     if (!ROOT_PATHS.includes(pathname)) return;
+    // Belt-and-suspenders: if exit drain is in progress, stopImmediatePropagation
+    // in handlePopState should already prevent Next.js from updating usePathname(),
+    // so this effect shouldn't fire. Guard here too for timing edge cases.
     if (exitingRef.current) return;
+
+    exitPending.current = false;
+    setShowToast(false);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
 
     // When an OAuth redirect lands, the URL hash contains the access token
     // that Supabase's detectSessionInUrl must read. Calling pushState with ""
@@ -108,7 +180,7 @@ export function BackExitHandler() {
     // Instead, pass window.location.href explicitly so the hash is preserved
     // in window.location until Supabase's initialize() reads it.
     // Supabase cleans the hash with window.location.hash = '' which fires a
-    // popstate — oauthCleanupPending absorbs that event.
+    // popstate — oauthCleanupPending absorbs that event to suppress the toast.
     const oauthInUrl =
       window.location.hash.includes("access_token=") ||
       window.location.search.includes("code=");
@@ -117,18 +189,17 @@ export function BackExitHandler() {
       oauthCleanupPending.current = true;
       // Safety: clear after 3 s in case Supabase switches to replaceState
       // (no popstate fires) so the flag doesn't block a real back-press.
-      setTimeout(() => {
-        oauthCleanupPending.current = false;
-      }, 3000);
+      setTimeout(() => { oauthCleanupPending.current = false; }, 3000);
     }
 
-    history.pushState(
-      { oneKuralRoot: true },
-      "",
-      oauthInUrl ? window.location.href : ""
-    );
+    history.pushState({ oneKuralRoot: true }, "", oauthInUrl ? window.location.href : "");
   }, [pathname]);
 
-  // No toast — single back exits immediately.
-  return null;
+  if (!showToast) return null;
+
+  return (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[200] px-5 py-2.5 rounded-full bg-dark/90 dark:bg-dark-fg/90 text-dark-fg dark:text-dark text-sm font-medium pointer-events-none whitespace-nowrap">
+      Press back again to exit
+    </div>
+  );
 }
