@@ -2,10 +2,10 @@ import { MetadataRoute } from "next";
 import { MAX_KURAL_ID } from "@/lib/constants";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticPages = ["/", "/explore", "/about"].map((url) => ({
+  const staticPages = ["/", "/explore", "/about", "/terms", "/privacy"].map((url) => ({
     url: `https://onekural.com${url}`,
     changeFrequency: "weekly" as const,
-    priority: url === "/" ? 1.0 : 0.7,
+    priority: url === "/" ? 1.0 : url === "/about" ? 0.7 : 0.5,
   }));
 
   const kuralPages = Array.from({ length: MAX_KURAL_ID }, (_, i) => ({
