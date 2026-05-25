@@ -1,5 +1,5 @@
 // OneKural Service Worker
-const CACHE_VERSION = "v10";
+const CACHE_VERSION = "v11";
 const SHELL_CACHE = `onekural-shell-${CACHE_VERSION}`;
 const KURAL_CACHE = `onekural-kurals-${CACHE_VERSION}`;
 
@@ -8,11 +8,14 @@ const APP_SHELL = [
   "/explore",
   "/journal",
   "/profile",
-  "/profile/favorites",
   "/manifest.json",
   "/data/kurals.json",
   "/kural/1",  // generic kural shell — served for any /kural/[id] when offline
 ];
+
+// /profile/favorites is NOT in APP_SHELL because cache.addAll is atomic —
+// if one URL fails to fetch during SW install, the entire cache stays empty.
+// Instead it's cached on first visit via the stale-while-revalidate handler.
 
 // ─── Offline kural helpers ─────────────────────────────────────────────────
 // Lazily populated from pre-cached /data/kurals.json on first offline fallback.
