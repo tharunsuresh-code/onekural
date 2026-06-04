@@ -31,6 +31,7 @@ public class FcmService extends FirebaseMessagingService {
     private static final String CHANNEL_ID = "daily_kural";
     private static final String CHANNEL_NAME = "Daily Kural";
     private static final int NOTIFICATION_ID = 1001;
+    static final String EXTRA_KURAL_URL = "kural_url";
 
     @Override
     public void onNewToken(String token) {
@@ -45,6 +46,7 @@ public class FcmService extends FirebaseMessagingService {
 
         String title = "OneKural — Daily Thirukkural";
         String body = "";
+        String kuralUrl = null;
 
         if (remoteMessage.getNotification() != null) {
             if (remoteMessage.getNotification().getTitle() != null) {
@@ -60,16 +62,24 @@ public class FcmService extends FirebaseMessagingService {
             body = remoteMessage.getData().get("body");
         }
 
-        showNotification(title, body);
+        // Extract kural deep link from data payload
+        if (remoteMessage.getData().containsKey("url")) {
+            kuralUrl = remoteMessage.getData().get("url");
+        }
+
+        showNotification(title, body, kuralUrl);
     }
 
-    private void showNotification(String title, String body) {
+    private void showNotification(String title, String body, String kuralUrl) {
         createNotificationChannel();
 
         // Explicit intent to LauncherActivity — opens the TWA app, not Chrome browser
         Intent intent = new Intent(this, LauncherActivity.class);
         intent.setAction("OPEN_MAIN_ACTIVITY");
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (kuralUrl != null && !kuralUrl.isEmpty()) {
+            intent.putExtra(EXTRA_KURAL_URL, kuralUrl);
+        }
 
         int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

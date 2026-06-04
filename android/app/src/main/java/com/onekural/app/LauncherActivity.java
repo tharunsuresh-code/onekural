@@ -30,6 +30,9 @@ import androidx.core.content.ContextCompat;
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
 
+    // Key used by FCM data payload (background notification click)
+    private static final String FCM_DATA_URL_KEY = "url";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,8 +62,30 @@ public class LauncherActivity
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // Update the stored intent so getLaunchingUrl() reads the new notification data
+        // when the app is already running and a notification is tapped.
+        setIntent(intent);
+    }
+
+    @Override
     protected Uri getLaunchingUrl() {
         Uri uri = super.getLaunchingUrl();
+
+        // Check if launched from a notification with a specific kural deep link.
+        // Works for both:
+        //   - Foreground: FcmService passes EXTRA_KURAL_URL ("kural_url")
+        //   - Background: FCM data payload key "url" (passed as Intent extras by system)
+        String kuralUrl = getIntent().getStringExtra(FcmService.EXTRA_KURAL_URL);
+        if (kuralUrl == null || kuralUrl.isEmpty()) {
+            kuralUrl = getIntent().getStringExtra(FCM_DATA_URL_KEY);
+        }
+        if (kuralUrl != null && !kuralUrl.isEmpty()) {
+            String base = "https://onekural.com" + kuralUrl;
+            uri = Uri.parse(base);
+        }
+
         // Append FCM device ID as a query param so the web app can link it to the
         // authenticated user on load (see /api/push/link-fcm-user).
         String deviceId = FcmTokenRegistrar.getOrCreateDeviceId(this);
