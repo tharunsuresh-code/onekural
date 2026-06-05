@@ -32,6 +32,12 @@ public class LauncherActivity
 
     // Key used by FCM data payload (background notification click)
     private static final String FCM_DATA_URL_KEY = "url";
+    private static final String FCM_DATA_DATE_KEY = "date";
+
+    private static String getTodayLocal() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                .format(new java.util.Date());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,9 +87,22 @@ public class LauncherActivity
         if (kuralUrl == null || kuralUrl.isEmpty()) {
             kuralUrl = getIntent().getStringExtra(FCM_DATA_URL_KEY);
         }
+
         if (kuralUrl != null && !kuralUrl.isEmpty()) {
-            String base = "https://onekural.com" + kuralUrl;
-            uri = Uri.parse(base);
+            // Determine if this notification is from today or stale.
+            // Fresh notification → open homepage (shows today's kural).
+            // Stale notification (opened from tray on a later day) → open specific kural.
+            String kuralDate = getIntent().getStringExtra(FcmService.EXTRA_KURAL_DATE);
+            if (kuralDate == null || kuralDate.isEmpty()) {
+                kuralDate = getIntent().getStringExtra(FCM_DATA_DATE_KEY);
+            }
+            if (kuralDate != null && kuralDate.equals(getTodayLocal())) {
+                // Today's notification — homepage
+                uri = Uri.parse("https://onekural.com/");
+            } else {
+                // Stale notification — specific kural page
+                uri = Uri.parse("https://onekural.com" + kuralUrl);
+            }
         }
 
         // Append FCM device ID as a query param so the web app can link it to the

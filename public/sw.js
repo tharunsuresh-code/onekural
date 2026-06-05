@@ -360,7 +360,7 @@ self.addEventListener("push", (event) => {
       body: data.body,
       icon: "/icons/icon-192.png",
       badge: "/icons/badge-96.png",
-      data: { url: data.url || "/" },
+      data: { url: data.url || "/", date: data.date },
       requireInteraction: true,
       vibrate: [200, 100, 200],
     })
@@ -370,11 +370,16 @@ self.addEventListener("push", (event) => {
 // ─── Notification click ────────────────────────────────────────────────────
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  // Always use an absolute URL so openWindow/navigate work correctly in PWA
-  const targetUrl = new URL(
-    event.notification.data?.url || "/",
-    self.location.origin
-  ).href;
+
+  const nd = event.notification.data || {};
+  // If the notification's date matches today, it's fresh — open homepage
+  // (which already shows today's kural). If stale (opened from a previous
+  // day's notification in the tray), navigate to the specific kural page.
+  const today = new Date().toLocaleDateString("en-CA");
+  const isFresh = nd.date && nd.date === today;
+  const path = isFresh ? "/" : (nd.url || "/");
+
+  const targetUrl = new URL(path, self.location.origin).href;
 
   event.waitUntil(
     self.clients

@@ -32,6 +32,7 @@ public class FcmService extends FirebaseMessagingService {
     private static final String CHANNEL_NAME = "Daily Kural";
     private static final int NOTIFICATION_ID = 1001;
     static final String EXTRA_KURAL_URL = "kural_url";
+    static final String EXTRA_KURAL_DATE = "kural_date";
 
     @Override
     public void onNewToken(String token) {
@@ -47,6 +48,7 @@ public class FcmService extends FirebaseMessagingService {
         String title = "OneKural — Daily Thirukkural";
         String body = "";
         String kuralUrl = null;
+        String kuralDate = null;
 
         if (remoteMessage.getNotification() != null) {
             if (remoteMessage.getNotification().getTitle() != null) {
@@ -62,15 +64,18 @@ public class FcmService extends FirebaseMessagingService {
             body = remoteMessage.getData().get("body");
         }
 
-        // Extract kural deep link from data payload
+        // Extract kural deep link and date from data payload
         if (remoteMessage.getData().containsKey("url")) {
             kuralUrl = remoteMessage.getData().get("url");
         }
+        if (remoteMessage.getData().containsKey("date")) {
+            kuralDate = remoteMessage.getData().get("date");
+        }
 
-        showNotification(title, body, kuralUrl);
+        showNotification(title, body, kuralUrl, kuralDate);
     }
 
-    private void showNotification(String title, String body, String kuralUrl) {
+    private void showNotification(String title, String body, String kuralUrl, String kuralDate) {
         createNotificationChannel();
 
         // Explicit intent to LauncherActivity — opens the TWA app, not Chrome browser
@@ -79,6 +84,9 @@ public class FcmService extends FirebaseMessagingService {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         if (kuralUrl != null && !kuralUrl.isEmpty()) {
             intent.putExtra(EXTRA_KURAL_URL, kuralUrl);
+        }
+        if (kuralDate != null && !kuralDate.isEmpty()) {
+            intent.putExtra(EXTRA_KURAL_DATE, kuralDate);
         }
 
         int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;

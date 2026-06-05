@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         const title = langPref === "transliteration"
           ? `${BOOK_NAMES[kural.book]?.english ?? ""} · ${kural.chapter_name_english}`
           : `${BOOK_NAMES[kural.book]?.tamil ?? ""} · ${kural.chapter_name_tamil}`;
-        const payload = JSON.stringify({ title, body, url: `/kural/${kural.id}` });
+        const payload = JSON.stringify({ title, body, url: `/kural/${kural.id}`, date });
         try {
           await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload);
           sent++;
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
             await fcm.send({
               token: row.fcm_token as string,
               notification: { title, body },
-              data: { url: `/kural/${kural.id}` },
+              data: { url: `/kural/${kural.id}`, date },
               android: {
                 priority: "normal",
                 notification: {
